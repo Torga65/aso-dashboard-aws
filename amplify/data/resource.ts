@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { dailyFetch } from "../functions/daily-fetch/resource";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Enums
@@ -65,7 +66,7 @@ const schema = a.schema({
       index("companyName").sortKeys(["week"]),    // query: byCompany(companyName, ...)
     ])
     .authorization((allow) => [
-      allow.authenticated("iam"),          // Lambda writes
+      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)
       allow.publicApiKey().to(["read"]),   // server-side Next.js reads
       allow.authenticated().to(["read"]),  // signed-in dashboard users
     ]),
@@ -104,7 +105,7 @@ const schema = a.schema({
     })
     .identifier(["week"])
     .authorization((allow) => [
-      allow.authenticated("iam"),
+      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)
       allow.publicApiKey().to(["read"]),
       allow.authenticated().to(["read"]),
     ]),
@@ -138,7 +139,7 @@ const schema = a.schema({
       index("status").sortKeys(["startedAt"]), // query: list recent failures, etc.
     ])
     .authorization((allow) => [
-      allow.authenticated("iam"),         // Lambda writes
+      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)         // Lambda writes
       allow.authenticated().to(["read"]), // dashboard users can read sync history
     ]),
 

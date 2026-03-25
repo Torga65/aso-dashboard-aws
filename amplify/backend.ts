@@ -15,24 +15,6 @@ import { dailyFetch } from "./functions/daily-fetch/resource";
 const backend = defineBackend({ auth, data, dailyFetch });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Grant daily-fetch Lambda IAM access to AppSync
-//
-// The schema uses allow.authenticated("iam") — Amplify does not wire this
-// automatically for functions. We add the AppSync:GraphQL policy explicitly.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const lambdaFn = backend.dailyFetch.resources.lambda;
-const graphqlApi = backend.data.resources.graphqlApi;
-
-lambdaFn.addToRolePolicy(
-  new PolicyStatement({
-    effect: Effect.ALLOW,
-    actions: ["appsync:GraphQL"],
-    resources: [`${graphqlApi.arn}/*`],
-  })
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
 // EventBridge Scheduler
 //
 // We use EventBridge Scheduler (not EventBridge Rules) so we can configure:
@@ -44,6 +26,7 @@ lambdaFn.addToRolePolicy(
 // observe the failure and enqueue the retry automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const lambdaFn = backend.dailyFetch.resources.lambda;
 const stack = Stack.of(lambdaFn);
 
 // 1. Dead-letter queue — receives events that exhausted all retry attempts
