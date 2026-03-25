@@ -1,13 +1,7 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  // Output as standalone for optimal Amplify Hosting deployment
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: "standalone",
-
-  // Silence Amplify peer dep warnings during build
   transpilePackages: ["@aws-amplify/ui-react", "aws-amplify"],
-
-  // Security headers
   async headers() {
     return [
       {
