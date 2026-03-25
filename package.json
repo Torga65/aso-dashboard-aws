@@ -12,6 +12,7 @@
     "amplify:deploy": "ampx pipeline-deploy"
   },
   "dependencies": {
+    "@identity/imslib": "file:packages/imslib-0.47.0.tgz",
     "@aws-amplify/adapter-nextjs": "^1.2.0",
     "@aws-amplify/ui-react": "^6.0.0",
     "aws-amplify": "^6.0.0",

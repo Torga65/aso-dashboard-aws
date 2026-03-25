@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { isAuthenticated, getAccessToken, signIn } from "@/lib/ims";
+import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import {
   fetchSites,
   fetchLifecycleData,
@@ -140,7 +140,7 @@ function SummaryCards({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function SuggestionLifecycleView() {
-  const [authed, setAuthed] = useState(false);
+  const { isAuthenticated: authed, accessToken, signIn } = useIMSAuth();
   const [sites, setSites] = useState<SpaceCatSite[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState("");
   const [siteSearch, setSiteSearch] = useState("");
@@ -150,41 +150,30 @@ export function SuggestionLifecycleView() {
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep auth state in sync
-  useEffect(() => {
-    const sync = () => setAuthed(isAuthenticated());
-    sync();
-    window.addEventListener("ims-auth-change", sync);
-    return () => window.removeEventListener("ims-auth-change", sync);
-  }, []);
-
   // Fetch sites when authenticated
   useEffect(() => {
-    if (!authed) return;
-    const token = getAccessToken();
-    if (!token) return;
+    if (!authed || !accessToken) return;
 
     setLoadingSites(true);
-    fetchSites(token)
+    fetchSites(accessToken)
       .then((list) => {
         const sorted = [...list].sort((a, b) => a.baseURL.localeCompare(b.baseURL));
         setSites(sorted);
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoadingSites(false));
-  }, [authed]);
+  }, [authed, accessToken]);
 
   // Fetch lifecycle data when a site is selected
   const loadSiteData = useCallback(
     (siteId: string) => {
-      const token = getAccessToken();
-      if (!token || !siteId) return;
+      if (!accessToken || !siteId) return;
 
       setLoadingData(true);
       setError(null);
       setOpportunities([]);
 
-      fetchLifecycleData(siteId, token)
+      fetchLifecycleData(siteId, accessToken)
         .then(({ opportunities: opps, totalSuggestions: total }) => {
           setOpportunities(opps);
           setTotalSuggestions(total);
@@ -192,7 +181,7 @@ export function SuggestionLifecycleView() {
         .catch((err: Error) => setError(err.message))
         .finally(() => setLoadingData(false));
     },
-    []
+    [accessToken]
   );
 
   function handleSiteChange(e: React.ChangeEvent<HTMLSelectElement>) {
