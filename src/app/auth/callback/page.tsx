@@ -1,14 +1,10 @@
 "use client";
 /**
- * /auth/callback — Adobe IMS OAuth callback page
+ * /auth/callback — legacy redirect target
  *
- * IMS redirects here after sign-in with `#access_token=...` in the URL hash.
- * The @identity/imslib SDK (initialized in IMSAuthProvider) automatically
- * detects the hash on page load, validates the token, fires onAccessToken,
- * and clears the hash.
- *
- * This page just waits for the context to report isAuthenticated, then
- * redirects to wherever the user was heading.
+ * The IMS OAuth flow now redirects back to window.location.pathname (the page
+ * that initiated sign-in), so this route is no longer the OAuth landing point.
+ * If someone hits it directly, just send them home.
  */
 
 import { useEffect } from "react";
@@ -17,22 +13,15 @@ import { useIMSAuth } from "@/contexts/IMSAuthContext";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { isAuthenticated, isReady } = useIMSAuth();
+  const { isAuthenticated } = useIMSAuth();
 
   useEffect(() => {
-    if (!isReady) return;
-
-    if (isAuthenticated) {
-      const returnTo =
-        (typeof sessionStorage !== "undefined" &&
-          sessionStorage.getItem("ims_return_to")) ||
-        "/";
-      sessionStorage.removeItem("ims_return_to");
-      router.replace(returnTo);
-    }
-    // If ready but not authenticated, the imslib may still be processing the
-    // hash — give it a moment before showing an error.
-  }, [isAuthenticated, isReady, router]);
+    // Short wait to let imslib process any #access_token hash if present
+    const timer = setTimeout(() => {
+      router.replace("/");
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
     <div
@@ -45,7 +34,7 @@ export default function AuthCallbackPage() {
         color: "#555",
       }}
     >
-      <p>Completing sign-in…</p>
+      <p>{isAuthenticated ? "Signed in — redirecting…" : "Redirecting…"}</p>
     </div>
   );
 }

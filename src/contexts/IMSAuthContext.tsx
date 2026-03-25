@@ -99,7 +99,7 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           scope: IMS_SCOPES,
           locale: "en-US",
           environment: "prod",
-          redirect_uri: `${window.location.origin}/auth/callback`,
+          redirect_uri: window.location.origin + window.location.pathname,
           autoValidateToken: true,
 
           onAccessToken: (token: { token: string } | string) => {
