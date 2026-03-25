@@ -3,6 +3,7 @@ import { Roboto, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { IMSAuthProvider } from "@/contexts/IMSAuthContext";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -31,11 +32,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${roboto.variable} ${robotoCondensed.variable}`}>
       <body>
-        <div>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </div>
+        <IMSAuthProvider>
+          <div>
+            <Header />
+            <main>{children}</main>
+            <Footer />
+          </div>
+        </IMSAuthProvider>
       </body>
     </html>
   );
