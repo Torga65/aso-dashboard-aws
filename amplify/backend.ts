@@ -37,15 +37,14 @@ const stack = Stack.of(lambdaFn);
 
 // 1. Dead-letter queue — receives events that exhausted all retry attempts
 const dlq = new Queue(stack, "DailyFetchDLQ", {
-  queueName: "daily-fetch-dlq",
-  // Keep failed events for 14 days (the maximum) so ops can inspect and replay
+  // No explicit queueName — let CloudFormation generate one to avoid name conflicts on re-deploy
   retentionPeriod: Duration.days(14),
   encryption: QueueEncryption.SQS_MANAGED,
 });
 
 // 2. IAM role that EventBridge Scheduler assumes to invoke the Lambda
 const schedulerRole = new Role(stack, "DailyFetchSchedulerRole", {
-  roleName: "daily-fetch-scheduler-role",
+  // No explicit roleName — let CloudFormation generate one to avoid AlreadyExists errors on re-deploy
   assumedBy: new ServicePrincipal("scheduler.amazonaws.com"),
   description: "Allows EventBridge Scheduler to invoke the daily-fetch Lambda",
 });
@@ -82,7 +81,7 @@ schedulerRole.addToPolicy(
 // deadLetterConfig: any event that exhausts retries lands in the DLQ.
 
 new CfnSchedule(stack, "DailyFetchSchedule", {
-  name: "daily-fetch-schedule",
+  // No explicit name — let CloudFormation generate one to avoid name conflicts on re-deploy
   description: "Daily ASO customer data ingestion — 02:00 UTC with 60-min flexible window",
   // AWS EventBridge cron format: cron(minutes hours day-of-month month day-of-week year)
   scheduleExpression: "cron(0 2 * * ? *)",
@@ -113,7 +112,7 @@ new CfnSchedule(stack, "DailyFetchSchedule", {
 // ─────────────────────────────────────────────────────────────────────────────
 
 new Alarm(stack, "DailyFetchDLQAlarm", {
-  alarmName: "daily-fetch-dlq-messages",
+  // No explicit alarmName — let CloudFormation generate one to avoid name conflicts on re-deploy
   alarmDescription:
     "daily-fetch Lambda has exhausted all retry attempts — check CloudWatch Logs",
   metric: dlq.metricNumberOfMessagesSent(),
