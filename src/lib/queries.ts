@@ -118,7 +118,7 @@ export async function getAvailableWeeks(): Promise<QueryResult<string[]>> {
 export async function getLatestWeek(): Promise<QueryResult<string | null>> {
   const result = await getAvailableWeeks();
   if (result.error) return result;
-  const latest = result.data[0] ?? null;
+  const latest = result.data?.[0] ?? null;
   return { data: latest, error: null };
 }
 
