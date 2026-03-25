@@ -175,6 +175,13 @@
   font-weight: 700;
 }
 
+/* ─── Auth ──────────────────────────────────────────────────────────────── */
+.navAuth {
+  grid-area: tools;
+  display: flex;
+  align-items: center;
+}
+
 /* ─── Desktop (≥ 900px) ─────────────────────────────────────────────────── */
 @media (width >= 900px) {
   .navWrapper {
