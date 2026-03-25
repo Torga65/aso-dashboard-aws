@@ -18,6 +18,37 @@ type SyncJobDbRecord = Schema["DataSyncJob"]["type"];
 type NoteRecord      = Schema["CustomerNote"]["type"];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Normalisation helpers
+//
+// Legacy data from the SharePoint/JSON import uses different vocabulary to the
+// canonical values the UI expects.  These functions map both so the rest of the
+// code (filters, stats, badges) can use a single consistent set of values.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function normalizeStatus(raw: string | null | undefined): string {
+  const s = (raw ?? "").toLowerCase().trim().replace(/\s+/g, "-");
+  if (s === "production")                    return "Active";
+  if (s === "pre-production")                return "Pre-Production";
+  if (s === "on-hold")                       return "On-Hold";
+  if (s === "dead" || s === "terminated")    return "Churned";
+  if (s === "sandbox")                       return "Pre-Production";
+  // Already canonical (Active, At-Risk, Onboarding, Churned, On-Hold, …)
+  return raw ?? "";
+}
+
+function normalizeEngagement(raw: string | null | undefined): string {
+  const s = (raw ?? "").toLowerCase().trim();
+  if (s === "active")   return "High";
+  if (s === "at risk")  return "Medium";
+  if (s === "critical") return "Low";
+  if (s === "high" || s === "medium" || s === "low") {
+    // Already canonical — preserve capitalisation
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  return "Unknown";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CustomerSnapshot → Customer
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -28,9 +59,9 @@ export function toCustomer(snap: SnapshotRecord): Customer {
     licenseType:                snap.licenseType             ?? "",
     industry:                   snap.industry                ?? "",
     eseLead:                    snap.eseLead                 ?? "",
-    status:                     snap.status                  ?? "",
+    status:                     normalizeStatus(snap.status),
     deploymentType:             snap.deploymentType          ?? "",
-    engagement:                 snap.engagement              ?? "Unknown",
+    engagement:                 normalizeEngagement(snap.engagement),
     blockersStatus:             snap.blockersStatus          ?? "",
     blockers:                   snap.blockers                ?? "",
     feedbackStatus:             snap.feedbackStatus          ?? "",
