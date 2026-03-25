@@ -97,7 +97,6 @@ export function toCustomerNote(record: NoteRecord): CustomerNote {
     companyName: record.companyName,
     week:        record.week,
     note:        record.note,
-    owner:       record.owner  ?? null,
     createdAt:   record.createdAt,
     updatedAt:   record.updatedAt,
   };

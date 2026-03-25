@@ -87,7 +87,6 @@ export interface CustomerNote {
   companyName: string;
   week: string;
   note: string;
-  owner: string | null;
   createdAt: string;
   updatedAt: string;
 }
