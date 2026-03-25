@@ -1,8 +1,5 @@
 import type { EventBridgeEvent, ScheduledEvent, Handler } from "aws-lambda";
-import { Amplify } from "aws-amplify";
-import { generateClient } from "aws-amplify/data";
-import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
-import type { Schema } from "../../data/resource";
+import { AppSyncClient } from "./appsync-client";
 import { fetchCustomers } from "./api-client";
 import {
   normalizeCustomer,
@@ -28,18 +25,18 @@ export const handler: Handler<
   logger.info("Invocation started");
 
   // ── Validate env ──────────────────────────────────────────────────────────
-  const apiKey = process.env.EXTERNAL_API_KEY;
-  const apiBaseUrl = process.env.EXTERNAL_API_BASE_URL;
+  const externalApiKey    = process.env.EXTERNAL_API_KEY;
+  const externalApiBase   = process.env.EXTERNAL_API_BASE_URL;
+  const appsyncEndpoint   = process.env.APPSYNC_ENDPOINT;
+  const appsyncApiKey     = process.env.APPSYNC_API_KEY;
 
-  if (!apiKey)      throw new Error("EXTERNAL_API_KEY is not set");
-  if (!apiBaseUrl)  throw new Error("EXTERNAL_API_BASE_URL is not set");
+  if (!externalApiKey)   throw new Error("EXTERNAL_API_KEY is not set");
+  if (!externalApiBase)  throw new Error("EXTERNAL_API_BASE_URL is not set");
+  if (!appsyncEndpoint)  throw new Error("APPSYNC_ENDPOINT is not set");
+  if (!appsyncApiKey)    throw new Error("APPSYNC_API_KEY is not set");
 
-  // ── Configure Amplify for IAM-authenticated Lambda access ─────────────────
-  const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
-    process.env as Record<string, string>
-  );
-  Amplify.configure(resourceConfig, libraryOptions);
-  const client = generateClient<Schema>();
+  // ── AppSync client (API key auth, no Amplify framework needed) ────────────
+  const client = new AppSyncClient(appsyncEndpoint, appsyncApiKey);
 
   // ── Open audit record ─────────────────────────────────────────────────────
   const jobId = await openSyncJob(
@@ -55,7 +52,7 @@ export const handler: Handler<
     // ── 1. Fetch ─────────────────────────────────────────────────────────────
     jobLogger.info("Fetching data from external API");
     const rawRecords = await fetchCustomers(
-      { baseUrl: apiBaseUrl, apiKey },
+      { baseUrl: externalApiBase, apiKey: externalApiKey },
       jobLogger
     );
     jobLogger.info("Fetch complete", { rawRecordCount: rawRecords.length });
@@ -106,7 +103,7 @@ export const handler: Handler<
     jobLogger.info("Resolved ingestion week", { weekIngested });
 
     // ── 3. Persist snapshots ─────────────────────────────────────────────────
-    jobLogger.info("Writing snapshots to DynamoDB");
+    jobLogger.info("Writing snapshots to AppSync");
     const stats = await writeSnapshots(client, normalized, jobLogger);
 
     jobLogger.info("Snapshot write complete", {
@@ -119,7 +116,6 @@ export const handler: Handler<
     if (stats.errors.length > 0) {
       jobLogger.error("Some snapshots failed to write", undefined, {
         errorCount: stats.errors.length,
-        // Log first 10 errors in full; the rest are counted
         errors: stats.errors.slice(0, 10),
         additionalErrors: Math.max(0, stats.errors.length - 10),
       });

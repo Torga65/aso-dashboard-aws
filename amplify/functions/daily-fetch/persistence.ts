@@ -1,5 +1,4 @@
-import type { Client } from "aws-amplify/data";
-import type { Schema } from "../../data/resource";
+import type { AppSyncClient } from "./appsync-client";
 import type {
   NormalizedSnapshot,
   WeeklySummaryInput,
@@ -9,44 +8,126 @@ import type {
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GraphQL documents
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GET_SNAPSHOT = /* GraphQL */ `
+  query GetCustomerSnapshot($companyName: String!, $week: String!) {
+    getCustomerSnapshot(companyName: $companyName, week: $week) {
+      companyName
+      week
+      sourceLastUpdated
+    }
+  }
+`;
+
+const CREATE_SNAPSHOT = /* GraphQL */ `
+  mutation CreateCustomerSnapshot($input: CreateCustomerSnapshotInput!) {
+    createCustomerSnapshot(input: $input) {
+      companyName
+      week
+    }
+  }
+`;
+
+const UPDATE_SNAPSHOT = /* GraphQL */ `
+  mutation UpdateCustomerSnapshot($input: UpdateCustomerSnapshotInput!) {
+    updateCustomerSnapshot(input: $input) {
+      companyName
+      week
+    }
+  }
+`;
+
+const CREATE_SYNC_JOB = /* GraphQL */ `
+  mutation CreateDataSyncJob($input: CreateDataSyncJobInput!) {
+    createDataSyncJob(input: $input) {
+      id
+    }
+  }
+`;
+
+const UPDATE_SYNC_JOB = /* GraphQL */ `
+  mutation UpdateDataSyncJob($input: UpdateDataSyncJobInput!) {
+    updateDataSyncJob(input: $input) {
+      id
+    }
+  }
+`;
+
+const GET_WEEKLY_SUMMARY = /* GraphQL */ `
+  query GetWeeklySummary($week: String!) {
+    getWeeklySummary(week: $week) {
+      week
+    }
+  }
+`;
+
+const CREATE_WEEKLY_SUMMARY = /* GraphQL */ `
+  mutation CreateWeeklySummary($input: CreateWeeklySummaryInput!) {
+    createWeeklySummary(input: $input) {
+      week
+    }
+  }
+`;
+
+const UPDATE_WEEKLY_SUMMARY = /* GraphQL */ `
+  mutation UpdateWeeklySummary($input: UpdateWeeklySummaryInput!) {
+    updateWeeklySummary(input: $input) {
+      week
+    }
+  }
+`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Response shapes (only the fields we select)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SnapshotKey {
+  companyName: string;
+  week: string;
+  sourceLastUpdated?: string | null;
+}
+
+interface SyncJobId {
+  id: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Sync-job lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Open a DataSyncJob record in status RUNNING.
- * Returns null on failure — the handler continues without an audit record
- * rather than aborting the entire run over a metadata write.
- */
 export async function openSyncJob(
-  client: Client<Schema>,
+  client: AppSyncClient,
   input: { dataSource: string; triggeredBy: string },
   logger: Logger
 ): Promise<string | null> {
   try {
-    const { data, errors } = await client.models.DataSyncJob.create({
-      status: "RUNNING",
-      startedAt: new Date().toISOString(),
-      dataSource: input.dataSource,
-      triggeredBy: input.triggeredBy,
-    });
+    const result = await client.request<{ createDataSyncJob: SyncJobId }>(
+      CREATE_SYNC_JOB,
+      {
+        input: {
+          status: "RUNNING",
+          startedAt: new Date().toISOString(),
+          dataSource: input.dataSource,
+          triggeredBy: input.triggeredBy,
+        },
+      }
+    );
 
-    if (errors?.length) {
-      logger.warn("DataSyncJob.create had errors", { errors });
+    if (result.errors?.length) {
+      logger.warn("DataSyncJob.create had errors", { errors: result.errors });
     }
 
-    return data?.id ?? null;
+    return result.data?.createDataSyncJob?.id ?? null;
   } catch (err) {
     logger.error("Failed to open DataSyncJob — continuing without audit record", err);
     return null;
   }
 }
 
-/**
- * Close an open DataSyncJob with the final status and stats.
- * Errors here are logged but not re-thrown — the run already succeeded or failed.
- */
 export async function closeSyncJob(
-  client: Client<Schema>,
+  client: AppSyncClient,
   jobId: string,
   result: {
     status: "COMPLETED" | "FAILED";
@@ -58,18 +139,23 @@ export async function closeSyncJob(
   logger: Logger
 ): Promise<void> {
   try {
-    const { errors } = await client.models.DataSyncJob.update({
-      id: jobId,
-      status: result.status,
-      completedAt: new Date().toISOString(),
-      weekIngested: result.weekIngested,
-      recordsProcessed: result.recordsProcessed,
-      recordsFailed: result.recordsFailed,
-      errorMessage: result.errorMessage,
-    });
+    const res = await client.request<{ updateDataSyncJob: SyncJobId }>(
+      UPDATE_SYNC_JOB,
+      {
+        input: {
+          id: jobId,
+          status: result.status,
+          completedAt: new Date().toISOString(),
+          weekIngested: result.weekIngested,
+          recordsProcessed: result.recordsProcessed,
+          recordsFailed: result.recordsFailed,
+          errorMessage: result.errorMessage,
+        },
+      }
+    );
 
-    if (errors?.length) {
-      logger.warn("DataSyncJob.update had errors", { errors });
+    if (res.errors?.length) {
+      logger.warn("DataSyncJob.update had errors", { errors: res.errors });
     }
   } catch (err) {
     logger.error("Failed to close DataSyncJob", err, { jobId });
@@ -80,20 +166,8 @@ export async function closeSyncJob(
 // Customer snapshot upsert
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Idempotent upsert for a single CustomerSnapshot.
- *
- * Strategy:
- *   1. GET the existing record by the composite key (companyName, week).
- *   2. If it doesn't exist → CREATE.
- *   3. If it exists and sourceLastUpdated hasn't changed → SKIP (no write).
- *   4. If it exists and sourceLastUpdated changed → UPDATE only changed fields.
- *
- * This means running the Lambda twice with the same source data produces
- * exactly one write on the first run and zero writes on subsequent runs.
- */
 export async function upsertSnapshot(
-  client: Client<Schema>,
+  client: AppSyncClient,
   snapshot: NormalizedSnapshot,
   logger: Logger
 ): Promise<UpsertResult> {
@@ -101,19 +175,26 @@ export async function upsertSnapshot(
   const log = logger.with(key);
 
   // 1. Check for an existing record
-  const { data: existing, errors: getErrors } =
-    await client.models.CustomerSnapshot.get(key);
+  const getResult = await client.request<{ getCustomerSnapshot: SnapshotKey | null }>(
+    GET_SNAPSHOT,
+    key
+  );
 
-  if (getErrors?.length) {
-    log.warn("CustomerSnapshot.get returned errors", { errors: getErrors });
+  if (getResult.errors?.length) {
+    log.warn("CustomerSnapshot.get returned errors", { errors: getResult.errors });
   }
+
+  const existing = getResult.data?.getCustomerSnapshot ?? null;
 
   // 2. No record — create
   if (!existing) {
-    const { errors } = await client.models.CustomerSnapshot.create(snapshot);
-    if (errors?.length) {
+    const createResult = await client.request<{ createCustomerSnapshot: SnapshotKey }>(
+      CREATE_SNAPSHOT,
+      { input: snapshot }
+    );
+    if (createResult.errors?.length) {
       throw new Error(
-        `CustomerSnapshot.create failed: ${errors.map((e) => e.message).join(", ")}`
+        `CustomerSnapshot.create failed: ${createResult.errors.map((e) => e.message).join(", ")}`
       );
     }
     return { action: "created", ...key };
@@ -125,28 +206,22 @@ export async function upsertSnapshot(
   }
 
   // 4. Record exists but source has newer data — update
-  const { errors } = await client.models.CustomerSnapshot.update({
-    ...snapshot,
-    // Re-stamp ingestedAt so we know when this refresh happened
-    ingestedAt: snapshot.ingestedAt,
-  });
+  const updateResult = await client.request<{ updateCustomerSnapshot: SnapshotKey }>(
+    UPDATE_SNAPSHOT,
+    { input: snapshot }
+  );
 
-  if (errors?.length) {
+  if (updateResult.errors?.length) {
     throw new Error(
-      `CustomerSnapshot.update failed: ${errors.map((e) => e.message).join(", ")}`
+      `CustomerSnapshot.update failed: ${updateResult.errors.map((e) => e.message).join(", ")}`
     );
   }
 
   return { action: "updated", ...key };
 }
 
-/**
- * Write all snapshots to DynamoDB with controlled concurrency.
- * Processes items in batches of `concurrency` to avoid flooding AppSync.
- * Returns aggregated SyncStats including per-record errors.
- */
 export async function writeSnapshots(
-  client: Client<Schema>,
+  client: AppSyncClient,
   snapshots: NormalizedSnapshot[],
   logger: Logger,
   concurrency = 20
@@ -191,31 +266,27 @@ export async function writeSnapshots(
 // Weekly summary upsert
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Create or replace the WeeklySummary for a given week.
- * Always overwrites — the summary is fully recomputed from the batch.
- */
 export async function upsertWeeklySummary(
-  client: Client<Schema>,
+  client: AppSyncClient,
   summary: WeeklySummaryInput,
   logger: Logger
 ): Promise<void> {
   const log = logger.with({ week: summary.week });
 
-  // WeeklySummary uses week as its identifier — check first to decide create vs update
-  const { data: existing } = await client.models.WeeklySummary.get({
-    week: summary.week,
-  });
+  const getResult = await client.request<{ getWeeklySummary: { week: string } | null }>(
+    GET_WEEKLY_SUMMARY,
+    { week: summary.week }
+  );
 
-  if (!existing) {
-    const { errors } = await client.models.WeeklySummary.create(summary);
-    if (errors?.length) {
-      log.error("WeeklySummary.create failed", undefined, { errors });
+  if (!getResult.data?.getWeeklySummary) {
+    const createResult = await client.request(CREATE_WEEKLY_SUMMARY, { input: summary });
+    if (createResult.errors?.length) {
+      log.error("WeeklySummary.create failed", undefined, { errors: createResult.errors });
     }
   } else {
-    const { errors } = await client.models.WeeklySummary.update(summary);
-    if (errors?.length) {
-      log.error("WeeklySummary.update failed", undefined, { errors });
+    const updateResult = await client.request(UPDATE_WEEKLY_SUMMARY, { input: summary });
+    if (updateResult.errors?.length) {
+      log.error("WeeklySummary.update failed", undefined, { errors: updateResult.errors });
     }
   }
 }
@@ -224,11 +295,6 @@ export async function upsertWeeklySummary(
 // Concurrency helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Process `items` with at most `concurrency` in-flight promises at a time.
- * Unlike Promise.all, this never starts more than `concurrency` requests
- * simultaneously, keeping DynamoDB/AppSync write traffic predictable.
- */
 async function batchProcess<T, R>(
   items: T[],
   fn: (item: T) => Promise<R>,

@@ -1,5 +1,4 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
-import { dailyFetch } from "../functions/daily-fetch/resource";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Enums
@@ -28,7 +27,7 @@ const schema = a.schema({
    *   - byCompany: list all weeks for one customer      (history page query)
    *
    * Access:
-   *   - Lambda writes via IAM role.
+   *   - Lambda writes via AppSync API key (injected as APPSYNC_API_KEY env var).
    *   - Server-side Next.js reads via API key (no user session required).
    *   - Authenticated dashboard users can also read (Cognito user pool).
    */
@@ -66,9 +65,8 @@ const schema = a.schema({
       index("companyName").sortKeys(["week"]),    // query: byCompany(companyName, ...)
     ])
     .authorization((allow) => [
-      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)
-      allow.publicApiKey().to(["read"]),   // server-side Next.js reads
-      allow.authenticated().to(["read"]),  // signed-in dashboard users
+      allow.publicApiKey(),                 // Lambda + server-side: full CRUD via API key
+      allow.authenticated().to(["read"]),  // signed-in dashboard users (Cognito)
     ]),
 
   /**
@@ -105,9 +103,8 @@ const schema = a.schema({
     })
     .identifier(["week"])
     .authorization((allow) => [
-      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)
-      allow.publicApiKey().to(["read"]),
-      allow.authenticated().to(["read"]),
+      allow.publicApiKey(),                 // Lambda + server-side: full CRUD via API key
+      allow.authenticated().to(["read"]),  // signed-in dashboard users (Cognito)
     ]),
 
   /**
@@ -120,8 +117,8 @@ const schema = a.schema({
    * run on the same day (manual re-triggers, retries).
    *
    * Access:
-   *   - Lambda writes via IAM.
-   *   - Only authenticated users can read (not exposed to public).
+   *   - Lambda writes via AppSync API key.
+   *   - Only authenticated users can read (not exposed to public API key callers).
    */
   DataSyncJob: a
     .model({
@@ -139,8 +136,8 @@ const schema = a.schema({
       index("status").sortKeys(["startedAt"]), // query: list recent failures, etc.
     ])
     .authorization((allow) => [
-      allow.resource(dailyFetch),   // Lambda writes (IAM, wired automatically)         // Lambda writes
-      allow.authenticated().to(["read"]), // dashboard users can read sync history
+      allow.publicApiKey(),                 // Lambda writes via API key
+      allow.authenticated().to(["read"]),  // dashboard users can read sync history
     ]),
 
   /**

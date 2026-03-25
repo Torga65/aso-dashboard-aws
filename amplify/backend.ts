@@ -27,6 +27,13 @@ const backend = defineBackend({ auth, data, dailyFetch });
 // ─────────────────────────────────────────────────────────────────────────────
 
 const lambdaFn = backend.dailyFetch.resources.lambda;
+const graphqlApi = backend.data.resources.graphqlApi;
+
+// Inject AppSync endpoint + API key so the Lambda can call AppSync directly
+// via API key auth (no Amplify framework / modelIntrospection needed at runtime).
+lambdaFn.addEnvironment("APPSYNC_ENDPOINT", graphqlApi.graphqlUrl);
+lambdaFn.addEnvironment("APPSYNC_API_KEY", graphqlApi.apiKey ?? "");
+
 const stack = Stack.of(lambdaFn);
 
 // 1. Dead-letter queue — receives events that exhausted all retry attempts
