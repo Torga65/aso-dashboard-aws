@@ -1,5 +1,6 @@
 import { defineBackend } from "@aws-amplify/backend";
 import { Duration, Stack } from "aws-cdk-lib";
+import { Function as LambdaFunction } from "aws-cdk-lib/aws-lambda";
 import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import { Role, ServicePrincipal, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { Alarm, ComparisonOperator, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
@@ -25,7 +26,7 @@ const backend = defineBackend({ data, dailyFetch });
 // observe the failure and enqueue the retry automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const lambdaFn = backend.dailyFetch.resources.lambda;
+const lambdaFn = backend.dailyFetch.resources.lambda as LambdaFunction;
 const graphqlApi = backend.data.resources.graphqlApi;
 
 // Inject AppSync endpoint + API key so the Lambda can call AppSync directly
