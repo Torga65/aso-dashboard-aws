@@ -65,8 +65,7 @@ const schema = a.schema({
       index("companyName").sortKeys(["week"]),    // query: byCompany(companyName, ...)
     ])
     .authorization((allow) => [
-      allow.publicApiKey(),                 // Lambda + server-side: full CRUD via API key
-      allow.authenticated().to(["read"]),  // signed-in dashboard users (Cognito)
+      allow.publicApiKey(), // Lambda + server-side + frontend: full CRUD via API key
     ]),
 
   /**
@@ -103,8 +102,7 @@ const schema = a.schema({
     })
     .identifier(["week"])
     .authorization((allow) => [
-      allow.publicApiKey(),                 // Lambda + server-side: full CRUD via API key
-      allow.authenticated().to(["read"]),  // signed-in dashboard users (Cognito)
+      allow.publicApiKey(), // Lambda + server-side + frontend: full CRUD via API key
     ]),
 
   /**
@@ -136,8 +134,7 @@ const schema = a.schema({
       index("status").sortKeys(["startedAt"]), // query: list recent failures, etc.
     ])
     .authorization((allow) => [
-      allow.publicApiKey(),                 // Lambda writes via API key
-      allow.authenticated().to(["read"]),  // dashboard users can read sync history
+      allow.publicApiKey(), // Lambda writes + frontend reads via API key
     ]),
 
   /**
@@ -159,14 +156,12 @@ const schema = a.schema({
       companyName: a.string().required(),
       week: a.string().required(),
       note: a.string().required(),
-      // `owner` field is added automatically by Amplify when using allow.owner()
     })
     .secondaryIndexes((index) => [
       index("companyName").sortKeys(["week"]), // list all notes for a company
     ])
     .authorization((allow) => [
-      allow.owner(),                      // full CRUD on own notes
-      allow.authenticated().to(["read"]), // teammates can read all notes
+      allow.publicApiKey(), // full CRUD via API key (site protected by Hosting Basic Auth)
     ]),
 });
 
@@ -179,13 +174,9 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    // Default for unauthenticated server-side reads (Next.js Server Components)
     defaultAuthorizationMode: "apiKey",
     apiKeyAuthorizationMode: {
       expiresInDays: 365,
     },
-    // Used for CustomerNote owner auth and authenticated reads
-    // Provided by Amplify auth (Cognito User Pool)
-    // No additional config needed here — Amplify wires it automatically
   },
 });

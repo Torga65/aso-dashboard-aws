@@ -11,7 +11,7 @@
  *
  * Callers decide how to handle each path; nothing is silently swallowed.
  */
-import { getServerClient, getAuthenticatedServerClient } from "./amplify-server-utils";
+import { getServerClient } from "./amplify-server-utils";
 import type { Customer, WeeklySummary, SyncJobRecord, CustomerNote, QueryResult } from "./types";
 import { toCustomer, toWeeklySummary, toSyncJob, toCustomerNote } from "./mappers";
 
@@ -132,7 +132,7 @@ export async function getLatestWeek(): Promise<QueryResult<string | null>> {
  */
 export async function getLatestSyncJob(): Promise<QueryResult<SyncJobRecord | null>> {
   try {
-    const client = getAuthenticatedServerClient();
+    const client = getServerClient();
     // List is sorted by createdAt DESC by default; we only need 1.
     const { data, errors } = await client.models.DataSyncJob.list({ limit: 1 });
     if (errors?.length) {
@@ -152,7 +152,7 @@ export async function getRecentSyncJobs(
   limit = 10
 ): Promise<QueryResult<SyncJobRecord[]>> {
   try {
-    const client = getAuthenticatedServerClient();
+    const client = getServerClient();
     const { data, errors } = await client.models.DataSyncJob.list({ limit });
     if (errors?.length) {
       return { data: null, error: errors[0].message };
@@ -174,7 +174,7 @@ export async function getNotesByCompany(
   companyName: string
 ): Promise<QueryResult<CustomerNote[]>> {
   try {
-    const client = getAuthenticatedServerClient();
+    const client = getServerClient();
     const { data, errors } =
       await client.models.CustomerNote.listCustomerNoteByCompanyName(
         { companyName },

@@ -25,18 +25,6 @@ export function getServerClient() {
   });
 }
 
-/**
- * Authenticated client — use in Server Components or Route Handlers
- * where the user must be signed in (CustomerNote, DataSyncJob reads).
- */
-export function getAuthenticatedServerClient() {
-  return generateServerClientUsingCookies<Schema>({
-    config: outputs,
-    cookies,
-    authMode: "userPool",
-  });
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed query helpers — keep data-fetching logic out of page files
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +61,7 @@ export async function getWeeklySummary(week: string) {
 
 /** Most-recent N sync jobs — for an ops status banner. */
 export async function getRecentSyncJobs(limit = 5) {
-  const client = getAuthenticatedServerClient();
+  const client = getServerClient();
   const { data, errors } = await client.models.DataSyncJob.list({ limit });
   if (errors) console.error("getRecentSyncJobs", errors);
   return data ?? [];

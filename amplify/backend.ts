@@ -4,7 +4,6 @@ import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import { Role, ServicePrincipal, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { Alarm, ComparisonOperator, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
 import { CfnSchedule } from "aws-cdk-lib/aws-scheduler";
-import { auth } from "./auth/resource";
 import { data } from "./data/resource";
 import { dailyFetch } from "./functions/daily-fetch/resource";
 
@@ -12,7 +11,7 @@ import { dailyFetch } from "./functions/daily-fetch/resource";
 // Backend definition
 // ─────────────────────────────────────────────────────────────────────────────
 
-const backend = defineBackend({ auth, data, dailyFetch });
+const backend = defineBackend({ data, dailyFetch });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EventBridge Scheduler
