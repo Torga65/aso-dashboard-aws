@@ -1,0 +1,228 @@
+.card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  border-color: #667eea;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 12px;
+}
+
+.customerName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ─── Metrics ────────────────────────────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ─── Summary ────────────────────────────────────────────────────────────── */
+.summary {
+  margin: 12px 0;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.summaryText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.summaryExpanded {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+/* ─── Alert ──────────────────────────────────────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  margin: 8px 0;
+  font-size: 13px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.alertIcon {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+/* ─── AI Insights ────────────────────────────────────────────────────────── */
+.aiInsights {
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+  border-top: 2px solid #667eea;
+  margin-top: 12px;
+  border-radius: 8px;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.aiInsightsHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #c7d2fe;
+}
+
+.aiIcon {
+  font-size: 20px;
+}
+
+.aiInsightsHeader h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.aiSection {
+  margin-top: 12px;
+}
+
+.aiSection h5 {
+  margin: 0 0 8px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aiSection p {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  background: white;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+  line-height: 1.5;
+}
+
+.aiSection ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.aiSection li {
+  margin-bottom: 4px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+.cardFooter {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.expandBtn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.expandBtn:hover {
+  background: #5568d3;
+}
+
+.expandIcon {
+  transition: transform 0.25s;
+  line-height: 1;
+}
+
+.expanded .expandIcon {
+  transform: rotate(180deg);
+}

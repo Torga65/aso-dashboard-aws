@@ -1,0 +1,9 @@
+{
+  "name": "daily-fetch",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@aws-amplify/backend": "^1.0.0",
+    "aws-amplify": "^6.0.0"
+  }
+}

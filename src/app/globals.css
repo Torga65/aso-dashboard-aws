@@ -1,0 +1,177 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design tokens — faithfully ported from cm-p186978-s23215-asodashboard
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Color palette */
+  --background-color: white;
+  --light-color: #f8f8f8;
+  --dark-color: #505050;
+  --text-color: #131313;
+  --link-color: #3b63fb;
+  --link-hover-color: #1d3ecf;
+
+  /* Brand gradient */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* Status */
+  --status-active-bg: #dcfce7;
+  --status-active-text: #166534;
+  --status-at-risk-bg: #fef3c7;
+  --status-at-risk-text: #92400e;
+  --status-onboarding-bg: #dbeafe;
+  --status-onboarding-text: #1e40af;
+  --status-churned-bg: #fee2e2;
+  --status-churned-text: #991b1b;
+
+  /* Health */
+  --health-healthy: #22c55e;
+  --health-attention: #f97316;
+  --health-critical: #ef4444;
+
+  /* Fonts */
+  --body-font-family: var(--font-roboto, roboto, sans-serif);
+  --heading-font-family: var(--font-roboto-condensed, roboto-condensed, sans-serif);
+
+  /* Font sizes — mobile */
+  --body-font-size-m: 22px;
+  --body-font-size-s: 19px;
+  --body-font-size-xs: 17px;
+  --heading-font-size-xxl: 55px;
+  --heading-font-size-xl: 44px;
+  --heading-font-size-l: 34px;
+  --heading-font-size-m: 27px;
+  --heading-font-size-s: 24px;
+  --heading-font-size-xs: 22px;
+
+  /* Layout */
+  --nav-height: 64px;
+  --max-width: 1264px;
+}
+
+@media (width >= 900px) {
+  :root {
+    --body-font-size-m: 18px;
+    --body-font-size-s: 16px;
+    --body-font-size-xs: 14px;
+    --heading-font-size-xxl: 45px;
+    --heading-font-size-xl: 36px;
+    --heading-font-size-l: 28px;
+    --heading-font-size-m: 22px;
+    --heading-font-size-s: 20px;
+    --heading-font-size-xs: 18px;
+  }
+}
+
+/* ─── Resets ─────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--body-font-family);
+  font-size: var(--body-font-size-m);
+  line-height: 1.6;
+}
+
+/* Reserve space for fixed header */
+body > div {
+  padding-top: var(--nav-height);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0.8em;
+  margin-bottom: 0.25em;
+  font-family: var(--heading-font-family);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1 { font-size: var(--heading-font-size-xxl); }
+h2 { font-size: var(--heading-font-size-xl); }
+h3 { font-size: var(--heading-font-size-l); }
+h4 { font-size: var(--heading-font-size-m); }
+h5 { font-size: var(--heading-font-size-s); }
+h6 { font-size: var(--heading-font-size-xs); }
+
+p,
+dl,
+ol,
+ul {
+  margin-top: 0.8em;
+  margin-bottom: 0.25em;
+}
+
+a:any-link {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── Page sections ─────────────────────────────────────────────────────── */
+.section {
+  margin: 40px 0;
+}
+
+.section > .section-inner {
+  max-width: var(--max-width);
+  margin: auto;
+  padding: 0 24px;
+}
+
+@media (width >= 900px) {
+  .section > .section-inner {
+    padding: 0 32px;
+  }
+}
+
+.section.light {
+  background-color: var(--light-color);
+  padding: 40px 0;
+  margin: 0;
+}
+
+/* ─── Utility ───────────────────────────────────────────────────────────── */
+.container {
+  max-width: var(--max-width);
+  margin: auto;
+  padding: 0 24px;
+}
+
+@media (width >= 900px) {
+  .container {
+    padding: 0 32px;
+  }
+}
+
+code {
+  font-size: var(--body-font-size-s);
+  background: var(--light-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+}

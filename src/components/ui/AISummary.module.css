@@ -1,0 +1,138 @@
+.container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  margin: 20px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 30%);
+}
+
+.badge {
+  background: rgb(255 255 255 / 30%);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section {
+  background: rgb(255 255 255 / 10%);
+  padding: 16px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sectionContent {
+  font-size: 15px;
+  line-height: 1.7;
+  opacity: 0.95;
+}
+
+.sectionContent ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.sectionContent li {
+  margin-bottom: 8px;
+}
+
+.sectionContent li:last-child {
+  margin-bottom: 0;
+}
+
+.footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgb(255 255 255 / 30%);
+  font-size: 12px;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Light theme variant */
+.light {
+  background: white;
+  color: #333;
+  border: 2px solid #667eea;
+}
+
+.light .badge {
+  background: #667eea;
+  color: white;
+}
+
+.light .header {
+  border-bottom-color: #e0e0e0;
+}
+
+.light .section {
+  background: #f8f9fa;
+}
+
+.light .sectionTitle {
+  color: #667eea;
+}
+
+.light .footer {
+  border-top-color: #e0e0e0;
+  color: #666;
+}
+
+@media (width <= 768px) {
+  .container {
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .sectionContent {
+    font-size: 14px;
+  }
+}

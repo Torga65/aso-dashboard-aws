@@ -1,0 +1,128 @@
+.container {
+  padding: 20px;
+  background: var(--background-color);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  margin-bottom: 30px;
+}
+
+.titleRow {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--text-color);
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: #666;
+  margin: 0;
+}
+
+/* ─── Stats ──────────────────────────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.statCard {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+}
+
+.statGreen {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.statYellow {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.statValue {
+  font-size: 36px;
+  font-weight: bold;
+  color: #111827;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.statGreen .statValue { color: #16a34a; }
+.statYellow .statValue { color: #d97706; }
+
+.statLabel {
+  font-size: 13px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ─── Result count ───────────────────────────────────────────────────────── */
+.resultCount {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px;
+}
+
+/* ─── Grid ───────────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* ─── Empty ──────────────────────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 16px;
+  font-style: italic;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (width <= 1200px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (width <= 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .statValue {
+    font-size: 28px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
