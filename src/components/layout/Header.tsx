@@ -4,12 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./Header.module.css";
+import { AuthButton } from "@/components/auth/AuthButton";
 
 const NAV_LINKS = [
   { href: "/", label: "Customer Overview" },
   { href: "/engagement", label: "Engagement" },
   { href: "/customer-history", label: "History" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/suggestion-lifecycle", label: "Suggestions" },
 ];
 
 export function Header() {
@@ -62,6 +64,11 @@ export function Header() {
                 ))}
               </ul>
             </div>
+          </div>
+
+          {/* Auth */}
+          <div className={styles.navAuth}>
+            <AuthButton />
           </div>
         </nav>
       </div>
