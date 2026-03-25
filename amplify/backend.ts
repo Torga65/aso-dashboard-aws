@@ -1,6 +1,7 @@
 import { defineBackend } from "@aws-amplify/backend";
 import { Duration, Stack } from "aws-cdk-lib";
 import { Function as LambdaFunction } from "aws-cdk-lib/aws-lambda";
+import { GraphqlApi } from "aws-cdk-lib/aws-appsync";
 import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import { Role, ServicePrincipal, PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { Alarm, ComparisonOperator, TreatMissingData } from "aws-cdk-lib/aws-cloudwatch";
@@ -27,7 +28,7 @@ const backend = defineBackend({ data, dailyFetch });
 // ─────────────────────────────────────────────────────────────────────────────
 
 const lambdaFn = backend.dailyFetch.resources.lambda as LambdaFunction;
-const graphqlApi = backend.data.resources.graphqlApi;
+const graphqlApi = backend.data.resources.graphqlApi as GraphqlApi;
 
 // Inject AppSync endpoint + API key so the Lambda can call AppSync directly
 // via API key auth (no Amplify framework / modelIntrospection needed at runtime).
