@@ -30,7 +30,7 @@ export async function getCustomersByWeek(
   try {
     const client = getServerClient();
     const { data, errors } =
-      await client.models.CustomerSnapshot.listCustomerSnapshotByWeek(
+      await client.models.CustomerSnapshot.listCustomerSnapshotByWeekAndCompanyName(
         { week },
         { sortDirection: "ASC", limit }
       );
@@ -53,7 +53,7 @@ export async function getCustomerHistory(
   try {
     const client = getServerClient();
     const { data, errors } =
-      await client.models.CustomerSnapshot.listCustomerSnapshotByCompany(
+      await client.models.CustomerSnapshot.listCustomerSnapshotByCompanyNameAndWeek(
         { companyName },
         { sortDirection: "ASC", limit: 100 }
       );
@@ -176,7 +176,7 @@ export async function getNotesByCompany(
   try {
     const client = getServerClient();
     const { data, errors } =
-      await client.models.CustomerNote.listCustomerNoteByCompanyName(
+      await client.models.CustomerNote.listCustomerNoteByCompanyNameAndWeek(
         { companyName },
         { sortDirection: "DESC", limit: 100 }
       );

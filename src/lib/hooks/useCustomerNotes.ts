@@ -57,7 +57,7 @@ export function useCustomerNotes(
     let cancelled = false;
     dispatch({ type: "FETCH_START" });
 
-    dataClient.models.CustomerNote.listCustomerNoteByCompanyName(
+    dataClient.models.CustomerNote.listCustomerNoteByCompanyNameAndWeek(
       { companyName },
       { sortDirection: "DESC", limit: 100 }
     )

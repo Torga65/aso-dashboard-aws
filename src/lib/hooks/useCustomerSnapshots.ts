@@ -66,7 +66,7 @@ export function useCustomerSnapshots(
     let cancelled = false;
     dispatch({ type: "FETCH_START" });
 
-    dataClient.models.CustomerSnapshot.listCustomerSnapshotByWeek(
+    dataClient.models.CustomerSnapshot.listCustomerSnapshotByWeekAndCompanyName(
       { week },
       { sortDirection: "ASC", limit }
     )
