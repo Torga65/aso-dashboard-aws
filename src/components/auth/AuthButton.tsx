@@ -1,68 +1,142 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import styles from "./AuthButton.module.css";
 
-declare global {
-  interface Window {
-    adobeIMS?: {
-      signIn: () => void;
-      signOut: () => void;
-      isSignedInUser: () => boolean;
+// ─── Token parsing (same logic as DeveloperView) ──────────────────────────────
+
+interface TokenInfo {
+  expiresAt: Date | null;
+  status: "valid" | "expiring" | "expired";
+  timeRemaining: string;
+}
+
+function parseToken(token: string): TokenInfo | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+
+    let expiresAt: Date | null = null;
+    if (payload.exp) expiresAt = new Date(payload.exp * 1000);
+    if (payload.created_at && payload.expires_in) {
+      expiresAt = new Date(parseInt(payload.created_at) + parseInt(payload.expires_in));
+    }
+
+    const remaining = expiresAt ? expiresAt.getTime() - Date.now() : 0;
+    const status: TokenInfo["status"] =
+      remaining <= 0 ? "expired" : remaining < 3_600_000 ? "expiring" : "valid";
+
+    const fmt = (ms: number) => {
+      if (ms <= 0) return "Expired";
+      const h = Math.floor(ms / 3_600_000);
+      const m = Math.floor((ms % 3_600_000) / 60_000);
+      return h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`;
     };
+
+    return { expiresAt, status, timeRemaining: fmt(remaining) };
+  } catch {
+    return null;
   }
 }
 
-export function AuthButton() {
-  const { isAuthenticated, profile, isManualToken, isReady } = useIMSAuth();
+const STATUS_COLOR = { valid: "#16a34a", expiring: "#d97706", expired: "#dc2626" };
 
-  // Auto sign-in when imslib is ready and the user is not signed in
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function AuthButton() {
+  const { isAuthenticated, accessToken, profile, isReady, signIn, signOut } = useIMSAuth();
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Auto sign-in when imslib is ready and user is not signed in
   useEffect(() => {
     if (isReady && !isAuthenticated) {
-      window.adobeIMS?.signIn();
+      signIn();
     }
-  }, [isReady, isAuthenticated]);
+  }, [isReady, isAuthenticated, signIn]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    setOpen(false);
+    signOut();
+  }, [signOut]);
 
   if (isAuthenticated) {
     const initials = profile
-      ? ([profile.first_name, profile.last_name]
-          .filter(Boolean)
-          .map((s) => s![0])
-          .join("")
-          .toUpperCase() || profile.email?.[0]?.toUpperCase() || "?")
-      : "T"; // manual token — no profile
+      ? (
+          [profile.first_name, profile.last_name]
+            .filter(Boolean)
+            .map((s) => s![0])
+            .join("")
+            .toUpperCase() ||
+          profile.email?.[0]?.toUpperCase() ||
+          "?"
+        )
+      : "?";
 
-    const displayName = profile
-      ? (profile.first_name || profile.email?.split("@")[0] || "User")
-      : "Dev Token";
+    const displayName =
+      profile?.displayName ||
+      `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
+      profile?.email?.split("@")[0] ||
+      "User";
+
+    const tokenInfo = accessToken ? parseToken(accessToken) : null;
 
     return (
-      <div className={styles.wrapper}>
-        <span
-          className={styles.avatar}
-          style={isManualToken ? { background: "#d97706" } : undefined}
-          title={isManualToken ? "Using manual developer token" : profile?.email}
+      <div className={styles.wrapper} ref={wrapperRef}>
+        <button
+          className={styles.avatarBtn}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label="Account menu"
+          title={profile?.email ?? undefined}
         >
-          {initials}
-        </span>
-        <span className={styles.name}>{displayName}</span>
-        <button className={styles.signOut} onClick={() => window.adobeIMS?.signOut()}>
-          Sign out
+          <span className={styles.avatar}>{initials}</span>
         </button>
+
+        {open && (
+          <div className={styles.dropdown}>
+            <div className={styles.dropdownName}>{displayName}</div>
+            {profile?.email && (
+              <div className={styles.dropdownEmail}>{profile.email}</div>
+            )}
+            {tokenInfo && (
+              <div
+                className={styles.dropdownExpiry}
+                style={{ color: STATUS_COLOR[tokenInfo.status] }}
+              >
+                {tokenInfo.timeRemaining}
+                {tokenInfo.expiresAt && (
+                  <span className={styles.dropdownExpiryDate}>
+                    {tokenInfo.expiresAt.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            )}
+            <button className={styles.signOutBtn} onClick={handleSignOut}>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className={styles.signInWrapper}>
-      <button className={styles.signIn} onClick={() => window.adobeIMS?.signIn()}>
-        Sign in with Adobe
-      </button>
-      <Link href="/developer" className={styles.devLink}>
-        Developer mode
-      </Link>
-    </div>
+    <button className={styles.signIn} onClick={signIn}>
+      Sign in with Adobe
+    </button>
   );
 }
