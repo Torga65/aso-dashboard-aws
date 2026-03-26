@@ -22,40 +22,42 @@ interface Props {
 
 export default function StaticPageFrame({ src, title }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { accessToken, isReady } = useIMSAuth();
+  const { accessToken, isReady, signIn, signOut } = useIMSAuth();
 
-  const postToken = useCallback((token: string) => {
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: "ims-token", token },
-      window.location.origin,
-    );
+  const postToIframe = useCallback((msg: object) => {
+    iframeRef.current?.contentWindow?.postMessage(msg, window.location.origin);
   }, []);
 
-  // Send token whenever it changes (including on first auth)
+  // Send token whenever it changes — only post when we have a real token
   useEffect(() => {
-    if (isReady) {
-      postToken(accessToken);
+    if (!isReady) return;
+    if (accessToken) {
+      postToIframe({ type: "ims-token", token: accessToken });
+    } else {
+      postToIframe({ type: "ims-signout" });
     }
-  }, [isReady, accessToken, postToken]);
+  }, [isReady, accessToken, postToIframe]);
 
   // Also send token when the iframe finishes loading (it may load after token is set)
   const handleLoad = useCallback(() => {
-    if (isReady) {
-      postToken(accessToken);
+    if (!isReady) return;
+    if (accessToken) {
+      postToIframe({ type: "ims-token", token: accessToken });
+    } else {
+      postToIframe({ type: "ims-signout" });
     }
-  }, [isReady, accessToken, postToken]);
+  }, [isReady, accessToken, postToIframe]);
 
   // Listen for sign-in / sign-out requests from the iframe
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      if (event.data?.type === "ims-signin-required") {
-        window.adobeIMS?.signIn?.();
-      }
+      if (event.data?.type === "ims-signin-required") signIn();
+      if (event.data?.type === "ims-signout-required") signOut();
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [signIn, signOut]);
 
   return (
     <iframe

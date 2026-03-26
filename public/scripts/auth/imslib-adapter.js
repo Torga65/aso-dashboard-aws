@@ -11,10 +11,35 @@
  */
 
 /* ------------------------------------------------------------------ */
+/*  JWT profile extraction                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Parse an IMS JWT and return a minimal profile object.
+ * Returns null if the token is not a valid JWT.
+ * @param {string} token
+ * @returns {{ email: string|null, name: string|null, displayName: string|null, userId: string|null }|null}
+ */
+function parseJwtProfile(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return {
+      userId: payload.user_id || payload.sub || null,
+      email: payload.email || null,
+      name: payload.name || null,
+      displayName: payload.displayName || payload.name || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Internal state                                                     */
 /* ------------------------------------------------------------------ */
 
 let _token = null;
+let _profile = null;
 let _ready = false;
 
 const _readyCallbacks = [];
@@ -32,18 +57,20 @@ window.addEventListener('message', (event) => {
 
   if (type === 'ims-token') {
     _token = token || null;
+    _profile = _token ? parseJwtProfile(_token) : null;
 
     if (!_ready) {
       _ready = true;
       const cbs = _readyCallbacks.splice(0);
-      cbs.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
+      cbs.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
     }
 
-    _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
+    _authStateListeners.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
   }
 
   if (type === 'ims-signout') {
     _token = null;
+    _profile = null;
     _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
   }
 });
@@ -78,6 +105,7 @@ export function signIn() {
 /** Sign out — notify parent and clear local token. */
 export function signOut() {
   _token = null;
+  _profile = null;
   _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
   window.parent?.postMessage({ type: 'ims-signout-required' }, window.location.origin);
 }
@@ -92,18 +120,19 @@ export function getAccessToken() {
   return _token;
 }
 
-/** Profile is not passed through the token bridge — returns null. */
+/** Returns a profile parsed from the JWT, or null if not authenticated. */
 export function getProfile() {
-  return null;
+  return _profile;
 }
 
 /**
  * Register a callback invoked once auth token is received (or immediately if already ready).
+ * Receives the profile object (may be null if unauthenticated).
  * @param {Function} cb
  */
 export function onAuthReady(cb) {
   if (_ready) {
-    try { cb(null); } catch (e) { /* silent */ }
+    try { cb(_profile); } catch (e) { /* silent */ }
   } else {
     _readyCallbacks.push(cb);
   }
@@ -111,6 +140,7 @@ export function onAuthReady(cb) {
 
 /**
  * Register a callback invoked when auth state changes.
+ * Receives the profile object (null on sign-out).
  * @param {Function} cb
  */
 export function onAuthStateChange(cb) {
