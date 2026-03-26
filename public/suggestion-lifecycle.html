@@ -21,6 +21,7 @@
         const profile = window.adobeIMS?.getProfile?.() || null;
         if (fn) fn(profile);
         else (window.__imsAdapterQueue || []).push(['ready', profile]);
+        ensureSignedIn();
       },
       onProfile(profile) {
         const fn = window.__imsAdapterOnProfile;
@@ -34,6 +35,12 @@
       },
       onError(type, err) { console.error('[IMS]', type, err); },
     };
+
+    function ensureSignedIn() {
+      if (!adobeIMS.isSignedInUser()) {
+        adobeIMS.signIn();
+      }
+    }
   </script>
   <script src="https://static.adobelogin.com/imslib/stg1/imslib.js"></script>
   <script src="/scripts/aem.js" type="module"></script>
@@ -1249,13 +1256,13 @@
     <!-- IMS Auth Bar -->
     <div id="auth-bar" class="auth-bar">
       <div id="auth-signed-out" class="auth-row">
-        <button id="ims-sign-in-btn" class="btn-primary">Sign in with Adobe</button>
+        <button id="ims-sign-in-btn" class="btn-primary" onclick="adobeIMS.signIn()">Sign in with Adobe</button>
         <span class="auth-divider">or</span>
         <button id="dev-mode-toggle" class="btn-link">Use developer mode (manual token)</button>
       </div>
       <div id="auth-signed-in" class="auth-row" style="display: none;">
         <span id="auth-user-name" class="auth-user"></span>
-        <button id="ims-sign-out-btn" class="btn-link">Sign out</button>
+        <button id="ims-sign-out-btn" class="btn-link" onclick="adobeIMS.signOut()">Sign out</button>
       </div>
     </div>
 

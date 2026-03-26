@@ -1,10 +1,29 @@
 "use client";
 
+import { useEffect } from "react";
+import Link from "next/link";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import styles from "./AuthButton.module.css";
 
+declare global {
+  interface Window {
+    adobeIMS?: {
+      signIn: () => void;
+      signOut: () => void;
+      isSignedInUser: () => boolean;
+    };
+  }
+}
+
 export function AuthButton() {
-  const { isAuthenticated, profile, isManualToken, signIn, signOut } = useIMSAuth();
+  const { isAuthenticated, profile, isManualToken, isReady } = useIMSAuth();
+
+  // Auto sign-in when imslib is ready and the user is not signed in
+  useEffect(() => {
+    if (isReady && !isAuthenticated) {
+      window.adobeIMS?.signIn();
+    }
+  }, [isReady, isAuthenticated]);
 
   if (isAuthenticated) {
     const initials = profile
@@ -29,7 +48,7 @@ export function AuthButton() {
           {initials}
         </span>
         <span className={styles.name}>{displayName}</span>
-        <button className={styles.signOut} onClick={signOut}>
+        <button className={styles.signOut} onClick={() => window.adobeIMS?.signOut()}>
           Sign out
         </button>
       </div>
@@ -37,8 +56,13 @@ export function AuthButton() {
   }
 
   return (
-    <button className={styles.signIn} onClick={signIn}>
-      Sign in with Adobe
-    </button>
+    <div className={styles.signInWrapper}>
+      <button className={styles.signIn} onClick={() => window.adobeIMS?.signIn()}>
+        Sign in with Adobe
+      </button>
+      <Link href="/developer" className={styles.devLink}>
+        Developer mode
+      </Link>
+    </div>
   );
 }

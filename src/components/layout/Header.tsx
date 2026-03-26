@@ -12,7 +12,6 @@ const NAV_LINKS = [
   { href: "/customer-history", label: "History" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/suggestion-lifecycle", label: "Suggestions" },
-  { href: "/developer", label: "Developer" },
 ];
 
 export function Header() {
