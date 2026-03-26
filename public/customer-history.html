@@ -9,9 +9,10 @@
     // Queue for IMS events that fire before the adapter ES module loads
     window.__imsAdapterQueue = [];
     window.adobeid = {
-      client_id: '307b29831bd0423e9f2c720545df2251',
-      scope: 'openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext',
+      client_id: 'ASO-dashboard',
+      scope: 'AdobeID,openid',
       environment: 'stg1',
+      useLocalStorage: false,
       autoValidateToken: true,
       debug: true,
       api_parameters: { authorize: { redirect_uri: window.location.href } },
