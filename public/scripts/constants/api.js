@@ -5,8 +5,8 @@
  * to track ASO suggestions, opportunities, and fixes.
  */
 
-// Base API URL for SpaceCat
-export const SPACECAT_API_BASE = 'https://spacecat.experiencecloud.live/api/v1';
+// Base API URL — proxied through Next.js backend to avoid CORS and keep tokens server-side
+export const SPACECAT_API_BASE = '/api/spacecat';
 
 /**
  * ASO-specific SpaceCat API endpoints
