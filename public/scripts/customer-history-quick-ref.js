@@ -13,7 +13,7 @@ import {
   isAuthenticated,
   getProfile,
   onAuthStateChange,
-} from './auth/ims-auth.js';
+} from './auth/imslib-adapter.js';
 import { setGlobalToken } from './services/spacecat-api.js';
 import { getCustomerQuickRef, updateQuickRefCacheAudits } from './services/customer-quick-ref.js';
 

@@ -4,6 +4,36 @@
   <title>Suggestion Lifecycle - ASO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="description" content="Track ASO suggestion deployment, rejection rates, and lifecycle metrics"/>
+  <!-- IMS: configure window.adobeid BEFORE loading imslib -->
+  <script>
+    // Queue for IMS events that fire before the adapter ES module loads
+    window.__imsAdapterQueue = [];
+    window.adobeid = {
+      client_id: '307b29831bd0423e9f2c720545df2251',
+      scope: 'openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext',
+      environment: 'prod',
+      autoValidateToken: true,
+      api_parameters: { authorize: { redirect_uri: window.location.origin + window.location.pathname } },
+      onReady() {
+        const fn = window.__imsAdapterOnReady;
+        const profile = window.adobeIMS?.getProfile?.() || null;
+        if (fn) fn(profile);
+        else (window.__imsAdapterQueue || []).push(['ready', profile]);
+      },
+      onProfile(profile) {
+        const fn = window.__imsAdapterOnProfile;
+        if (fn) fn(profile);
+        else (window.__imsAdapterQueue || []).push(['profile', profile]);
+      },
+      onAccessTokenHasExpired() {
+        const fn = window.__imsAdapterOnExpired;
+        if (fn) fn();
+        else (window.__imsAdapterQueue || []).push(['expired', null]);
+      },
+      onError(type, err) { console.error('[IMS]', type, err); },
+    };
+  </script>
+  <script src="https://static.adobelogin.com/imslib/imslib.min.js"></script>
   <script src="/scripts/aem.js" type="module"></script>
   <script src="/scripts/scripts.js" type="module"></script>
   <link rel="stylesheet" href="styles/styles.css"/>
@@ -1482,7 +1512,7 @@
       isAuthenticated,
       getAccessToken,
       getProfile,
-    } from '/scripts/auth/ims-auth.js';
+    } from '/scripts/auth/imslib-adapter.js';
     import { setGlobalToken, apiGet, isApiError } from '/scripts/services/spacecat-api.js';
     import {
       buildCustomerSiteTree,

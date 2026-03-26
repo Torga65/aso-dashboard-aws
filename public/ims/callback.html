@@ -239,7 +239,7 @@
           imsOrgId: profile?.projectedProductContext?.[0]?.prodCtx?.owningEntity || null,
         };
 
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
 
         // 6. Redirect to dashboard
         statusTextEl.textContent = 'Redirecting to dashboard...';
