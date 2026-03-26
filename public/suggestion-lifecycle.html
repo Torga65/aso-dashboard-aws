@@ -16,6 +16,18 @@
       autoValidateToken: true,
       debug: true,
       api_parameters: { authorize: { redirect_uri: window.location.href } },
+      onAccessToken(token) {
+        const fn = window.__imsAdapterOnAccessToken;
+        const t = token?.token || token || null;
+        if (fn) fn(t);
+        else (window.__imsAdapterQueue || []).push(['accessToken', t]);
+      },
+      onReauthAccessToken(token) {
+        const fn = window.__imsAdapterOnAccessToken;
+        const t = token?.token || token || null;
+        if (fn) fn(t);
+        else (window.__imsAdapterQueue || []).push(['accessToken', t]);
+      },
       onReady() {
         const fn = window.__imsAdapterOnReady;
         const profile = window.adobeIMS?.getProfile?.() || null;

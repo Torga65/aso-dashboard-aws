@@ -24,9 +24,8 @@ import React, {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-export const IMS_CLIENT_ID = "307b29831bd0423e9f2c720545df2251";
-const IMS_SCOPES =
-  "openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext";
+export const IMS_CLIENT_ID = "ASO-dashboard";
+const IMS_SCOPES = "openid,AdobeID";
 
 /** localStorage key for developer-entered manual token */
 export const MANUAL_TOKEN_KEY = "aso_manual_ims_token";
@@ -98,11 +97,17 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           client_id: IMS_CLIENT_ID,
           scope: IMS_SCOPES,
           locale: "en-US",
-          environment: "prod",
+          environment: "stg1",
           redirect_uri: window.location.origin + window.location.pathname,
           autoValidateToken: true,
 
           onAccessToken: (token: { token: string } | string) => {
+            const tokenStr =
+              typeof token === "object" ? token.token : token;
+            setImsToken(tokenStr ?? "");
+          },
+
+          onReauthAccessToken: (token: { token: string } | string) => {
             const tokenStr =
               typeof token === "object" ? token.token : token;
             setImsToken(tokenStr ?? "");

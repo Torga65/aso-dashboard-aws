@@ -34,10 +34,18 @@ function _extractToken(t) {
 /*  Hooks called by window.adobeid callbacks (set in the HTML)        */
 /* ------------------------------------------------------------------ */
 
+function _onAccessToken(token) {
+  _accessToken = token || null;
+  _authStateListeners.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
+}
+
 function _onReady(profile) {
   _imsReady = true;
   _profile = profile || window.adobeIMS?.getProfile?.() || null;
-  _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  // Capture token if onAccessToken hasn't fired yet
+  if (!_accessToken) {
+    _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  }
 
   const cbs = _readyCallbacks.splice(0);
   cbs.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
@@ -45,7 +53,9 @@ function _onReady(profile) {
 
 function _onProfile(profile) {
   _profile = profile;
-  _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  if (!_accessToken) {
+    _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  }
   _authStateListeners.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
 }
 
@@ -55,6 +65,7 @@ function _onExpired() {
 }
 
 // Register hooks so the HTML callbacks can reach us
+window.__imsAdapterOnAccessToken = _onAccessToken;
 window.__imsAdapterOnReady = _onReady;
 window.__imsAdapterOnProfile = _onProfile;
 window.__imsAdapterOnExpired = _onExpired;
@@ -63,7 +74,8 @@ window.__imsAdapterOnExpired = _onExpired;
 const queue = window.__imsAdapterQueue;
 if (Array.isArray(queue)) {
   queue.forEach(([type, data]) => {
-    if (type === 'ready') _onReady(data);
+    if (type === 'accessToken') _onAccessToken(data);
+    else if (type === 'ready') _onReady(data);
     else if (type === 'profile') _onProfile(data);
     else if (type === 'expired') _onExpired();
   });
