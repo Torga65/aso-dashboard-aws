@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import styles from "./AuthButton.module.css";
 
-// ─── Token parsing (same logic as DeveloperView) ──────────────────────────────
+// ─── Token parsing ────────────────────────────────────────────────────────────
 
 interface TokenInfo {
   expiresAt: Date | null;
@@ -46,15 +46,28 @@ const STATUS_COLOR = { valid: "#16a34a", expiring: "#d97706", expired: "#dc2626"
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AuthButton() {
-  const { isAuthenticated, accessToken, profile, signIn, signOut } = useIMSAuth();
+  const {
+    isAuthenticated,
+    accessToken,
+    profile,
+    isManualToken,
+    signIn,
+    signOut,
+    setManualToken,
+    clearManualToken,
+  } = useIMSAuth();
+
   const [open, setOpen] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
+  const [devInput, setDevInput] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  // Close dropdown / dev panel on outside click
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setDevOpen(false);
       }
     }
     document.addEventListener("mousedown", onMouseDown);
@@ -66,24 +79,43 @@ export function AuthButton() {
     signOut();
   }, [signOut]);
 
-  if (isAuthenticated) {
-    const initials = profile
-      ? (
-          [profile.first_name, profile.last_name]
-            .filter(Boolean)
-            .map((s) => s![0])
-            .join("")
-            .toUpperCase() ||
-          profile.email?.[0]?.toUpperCase() ||
-          "?"
-        )
-      : "?";
+  const handleSaveDevToken = useCallback(() => {
+    const trimmed = devInput.trim();
+    if (trimmed) {
+      setManualToken(trimmed);
+      setDevInput("");
+      setDevOpen(false);
+    }
+  }, [devInput, setManualToken]);
 
-    const displayName =
-      profile?.displayName ||
-      `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
-      profile?.email?.split("@")[0] ||
-      "User";
+  const handleClearDevToken = useCallback(() => {
+    clearManualToken();
+    setOpen(false);
+  }, [clearManualToken]);
+
+  // ── Authenticated state ──────────────────────────────────────────────────
+
+  if (isAuthenticated) {
+    const initials = isManualToken
+      ? "DEV"
+      : profile
+        ? (
+            [profile.first_name, profile.last_name]
+              .filter(Boolean)
+              .map((s) => s![0])
+              .join("")
+              .toUpperCase() ||
+            profile.email?.[0]?.toUpperCase() ||
+            "?"
+          )
+        : "?";
+
+    const displayName = isManualToken
+      ? "Developer token"
+      : profile?.displayName ||
+        `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
+        profile?.email?.split("@")[0] ||
+        "User";
 
     const tokenInfo = accessToken ? parseToken(accessToken) : null;
 
@@ -94,15 +126,20 @@ export function AuthButton() {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label="Account menu"
-          title={profile?.email ?? undefined}
+          title={isManualToken ? "Developer token active" : (profile?.email ?? undefined)}
         >
-          <span className={styles.avatar}>{initials}</span>
+          <span
+            className={styles.avatar}
+            style={isManualToken ? { background: "#6366f1" } : undefined}
+          >
+            {initials}
+          </span>
         </button>
 
         {open && (
           <div className={styles.dropdown}>
             <div className={styles.dropdownName}>{displayName}</div>
-            {profile?.email && (
+            {!isManualToken && profile?.email && (
               <div className={styles.dropdownEmail}>{profile.email}</div>
             )}
             {tokenInfo && (
@@ -118,18 +155,56 @@ export function AuthButton() {
                 )}
               </div>
             )}
-            <button className={styles.signOutBtn} onClick={handleSignOut}>
-              Sign out
-            </button>
+            {isManualToken ? (
+              <button className={styles.signOutBtn} onClick={handleClearDevToken}>
+                Clear token
+              </button>
+            ) : (
+              <button className={styles.signOutBtn} onClick={handleSignOut}>
+                Sign out
+              </button>
+            )}
           </div>
         )}
       </div>
     );
   }
 
+  // ── Unauthenticated state ────────────────────────────────────────────────
+
   return (
-    <button className={styles.signIn} onClick={signIn}>
-      Sign in with Adobe
-    </button>
+    <div className={styles.wrapper} ref={wrapperRef}>
+      <div className={styles.signInStack}>
+        <button className={styles.signIn} onClick={signIn}>
+          Sign in with Adobe
+        </button>
+        <button
+          className={styles.devToggle}
+          onClick={() => setDevOpen((v) => !v)}
+          aria-expanded={devOpen}
+        >
+          Developer token {devOpen ? "▴" : "▾"}
+        </button>
+        {devOpen && (
+          <div className={styles.devPanel}>
+            <textarea
+              className={styles.devInput}
+              placeholder="Paste SpaceCat or IMS token"
+              value={devInput}
+              onChange={(e) => setDevInput(e.target.value)}
+              rows={3}
+              spellCheck={false}
+            />
+            <button
+              className={styles.devSave}
+              onClick={handleSaveDevToken}
+              disabled={!devInput.trim()}
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
