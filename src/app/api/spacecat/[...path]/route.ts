@@ -33,8 +33,7 @@ async function getSpacecatToken(imsToken: string): Promise<string | null> {
 
   const resp = await fetch(AUTH_LOGIN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accessToken: imsToken }),
+    headers: { Authorization: `Bearer ${imsToken}` },
   });
 
   if (!resp.ok) {
@@ -43,7 +42,7 @@ async function getSpacecatToken(imsToken: string): Promise<string | null> {
   }
 
   const data = await resp.json();
-  const spacecatToken: string = data.token || data.accessToken || data.access_token;
+  const spacecatToken: string = data.sessionToken || data.token || data.accessToken || data.access_token;
   if (!spacecatToken) return null;
 
   // Parse expiry from JWT payload
