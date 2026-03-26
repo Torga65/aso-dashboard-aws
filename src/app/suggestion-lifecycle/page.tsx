@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
-import { SuggestionLifecycleView } from "@/components/suggestions/SuggestionLifecycleView";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Suggestion Lifecycle" };
-
+/**
+ * Redirect to the self-contained static suggestion-lifecycle page
+ * (copied from cm-p186978-s23215-asodashboard) served from /public.
+ */
 export default function SuggestionLifecyclePage() {
-  return <SuggestionLifecycleView />;
+  redirect("/suggestion-lifecycle.html");
 }

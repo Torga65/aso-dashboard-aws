@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Customer Historical Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Historical analysis of customer data across all 28 columns and 16 weeks"/>
+  <script src="/scripts/aem.js" type="module"></script>
+  <script src="/scripts/scripts.js" type="module"></script>
+  <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
+  <link rel="stylesheet" href="/styles/styles.css"/>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    
+    main {
+      padding: 12px;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    
+    main > div:first-child {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    
+    main > div:first-child h1 {
+      color: white;
+      margin: 0 0 8px 0;
+    }
+    
+    main > div:first-child p {
+      color: rgb(255 255 255 / 95%);
+      margin: 0;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    
+    .controls label {
+      font-weight: 600;
+      margin-right: 4px;
+      font-size: 14px;
+    }
+    
+    .controls select,
+    .controls input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+    .controls .customer-select-wrap { position: relative; min-width: 200px; max-width: 280px; }
+    .controls .customer-select-wrap input[type="text"] { width: 100%; box-sizing: border-box; cursor: text; }
+    .controls .customer-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin: 0; margin-top: 2px; max-height: 220px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; display: none; list-style: none; padding: 0; }
+    .controls .customer-select-dropdown.show { display: block; }
+    .controls .customer-select-dropdown li { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+    .controls .customer-select-dropdown li:last-child { border-bottom: none; }
+    .controls .customer-select-dropdown li:hover { background: #f0f4ff; }
+    .controls .customer-select-dropdown li[data-empty] { cursor: default; color: #666; }
+    .controls-search-wrap input { min-width: 200px; flex: 1; cursor: text; }
+.controls-search-wrap .controls-search-btn { padding: 8px 14px; font-size: 14px; white-space: nowrap; }
+    
+    .controls button {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .controls button:hover {
+      background: #5568d3;
+    }
+    
+    .customer-timeline {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .customer-timeline .timeline-table { font-size: 12px; }
+    .customer-timeline .timeline-table th,
+    .customer-timeline .timeline-table td { padding: 4px 8px; }
+    .quick-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (max-width: 1100px) { .quick-ref-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) { .quick-ref-grid { grid-template-columns: 1fr; } }
+    .quick-ref-pv-count { font-size: 28px; font-weight: 700; color: #d97706; line-height: 1; margin-bottom: 2px; }
+    .quick-ref-pv-label { margin: 0; font-size: 12px; color: #666; }
+    .quick-ref-backoffice-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #667eea; text-decoration: none; font-weight: 600; }
+    .quick-ref-backoffice-link:hover { text-decoration: underline; }
+    .quick-ref-box {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .quick-ref-box h4 { margin: 0 0 8px 0; font-size: 13px; color: #667eea; }
+    .quick-ref-list { font-size: 12px; margin: 4px 0 0; padding-left: 18px; }
+    .quick-ref-disabled-details { border: none; }
+    .quick-ref-disabled-details summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; color: #667eea; margin: 0; padding: 0; display: flex; align-items: center; gap: 6px; user-select: none; }
+    .quick-ref-disabled-details summary::before { content: '▶'; font-size: 9px; display: inline-block; transition: transform 0.2s; flex-shrink: 0; }
+    .quick-ref-disabled-details summary::-webkit-details-marker { display: none; }
+    .quick-ref-disabled-details[open] summary::before { transform: rotate(90deg); }
+    .quick-ref-disabled-details .quick-ref-disabled-audits { margin-top: 8px; }
+    .qr-summary-count { margin-left: auto; background: #667eea; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; padding: 2px 7px; border-radius: 10px; min-width: 18px; text-align: center; }
+    .quick-ref-disabled-details[open] .qr-summary-count { opacity: 0.4; }
+    .quick-ref-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+    .quick-ref-table th, .quick-ref-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #eee; }
+    .quick-ref-table th { background: #e9ecef; font-weight: 600; }
+    .qr-user-row { cursor: pointer; }
+    .qr-user-row:hover td { background: #f0f4ff; }
+    .qr-user-row.expanded td { background: #eef0ff; }
+    .qr-user-detail td { background: #f8f9ff; padding: 6px 8px 8px; }
+    .qr-user-history-label { font-size: 11px; color: #667eea; font-weight: 600; display: block; margin-bottom: 4px; }
+    .qr-user-login-dates { margin: 0; padding-left: 16px; font-size: 11px; color: #444; columns: 2; }
+    .quick-ref-table .quick-ref-autofix-select { padding: 2px 6px; font-size: 12px; min-width: 60px; border: 1px solid #ccc; border-radius: 4px; }
+    .quick-ref-msg { margin: 0; font-size: 12px; color: #666; }
+    .quick-ref-org-picker { margin-top: 8px; }
+    .quick-ref-org-picker .searchable-wrap { position: relative; max-width: 320px; }
+    .quick-ref-org-picker .searchable-wrap input { width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    .quick-ref-org-picker .searchable-wrap input::placeholder { color: #999; }
+    .quick-ref-org-picker .searchable-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin: 0; margin-top: 2px; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; list-style: none; padding: 0; display: none; }
+    .quick-ref-org-picker .searchable-dropdown.show { display: block; }
+    .quick-ref-org-picker .searchable-dropdown li { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+    .quick-ref-org-picker .searchable-dropdown li:last-child { border-bottom: none; }
+    .quick-ref-org-picker .searchable-dropdown li:hover { background: #f0f4ff; }
+    .quick-ref-org-picker .searchable-dropdown li[data-empty] { cursor: default; color: #666; }
+    .quick-ref-err { color: #c00; }
+    .quick-ref-more { font-style: italic; color: #666; }
+    .quick-ref-actions { margin-bottom: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .quick-ref-site-label { font-weight: 600; margin-right: 4px; font-size: 13px; }
+    .quick-ref-site-select { padding: 6px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; background: white; min-width: 180px; max-width: 280px; }
+    .quick-ref-actions .quick-ref-refresh-btn { padding: 6px 14px; font-size: 13px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+    .quick-ref-actions .quick-ref-refresh-btn:hover { background: #5568d3; }
+    .quick-ref-table .quick-ref-autofix-th { vertical-align: top; }
+    .quick-ref-table .quick-ref-autofix-header { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .quick-ref-table .quick-ref-autofix-header button { padding: 2px 8px; font-size: 11px; border: none; border-radius: 3px; cursor: pointer; font-weight: 600; }
+    .quick-ref-table .quick-ref-edit-autofix-btn { background: #6c757d; color: white; }
+    .quick-ref-table .quick-ref-edit-autofix-btn:hover { background: #5a6268; }
+    .quick-ref-table .quick-ref-save-autofix-btn { background: #2e7d32; color: white; }
+    .quick-ref-table .quick-ref-save-autofix-btn:hover { background: #1b5e20; }
+    .quick-ref-table .quick-ref-cancel-autofix-btn { background: #6c757d; color: white; }
+    .quick-ref-table .quick-ref-cancel-autofix-btn:hover { background: #5a6268; }
+    .quick-ref-table .quick-ref-autofix-yes { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #d4edda; color: #155724; font-weight: 600; }
+    .quick-ref-run-btn { padding: 2px 10px; font-size: 11px; font-weight: 600; border: 1px solid #667eea; border-radius: 4px; background: #fff; color: #667eea; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+    .quick-ref-run-btn:hover:not(:disabled) { background: #667eea; color: #fff; }
+    .quick-ref-run-btn:disabled { cursor: default; opacity: 0.7; }
+    .quick-ref-run-btn.quick-ref-run-pending { border-color: #92400e; color: #92400e; }
+    .quick-ref-run-btn.quick-ref-run-success { border-color: #166534; color: #166534; background: #dcfce7; }
+    .quick-ref-run-btn.quick-ref-run-error { border-color: #991b1b; color: #991b1b; background: #fee2e2; }
+    .qr-days-recent { color: #166534; font-weight: 600; }
+    .qr-days-warn { color: #92400e; font-weight: 600; }
+    .qr-days-stale { color: #991b1b; font-weight: 600; }
+    .quick-ref-logins-chart-wrap { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; }
+    .quick-ref-logins-chart-title { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #333; }
+    .quick-ref-logins-chart-container { position: relative; height: 200px; min-width: 0; }
+    .view-all-accordion-body .timeline-table { font-size: 12px; }
+    .view-all-accordion-body .timeline-table th,
+    .view-all-accordion-body .timeline-table td { padding: 4px 8px; }
+    
+    .view-all-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .view-all-accordion-item {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .view-all-accordion-item.expanded {
+      overflow: visible;
+    }
+    
+    .view-all-accordion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      cursor: pointer;
+      background: #f8f9fa;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    
+    .view-all-accordion-header:hover {
+      background: #e9ecef;
+    }
+    
+    .view-all-accordion-header::after {
+      content: '▼';
+      font-size: 12px;
+      color: #667eea;
+      transition: transform 0.2s ease;
+    }
+    
+    .view-all-accordion-item.expanded .view-all-accordion-header::after {
+      transform: rotate(180deg);
+    }
+    
+    .view-all-accordion-body {
+      display: none;
+      padding: 16px;
+      border-top: 1px solid #e0e0e0;
+      background: #fff;
+    }
+    
+    .view-all-accordion-item.expanded .view-all-accordion-body {
+      display: block;
+    }
+    
+    .customer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .customer-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+    }
+    
+    .week-count {
+      font-size: 14px;
+      color: #666;
+      background: #f0f7ff;
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+    
+    .timeline-container {
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+    
+    .timeline-table {
+      width: 100%;
+      min-width: 2000px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .timeline-table th,
+    .timeline-table td {
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+      white-space: nowrap;
+    }
+    
+    .timeline-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .timeline-table td.week-col {
+      font-weight: 600;
+      background: #f0f7ff;
+    }
+    
+    .timeline-table td.changed {
+      background: #fef3c7;
+    }
+    
+    .timeline-table td.improved {
+      background: #dcfce7;
+    }
+    
+    .timeline-table td.declined {
+      background: #fee2e2;
+    }
+    
+    .trend-indicator {
+      display: inline-block;
+      margin-left: 4px;
+      font-weight: 700;
+    }
+    
+    .trend-up {
+      color: #166534;
+    }
+    
+    .trend-down {
+      color: #991b1b;
+    }
+    
+    .trend-stable {
+      color: #666;
+    }
+    
+    .insights-section {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    
+    .insights-section h4 {
+      margin: 0 0 8px 0;
+      color: #667eea;
+    }
+    
+    .insights-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .insights-list li {
+      padding: 4px 0;
+      font-size: 14px;
+    }
+    
+    .loading-message {
+      padding: 40px;
+      text-align: center;
+      color: #666;
+    }
+    
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* Auth bar (same pattern as suggestion-lifecycle) */
+    .auth-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .auth-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .auth-divider { color: #999; font-size: 13px; }
+    .auth-user { font-weight: 600; color: #333; }
+    .auth-bar .btn-primary {
+      background: #1473e6;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .auth-bar .btn-primary:hover { background: #0d66d0; }
+    .auth-bar .btn-link {
+      background: transparent;
+      border: none;
+      color: #1473e6;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline;
+      padding: 4px 8px;
+    }
+    .auth-bar .btn-link:hover { color: #0d66d0; background: rgba(20, 115, 230, 0.06); }
+    .token-row {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .token-row.visible { display: flex; }
+    .token-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .token-group input {
+      width: 280px;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .token-group button {
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .token-group button:hover { background: #5a6268; }
+    .token-group .btn-connect {
+      background: #1473e6;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .token-group .btn-connect:hover { background: #0d66d0; }
+    .search-hint {
+      font-size: 12px;
+      color: #667eea;
+      padding: 2px 4px;
+    }
+    .btn-edit-customer {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #1473e6;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .btn-edit-customer:hover { background: #0d66d0; color: white !important; }
+  </style>
+</head>
+<body>
+  <header></header>
+  <main>
+    <div>
+      <h1>Customer Historical Analysis</h1>
+      <p>Track customer changes across all 28 columns over 16 weeks</p>
+    </div>
+
+    <!-- Auth bar (aside so AEM does not treat it as a section and load auth-controls-row as a block) -->
+    <aside id="auth-bar" class="auth-bar">
+      <div id="auth-signed-out" class="auth-controls-row">
+        <button id="ims-sign-in-btn" class="btn-primary" type="button">Sign in with Adobe</button>
+        <span class="auth-divider">or</span>
+        <button id="dev-mode-toggle" class="btn-link" type="button">Use developer mode (manual token)</button>
+      </div>
+      <div id="auth-signed-in" class="auth-controls-row" style="display: none;">
+        <span id="auth-user-name" class="auth-user"></span>
+        <button id="ims-sign-out-btn" class="btn-link" type="button">Sign out</button>
+      </div>
+      <div id="token-row" class="token-row">
+        <div class="token-group">
+          <label for="token-input">API Token:</label>
+          <input type="password" id="token-input" placeholder="Paste SpaceCat Bearer token" autocomplete="off"/>
+          <button id="token-toggle" type="button" title="Show/hide token">Show</button>
+          <button id="token-connect-btn" class="btn-connect" type="button">Connect</button>
+        </div>
+      </div>
+    </aside>
+    
+    <div id="loading" class="loading-message">
+      Loading historical data...
+    </div>
+    
+    <!-- Summary Statistics -->
+    <div id="summary-stats" class="summary-stats" style="display: none;"></div>
+    
+    <!-- Controls -->
+    <div class="controls" id="controls" style="display: none;">
+      <a href="/customer-history-edit.html" class="btn-edit-customer" id="edit-customer-btn">Edit / Add customer</a>
+      <div class="controls-search-wrap" style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="natural-search">Search:</label>
+          <input type="text" id="natural-search" placeholder="e.g. canonical auto-fix enabled, pending validation, hreflang disabled, inactive" aria-label="Search across all customer fields" style="flex: 1;"/>
+          <button type="button" id="natural-search-btn" class="controls-search-btn">Search</button>
+        </div>
+        <div id="search-hint" class="search-hint" style="display:none;"></div>
+      </div>
+      <div>
+        <label for="customer-search-input">Select Customer:</label>
+        <div class="customer-select-wrap">
+          <input type="text" id="customer-search-input" placeholder="Type to search customer…" autocomplete="off" aria-label="Select customer"/>
+          <input type="hidden" id="customer-select" aria-hidden="true"/>
+          <ul id="customer-dropdown" class="customer-select-dropdown" role="listbox" aria-label="Customer results"></ul>
+        </div>
+      </div>
+      <div>
+        <label for="license-type-select">License Type:</label>
+        <select id="license-type-select">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div>
+        <label for="metric-select">Focus Metric:</label>
+        <select id="metric-select">
+          <option value="all">All Columns</option>
+          <option value="engagement">Engagement Metrics</option>
+          <option value="implementation">Implementation Status</option>
+          <option value="business">Business Info</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Timeline Display -->
+    <div id="timeline-display"></div>
+  </main>
+  <footer></footer>
+  
+  <script type="module">
+    let allData = [];
+    let weeks = [];
+
+    function collapseToOneRecordPerCustomer(rows) {
+      const byCustomer = {};
+      rows.forEach((r) => {
+        const name = (r.companyName || '').trim();
+        if (!name) return;
+        const existing = byCustomer[name];
+        const week = (r.week || '').toString();
+        if (!existing || week.localeCompare((existing.week || '').toString()) > 0) {
+          byCustomer[name] = { ...r };
+        }
+      });
+      return Object.values(byCustomer);
+    }
+
+    // ── SpaceCat natural-language query parser ──────────────────────────────
+    // Maps human-readable aliases to canonical audit type IDs
+    const AUDIT_TYPE_ALIASES = [
+      { aliases: ['broken backlinks', 'broken-backlinks', 'backlinks'], type: 'broken-backlinks' },
+      { aliases: ['structured data', 'structured-data'], type: 'structured-data' },
+      { aliases: ['meta tags', 'meta-tags', 'metatags'], type: 'meta-tags' },
+      { aliases: ['alt text', 'alt-text', 'alttext'], type: 'alt-text' },
+      { aliases: ['internal linking', 'internal-linking'], type: 'internal-linking' },
+      { aliases: ['hreflang'], type: 'hreflang' },
+      { aliases: ['canonical'], type: 'canonical' },
+    ];
+
+    function detectAuditTypeInQuery(q) {
+      for (const { aliases, type } of AUDIT_TYPE_ALIASES) {
+        if (aliases.some((a) => q.includes(a))) return type;
+      }
+      return null;
+    }
+
+    /**
+     * Parse a query string for SpaceCat-specific filter intent.
+     * Returns an array of filter objects, or null if no SpaceCat intent detected.
+     */
+    function parseSpaceCatFilters(query) {
+      const q = query.toLowerCase();
+      const filters = [];
+      const auditType = detectAuditTypeInQuery(q);
+      const hasAutoFix = /auto[-\s]?fix/.test(q);
+      const wantsEnabled = /\b(enabled|on|yes)\b/.test(q);
+      const wantsDisabled = /\b(disabled|off|no)\b/.test(q);
+      const hasPendingValidation = /pending[\s-]?validat/.test(q);
+      const hasNoLogin = /\b(no[ -]login|no[ -]sign[ -]?in|inactive|never logged)\b/.test(q);
+      const hasDisabledAudits = /disabled audit/.test(q);
+
+      if (hasAutoFix && (wantsEnabled || wantsDisabled)) {
+        filters.push({ kind: 'autofix', auditType, enabled: wantsEnabled });
+      } else if (!hasAutoFix && auditType && wantsDisabled) {
+        filters.push({ kind: 'audit-disabled', auditType });
+      } else if (!hasAutoFix && auditType && wantsEnabled) {
+        filters.push({ kind: 'audit-enabled', auditType });
+      }
+
+      if (hasPendingValidation) {
+        filters.push({ kind: 'pending-validation', auditType: auditType || null });
+      }
+
+      if (hasDisabledAudits && !auditType) {
+        filters.push({ kind: 'has-disabled-audits' });
+      }
+
+      if (hasNoLogin) {
+        filters.push({ kind: 'no-login' });
+      }
+
+      return filters.length > 0 ? filters : null;
+    }
+
+    function getSpaceCatCache() {
+      try {
+        const raw = localStorage.getItem('aso_quickref_cache');
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    }
+
+    function spaceCatFilterMatches(entry, filters) {
+      return filters.every((f) => {
+        if (f.kind === 'autofix') {
+          const audits = entry.audits || [];
+          if (f.auditType) {
+            const audit = audits.find((a) => a.auditType === f.auditType);
+            if (!audit) return false;
+            return f.enabled ? audit.autoFix === 'Yes' : audit.autoFix === 'No';
+          }
+          return audits.some((a) => (f.enabled ? a.autoFix === 'Yes' : a.autoFix === 'No'));
+        }
+        if (f.kind === 'audit-disabled') {
+          return (entry.disabledAudits || []).includes(f.auditType);
+        }
+        if (f.kind === 'audit-enabled') {
+          return (entry.audits || []).some((a) => a.auditType === f.auditType)
+            && !(entry.disabledAudits || []).includes(f.auditType);
+        }
+        if (f.kind === 'has-disabled-audits') {
+          return (entry.disabledAudits || []).length > 0;
+        }
+        if (f.kind === 'pending-validation') {
+          const pv = entry.pendingValidationOpps;
+          if (!pv || pv.count === 0) return false;
+          if (f.auditType) return (pv.types || []).includes(f.auditType);
+          return true;
+        }
+        if (f.kind === 'no-login') {
+          return !Array.isArray(entry.users) || entry.users.length === 0;
+        }
+        return true;
+      });
+    }
+
+    function updateSearchHint(filters, matchCount, uncachedCount) {
+      const hint = document.getElementById('search-hint');
+      if (!hint) return;
+      if (!filters) { hint.style.display = 'none'; hint.textContent = ''; return; }
+      hint.style.display = '';
+      hint.textContent = uncachedCount > 0
+        ? `${matchCount} match${matchCount !== 1 ? 'es' : ''}. ${uncachedCount} customer${uncachedCount !== 1 ? 's' : ''} skipped (no cached data — select and click Refresh to include).`
+        : `${matchCount} match${matchCount !== 1 ? 'es' : ''} from SpaceCat cache.`;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    const SEARCH_STOP_WORDS = new Set(['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'show', 'me', 'all', 'that', 'those', 'these', 'which', 'what', 'where', 'when', 'who', 'how', 'customers', 'customer']);
+    const BOOLEAN_FIELDS = new Set(['headless', 'preflight', 'autoOptimizeEnabled', 'autoOptimizeButtonPressed', 'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed', 'customerSelfServe']);
+    const SEARCH_ALIASES = {
+      autoOptimizeEnabled: ['autofix', 'auto-fix', 'auto optimize', 'autooptimize'],
+      autoOptimizeButtonPressed: ['auto optimize button', 'autooptimize button'],
+    };
+
+    function buildSearchableString(record) {
+      const parts = [];
+      Object.entries(record).forEach(([key, value]) => {
+        const v = String(value ?? '').trim().toLowerCase();
+        if (BOOLEAN_FIELDS.has(key)) {
+          if (v === 'yes' || v === 'true' || v === '1') {
+            parts.push(key);
+            const aliases = SEARCH_ALIASES[key];
+            if (aliases) parts.push(...aliases);
+          }
+        } else {
+          parts.push(key, v);
+        }
+      });
+      return parts.join(' ').toLowerCase();
+    }
+
+    function recordMatchesSearch(record, query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q) return true;
+      const words = q.split(/\s+/).filter((w) => w.length >= 2 && !SEARCH_STOP_WORDS.has(w));
+      if (words.length === 0) return true;
+      const searchable = buildSearchableString(record);
+      return words.every((word) => searchable.includes(word));
+    }
+
+    function applyQueryFilters(customers) {
+      const query = (document.getElementById('natural-search')?.value || '').trim();
+      if (!query) { updateSearchHint(null); return customers; }
+
+      const spaceCatFilters = parseSpaceCatFilters(query);
+      if (spaceCatFilters) {
+        const cache = getSpaceCatCache();
+        let uncached = 0;
+        const filtered = customers.filter((name) => {
+          const entry = cache[name];
+          if (!entry) { uncached += 1; return false; }
+          return spaceCatFilterMatches(entry, spaceCatFilters);
+        });
+        updateSearchHint(spaceCatFilters, filtered.length, uncached);
+        return filtered;
+      }
+
+      updateSearchHint(null);
+      return customers.filter((name) => {
+        const record = allData.find((c) => c.companyName === name);
+        return record ? recordMatchesSearch(record, query) : false;
+      });
+    }
+
+    function getFilteredCustomers() {
+      const licenseType = document.getElementById('license-type-select')?.value;
+      let customers;
+      if (!licenseType) {
+        customers = [...new Set(allData.map((c) => c.companyName))].sort();
+      } else {
+        customers = [...new Set(allData.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
+      }
+      return applyQueryFilters(customers);
+    }
+
+    async function loadHistoricalData() {
+      try {
+        const stored = localStorage.getItem('aso_customer_history_data');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            allData = Array.isArray(parsed) ? parsed : (parsed.data || []);
+          } catch (e) {
+            allData = [];
+          }
+        }
+        if (allData.length === 0) {
+          const response = await fetch('/data/customers.json');
+          const data = await response.json();
+          allData = data.data || [];
+        }
+        const rawLength = allData.length;
+        const weeksForStats = [...new Set(allData.map(c => c.week))].filter(Boolean).sort();
+        // One record per customer (latest only)
+        allData = collapseToOneRecordPerCustomer(allData);
+        weeks = allData.length ? ['Current'] : [];
+        console.log(`Loaded ${allData.length} customers (latest info only)`);
+        
+        // Get unique license types and populate License Type dropdown
+        const licenseTypes = [...new Set(allData.map(c => (c.licenseType || '').trim()).filter(Boolean))].sort();
+        const licenseSelect = document.getElementById('license-type-select');
+        licenseTypes.forEach(lt => {
+          const option = document.createElement('option');
+          option.value = lt;
+          option.textContent = lt;
+          licenseSelect.appendChild(option);
+        });
+        if (licenseTypes.includes('Paid')) {
+          licenseSelect.value = 'Paid';
+        }
+        
+        displaySummaryStats(getFilteredCustomers().length, weeksForStats, rawLength);
+        const summaryEl = document.getElementById('summary-stats');
+        if (summaryEl) summaryEl.style.display = 'grid';
+        
+        const VIEW_ALL_VALUE = '__view_all__';
+        const customerSearchInput = document.getElementById('customer-search-input');
+        const customerSelectHidden = document.getElementById('customer-select');
+        const customerDropdown = document.getElementById('customer-dropdown');
+
+        function escapeHtml(s) {
+          const div = document.createElement('div');
+          div.textContent = s;
+          return div.innerHTML;
+        }
+
+        function syncVisibleFromHidden() {
+          const v = customerSelectHidden.value;
+          customerSearchInput.value = v === VIEW_ALL_VALUE ? 'View All' : (v || '');
+        }
+
+        function showCustomerDropdown() {
+          const q = (customerSearchInput.value || '').trim().toLowerCase();
+          const customers = getFilteredCustomers();
+          const filtered = q ? customers.filter((n) => n.toLowerCase().includes(q)) : customers;
+          const items = [`<li role="option" data-value="${VIEW_ALL_VALUE}">View All</li>`];
+          if (filtered.length > 0) {
+            items.push(...filtered.map((n) => `<li role="option" data-value="${escapeHtml(n)}">${escapeHtml(n)}</li>`));
+          } else if (q) {
+            items.push('<li data-empty>No matching customer</li>');
+          }
+          customerDropdown.innerHTML = items.join('');
+          customerDropdown.classList.add('show');
+          customerDropdown.querySelectorAll('li:not([data-empty])').forEach((li) => {
+            li.addEventListener('click', () => {
+              const val = li.dataset.value || '';
+              customerSelectHidden.value = val;
+              customerSearchInput.value = val === VIEW_ALL_VALUE ? 'View All' : val;
+              customerDropdown.classList.remove('show');
+              customerSelectHidden.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+          });
+        }
+
+        function populateCustomerDropdown(defaultToViewAll = false) {
+          const customers = getFilteredCustomers();
+          const currentValue = customerSelectHidden.value;
+          if (defaultToViewAll) {
+            customerSelectHidden.value = VIEW_ALL_VALUE;
+          } else if (currentValue && currentValue !== VIEW_ALL_VALUE && customers.includes(currentValue)) {
+            customerSelectHidden.value = currentValue;
+          } else if (currentValue === VIEW_ALL_VALUE) {
+            customerSelectHidden.value = VIEW_ALL_VALUE;
+          } else if (customers.length > 0) {
+            customerSelectHidden.value = customers[0];
+            displayCustomerTimeline(customers[0]);
+          }
+          syncVisibleFromHidden();
+        }
+
+        populateCustomerDropdown(true);
+
+        customerSearchInput.addEventListener('focus', (e) => {
+          showCustomerDropdown();
+          e.target.select();
+        });
+        customerSearchInput.addEventListener('input', showCustomerDropdown);
+        customerSearchInput.addEventListener('blur', () => {
+          setTimeout(() => {
+            customerDropdown.classList.remove('show');
+            syncVisibleFromHidden();
+          }, 200);
+        });
+
+        customerSelectHidden.addEventListener('change', (e) => {
+          const value = e.target.value;
+          if (value === VIEW_ALL_VALUE) {
+            showAllCustomers();
+          } else if (value) {
+            displayCustomerTimeline(value);
+          }
+        });
+
+        document.getElementById('license-type-select').addEventListener('change', () => {
+          populateCustomerDropdown();
+          const sel = document.getElementById('customer-select');
+          if (sel.value === VIEW_ALL_VALUE) {
+            showAllCustomers();
+          } else if (sel.value) {
+            displayCustomerTimeline(sel.value);
+          }
+        });
+        const metricSelectEl = document.getElementById('metric-select');
+        if (metricSelectEl) {
+          metricSelectEl.addEventListener('change', () => {
+            const sel = document.getElementById('customer-select');
+            const val = sel ? sel.value : '';
+            if (val === VIEW_ALL_VALUE) showAllCustomers();
+            else if (val) displayCustomerTimeline(val);
+          });
+        }
+
+        function applySearchFilter() {
+          populateCustomerDropdown();
+          const sel = document.getElementById('customer-select');
+          if (sel.value === VIEW_ALL_VALUE) {
+            showAllCustomers();
+          } else if (sel.value) {
+            const customers = getFilteredCustomers();
+            if (customers.includes(sel.value)) {
+              displayCustomerTimeline(sel.value);
+            } else {
+              sel.value = customers.length ? customers[0] : VIEW_ALL_VALUE;
+              syncVisibleFromHidden();
+              if (sel.value === VIEW_ALL_VALUE) showAllCustomers();
+              else displayCustomerTimeline(sel.value);
+            }
+          }
+        }
+
+        const searchInput = document.getElementById('natural-search');
+        const searchBtn = document.getElementById('natural-search-btn');
+        if (searchInput) {
+          searchInput.addEventListener('input', applySearchFilter);
+          searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); applySearchFilter(); }
+          });
+        }
+        if (searchBtn) searchBtn.addEventListener('click', applySearchFilter);
+        
+        window.addEventListener('customer-quick-ref-token-applied', () => {
+          const container = document.getElementById('timeline-display');
+          if (!container || typeof window.loadCustomerQuickRef !== 'function') return;
+          const sel = document.getElementById('customer-select');
+          const currentValue = sel ? sel.value : '';
+          if (currentValue === VIEW_ALL_VALUE) {
+            container.querySelectorAll('.view-all-accordion-item.expanded').forEach((item) => {
+              const customerName = item.getAttribute('data-customer-name');
+              const body = item.querySelector('.view-all-accordion-body');
+              if (customerName && body) window.loadCustomerQuickRef(body, customerName);
+            });
+          } else if (currentValue) {
+            const timeline = container.querySelector('.customer-timeline');
+            if (timeline && timeline.getAttribute('data-customer-name')) {
+              window.loadCustomerQuickRef(timeline, currentValue);
+            }
+          }
+        });
+        
+        // Show controls
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
+
+        // Check for ?customer= URL param and auto-select that customer
+        const urlParams = new URLSearchParams(window.location.search);
+        const preCustomer = urlParams.get('customer');
+        if (preCustomer && allData.some((c) => c.companyName === preCustomer)) {
+          customerSelectHidden.value = preCustomer;
+          syncVisibleFromHidden();
+          displayCustomerTimeline(preCustomer);
+        } else {
+          showAllCustomers();
+        }
+        
+      } catch (error) {
+        console.error('Error loading data:', error);
+        document.getElementById('loading').innerHTML = 
+          '<p style="color: red;">Error loading historical data. Check console.</p>';
+      }
+    }
+    
+    function formatWeek(weekStr) {
+      const date = new Date(weekStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    
+    function displaySummaryStats(customerCount, weeksList, totalRecords) {
+      const container = document.getElementById('summary-stats');
+      if (!container) return;
+      const total = totalRecords != null ? totalRecords : allData.length;
+      const stats = [
+        { label: 'Total Customers', value: customerCount },
+        { label: 'Weeks of Data', value: (weeksList && weeksList.length) ? weeksList.length : 0 },
+        { label: 'Total Records', value: total },
+        { label: 'Latest Week', value: (weeksList && weeksList.length) ? formatWeek(weeksList[weeksList.length - 1]) : '—' }
+      ];
+      container.innerHTML = stats.map(stat => `
+        <div class="stat-card">
+          <div class="stat-value">${stat.value}</div>
+          <div class="stat-label">${stat.label}</div>
+        </div>
+      `).join('');
+    }
+    
+    function displayCustomerTimeline(customerName) {
+      const record = allData.find((c) => c.companyName === customerName);
+      if (!record) return;
+      const customerData = [record];
+      const insights = analyzeCustomerHistory(customerData);
+
+      const container = document.getElementById('timeline-display');
+      container.innerHTML = `
+        <div class="customer-timeline" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
+          <div class="customer-header" style="margin-bottom: 10px; padding-bottom: 8px;">
+            <div class="customer-name" style="font-size: 16px;">${customerName}</div>
+          </div>
+          ${createTimelineTable(customerData)}
+          <div class="insights-section">
+            <h4>📊 Historical Insights</h4>
+            <ul class="insights-list">
+              ${insights.map(insight => `<li>• ${insight}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="quick-ref-actions">
+            <button type="button" class="quick-ref-refresh-btn">Refresh</button>
+          </div>
+          <div class="quick-ref-grid">
+            <div class="quick-ref-box">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Enabled audits</summary>
+                <div class="quick-ref-audits"></div>
+              </details>
+            </div>
+            <div class="quick-ref-box">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Disabled audits</summary>
+                <div class="quick-ref-disabled-audits"></div>
+              </details>
+            </div>
+            <div class="quick-ref-box">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Pending validation (ASO)</summary>
+                <div class="quick-ref-pending"></div>
+              </details>
+            </div>
+            <div class="quick-ref-box">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Users signed in</summary>
+                <div class="quick-ref-users"></div>
+              </details>
+            </div>
+          </div>
+        </div>
+      `;
+      const timelineEl = container.querySelector('.customer-timeline');
+      setTimeout(() => { if (window.loadCustomerQuickRef) window.loadCustomerQuickRef(timelineEl, customerName); }, 0);
+    }
+    
+    function createTimelineTable(customerData) {
+      const metricSelect = document.getElementById('metric-select');
+      const metricValue = metricSelect ? metricSelect.value : 'all';
+      const allColumns = [
+        'week', 'status', 'engagement', 'healthScore', 'licenseType', 'industry',
+        'eseLead', 'delayReason', 'closeDate', 'onboardDate', 'deploymentType',
+        'headless', 'blockers', 'feedback', 'mau', 'ttiv', 'opptyRealized',
+        'preflight', 'autoOptimizeEnabled', 'autoOptimizeButtonPressed',
+        'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed', 'codeRepo',
+        'authImplementation', 'workflowManager', 'customerSelfServe'
+      ];
+      const engagementCols = [
+        'week', 'status', 'engagement', 'healthScore', 'blockers', 'feedback', 'mau', 'ttiv'
+      ];
+      const implementationCols = [
+        'week', 'preflight', 'autoOptimizeEnabled', 'servicePrincipleDeployed',
+        'brandProfile', 'aemyDeployed', 'codeRepo', 'authImplementation'
+      ];
+      const businessCols = [
+        'week', 'licenseType', 'industry', 'eseLead', 'status', 'closeDate',
+        'onboardDate', 'deploymentType'
+      ];
+      let columns = allColumns;
+      if (metricValue === 'engagement') columns = engagementCols;
+      if (metricValue === 'implementation') columns = implementationCols;
+      if (metricValue === 'business') columns = businessCols;
+      
+      const headers = columns.map(col => formatColumnName(col));
+      
+      let html = '<div class="timeline-container"><table class="timeline-table">';
+      html += '<thead><tr>';
+      html += headers.map(h => `<th>${h}</th>`).join('');
+      html += '</tr></thead><tbody>';
+      
+      customerData.forEach((record, idx) => {
+        const prevRecord = idx > 0 ? customerData[idx - 1] : null;
+        
+        html += '<tr>';
+        columns.forEach(col => {
+          let value = record[col] || '';
+          let cellClass = '';
+          let trendIndicator = '';
+          
+          if (col === 'week') {
+            cellClass = 'week-col';
+            value = value ? formatWeek(value) : value;
+          } else if (prevRecord) {
+            const prevValue = prevRecord[col] || '';
+            if (value !== prevValue) {
+              cellClass = 'changed';
+              
+              // Determine if change is improvement or decline
+              if (col === 'healthScore') {
+                const curr = Number(value) || 0;
+                const prev = Number(prevValue) || 0;
+                if (curr > prev) {
+                  cellClass = 'improved';
+                  trendIndicator = '<span class="trend-indicator trend-up">↑</span>';
+                } else if (curr < prev) {
+                  cellClass = 'declined';
+                  trendIndicator = '<span class="trend-indicator trend-down">↓</span>';
+                }
+              } else if (col === 'engagement') {
+                const levels = { 'Active': 3, 'At Risk': 2, 'Critical': 1 };
+                const curr = levels[value] || 0;
+                const prev = levels[prevValue] || 0;
+                if (curr > prev) {
+                  cellClass = 'improved';
+                  trendIndicator = '<span class="trend-indicator trend-up">↑</span>';
+                } else if (curr < prev) {
+                  cellClass = 'declined';
+                  trendIndicator = '<span class="trend-indicator trend-down">↓</span>';
+                }
+              }
+            }
+          }
+          
+          html += `<td class="${cellClass}">${value}${trendIndicator}</td>`;
+        });
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table></div>';
+      return html;
+    }
+    
+    function formatColumnName(col) {
+      return col
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase())
+        .trim();
+    }
+    
+    function analyzeCustomerHistory(customerData) {
+      const insights = [];
+      const first = customerData[0];
+      const last = customerData[customerData.length - 1];
+      
+      // Health score trend
+      const firstHealth = Number(first.healthScore) || 0;
+      const lastHealth = Number(last.healthScore) || 0;
+      const healthChange = lastHealth - firstHealth;
+      
+      if (healthChange > 10) {
+        insights.push(`Health score improved by ${healthChange} points (${firstHealth} → ${lastHealth})`);
+      } else if (healthChange < -10) {
+        insights.push(`Health score declined by ${Math.abs(healthChange)} points (${firstHealth} → ${lastHealth})`);
+      } else {
+        insights.push(`Health score stable around ${lastHealth}`);
+      }
+      
+      // Status progression
+      if (first.status !== last.status) {
+        insights.push(`Status changed from ${first.status} to ${last.status}`);
+      }
+      
+      // Engagement trend
+      const engagementLevels = customerData.map(d => d.engagement);
+      const activeCount = engagementLevels.filter(e => e === 'Active').length;
+      const atRiskCount = engagementLevels.filter(e => e === 'At Risk').length;
+      const criticalCount = engagementLevels.filter(e => e === 'Critical').length;
+      
+      insights.push(`Engagement history: ${activeCount} weeks Active, ${atRiskCount} weeks At Risk, ${criticalCount} weeks Critical`);
+      
+      // Implementation progress
+      const implementations = ['autoOptimizeEnabled', 'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed'];
+      const firstCount = implementations.filter(impl => first[impl] && first[impl].toLowerCase() === 'yes').length;
+      const lastCount = implementations.filter(impl => last[impl] && last[impl].toLowerCase() === 'yes').length;
+      
+      if (lastCount > firstCount) {
+        insights.push(`Implementation progress: ${lastCount - firstCount} new features enabled`);
+      }
+      
+      // Weeks tracked
+      insights.push(`Tracked for ${customerData.length} weeks from ${formatWeek(first.week)} to ${formatWeek(last.week)}`);
+      
+      return insights;
+    }
+    
+    function showAllCustomers() {
+      const container = document.getElementById('timeline-display');
+      const customers = getFilteredCustomers();
+      
+      let html = '<div class="view-all-accordion">';
+      customers.forEach(customerName => {
+        const record = allData.find((c) => c.companyName === customerName);
+        if (!record) return;
+        const healthScore = record.healthScore ?? '—';
+        const weekLabel = record.week ? '1 week' : 'Current';
+
+        const tableHtml = createTimelineTable([record]);
+        html += `
+          <div class="view-all-accordion-item" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
+            <div class="view-all-accordion-header">
+              <div>
+                <div class="customer-name" style="margin-bottom: 4px;">${customerName}</div>
+                <div style="font-size: 14px; color: #666;">
+                  ${weekLabel} | Health: ${healthScore}
+                  <span class="trend-indicator trend-stable">→</span>
+                </div>
+              </div>
+              <div class="week-count">${record.status} | ${record.engagement}</div>
+            </div>
+            <div class="view-all-accordion-body">
+              ${tableHtml}
+              <div class="quick-ref-actions">
+                <button type="button" class="quick-ref-refresh-btn">Refresh</button>
+              </div>
+              <div class="quick-ref-grid">
+                <div class="quick-ref-box">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>Enabled audits</summary>
+                    <div class="quick-ref-audits"></div>
+                  </details>
+                </div>
+                <div class="quick-ref-box">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>Disabled audits</summary>
+                    <div class="quick-ref-disabled-audits"></div>
+                  </details>
+                </div>
+                <div class="quick-ref-box">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>Pending validation (ASO)</summary>
+                    <div class="quick-ref-pending"></div>
+                  </details>
+                </div>
+                <div class="quick-ref-box">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>Users signed in</summary>
+                    <div class="quick-ref-users"></div>
+                  </details>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      container.innerHTML = html;
+      
+      container.querySelectorAll('.view-all-accordion-header').forEach((header) => {
+        header.addEventListener('click', () => {
+          const item = header.closest('.view-all-accordion-item');
+          const wasExpanded = item.classList.contains('expanded');
+          item.classList.toggle('expanded');
+          const isExpanded = item.classList.contains('expanded');
+          if (isExpanded && !wasExpanded && window.loadCustomerQuickRef) {
+            const customerName = item.getAttribute('data-customer-name');
+            const body = item.querySelector('.view-all-accordion-body');
+            if (customerName && body) window.loadCustomerQuickRef(body, customerName);
+          }
+        });
+      });
+    }
+    
+    function exportHistory() {
+      const headers = [
+        'Week', 'Company Name', 'License Type', 'Industry', 'ESE Lead', 'Status',
+        'Delay Reason', 'Close Date', 'Onboard Date', 'Deployment Type', 'Headless',
+        'Engagement', 'Blockers', 'Feedback', 'Health Score', 'Summary',
+        'MAU', 'TTIV', 'Oppty Realized', 'Preflight', 'Auto-Optimize Enabled',
+        'Auto-Optimize Button Pressed', 'Service Principle Deployed', 'Brand Profile',
+        'AEMY Deployed', 'Code Repo', 'Auth Implementation', 'Workflow Manager',
+        'Customer Self Serve'
+      ];
+      
+      const fields = [
+        'week', 'companyName', 'licenseType', 'industry', 'eseLead', 'status',
+        'delayReason', 'closeDate', 'onboardDate', 'deploymentType', 'headless',
+        'engagement', 'blockers', 'feedback', 'healthScore', 'summary',
+        'mau', 'ttiv', 'opptyRealized', 'preflight', 'autoOptimizeEnabled',
+        'autoOptimizeButtonPressed', 'servicePrincipleDeployed', 'brandProfile',
+        'aemyDeployed', 'codeRepo', 'authImplementation', 'workflowManager',
+        'customerSelfServe'
+      ];
+      
+      let csv = headers.join(',') + '\n';
+      
+      const sortedData = [...allData].sort((a, b) => {
+        const nameCompare = a.companyName.localeCompare(b.companyName);
+        return nameCompare !== 0 ? nameCompare : (a.week || '').localeCompare(b.week || '');
+      });
+      
+      sortedData.forEach(record => {
+        const row = fields.map(field => {
+          let value = record[field] || '';
+          value = String(value).replace(/"/g, '""');
+          if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+            value = `"${value}"`;
+          }
+          return value;
+        });
+        csv += row.join(',') + '\n';
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const date = new Date().toISOString().split('T')[0];
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `customer-history-${date}-${allData.length}-records.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`Exported ${allData.length} historical records`);
+    }
+    
+    // Load data on page load
+    loadHistoricalData();
+  </script>
+</body>
+</html>

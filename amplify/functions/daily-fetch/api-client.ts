@@ -1,4 +1,4 @@
-import type { RawCustomer, RawApiResponse, Logger } from "./types";
+import type { RawCustomer, Logger } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed API errors
@@ -24,61 +24,107 @@ export class ApiError extends Error {
 // Config
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ApiClientConfig {
-  /** Base URL of the external API, e.g. "https://api.example.com" */
-  baseUrl: string;
-  /** API key passed as a Bearer token */
-  apiKey: string;
+export interface ServiceNowConfig {
+  /**
+   * Pre-encoded Basic auth token. Accepts either:
+   *   - A base64 "user:password" string  →  prefix "Basic " is added automatically
+   *   - A full "Basic <base64>" string   →  used as-is
+   */
+  authToken: string;
+  /** ServiceNow instance hostname prefix (default: "adobems") */
+  instance?: string;
+  /** Records per page (default: 200) */
+  pageSize?: number;
   /** Request timeout in milliseconds (default: 30 000) */
   timeoutMs?: number;
-  /** Maximum number of attempts per request, including the first (default: 3) */
+  /** Maximum retry attempts per request (default: 3) */
   maxAttempts?: number;
 }
+
+// ServiceNow query constants
+const SNOW_TABLE = "core_company";
+const SNOW_QUERY =
+  "u_product=aso^u_statusINPre-Production,Production^u_active=true";
+const SNOW_FIELDS = [
+  "sys_id",
+  "name",
+  "u_product",
+  "u_status",
+  "u_active",
+  "u_customer_success_engineer",
+  "u_account_name",
+  "u_env",
+  "u_ims_org_id",
+  "u_created",
+  "u_updated",
+].join(",");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Fetch all customer records from the external API.
- * Handles pagination automatically — keeps fetching until no nextToken is returned.
+ * Fetch all ASO customer records from ServiceNow (core_company table).
+ * Handles offset-based pagination automatically — keeps fetching until the
+ * last page (fewer records than pageSize) or the reported total is reached.
  * Each page is retried independently with exponential back-off.
- *
- * TODO: update `buildUrl()` and `parseResponse()` once the real API shape is known.
  */
 export async function fetchCustomers(
-  config: ApiClientConfig,
+  config: ServiceNowConfig,
   logger: Logger
 ): Promise<RawCustomer[]> {
-  const { baseUrl, apiKey, timeoutMs = 30_000, maxAttempts = 3 } = config;
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
+  const {
+    authToken,
+    instance = "adobems",
+    pageSize = 200,
+    timeoutMs = 30_000,
+    maxAttempts = 3,
+  } = config;
 
+  const authHeader = authToken.startsWith("Basic ")
+    ? authToken
+    : `Basic ${authToken}`;
+
+  const baseUrl = `https://${instance}.service-now.com/api/now/table/${SNOW_TABLE}`;
+  const currentWeek = getCurrentISOWeek();
   const allCustomers: RawCustomer[] = [];
-  let nextToken: string | undefined;
+  let offset = 0;
   let page = 0;
+  let totalCount: number | undefined;
 
   do {
     page++;
-    const url = buildUrl(baseUrl, nextToken);
-    const log = logger.with({ page, url: redactUrl(url) });
+    const url = buildUrl(baseUrl, offset, pageSize);
+    const log = logger.with({ page, offset });
 
-    log.info("Fetching page");
+    log.info("Fetching page from ServiceNow");
 
-    const response = await withRetry(
-      () => timedFetch(url, { headers }, timeoutMs),
+    const { records, total } = await withRetry(
+      () => timedFetchSnow(url, authHeader, timeoutMs),
       { maxAttempts, label: `page ${page}`, logger: log }
     );
 
-    const parsed = parseResponse(response);
-    allCustomers.push(...parsed.data);
-    nextToken = parsed.nextToken;
+    // Capture reported total on first page
+    if (totalCount === undefined && total !== undefined) {
+      totalCount = total;
+      log.info("ServiceNow total record count", { totalCount });
+    }
 
-    log.info("Page fetched", { recordsOnPage: parsed.data.length, hasMore: !!nextToken });
-  } while (nextToken);
+    const mapped = records.map((r) => mapToRawCustomer(r, currentWeek));
+    allCustomers.push(...mapped);
+
+    log.info("Page fetched", {
+      recordsOnPage: records.length,
+      totalSoFar: allCustomers.length,
+    });
+
+    offset += records.length;
+
+    // Last page: fewer records than requested
+    if (records.length < pageSize) break;
+    // Safety: stop when we've reached the reported total
+    if (totalCount !== undefined && allCustomers.length >= totalCount) break;
+  } while (true); // eslint-disable-line no-constant-condition
 
   return allCustomers;
 }
@@ -87,55 +133,117 @@ export async function fetchCustomers(
 // Internals
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Build the paginated request URL.
- * TODO: adapt to the real API's pagination convention.
- */
-function buildUrl(baseUrl: string, nextToken?: string): string {
-  const url = new URL("/customers", baseUrl);
-  if (nextToken) url.searchParams.set("nextToken", nextToken);
-  return url.toString();
+function buildUrl(baseUrl: string, offset: number, limit: number): string {
+  const params = new URLSearchParams({
+    sysparm_query: SNOW_QUERY,
+    sysparm_fields: SNOW_FIELDS,
+    sysparm_limit: limit.toString(),
+    sysparm_offset: offset.toString(),
+    sysparm_display_value: "true",
+    sysparm_orderby: "name",
+  });
+  return `${baseUrl}?${params.toString()}`;
 }
 
-/**
- * Parse the raw response JSON into the expected shape.
- * TODO: adapt field names to the real API response.
- */
-function parseResponse(body: unknown): RawApiResponse {
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    !Array.isArray((body as Record<string, unknown>).data)
-  ) {
-    throw new Error(
-      `Unexpected API response shape: ${JSON.stringify(body).slice(0, 200)}`
-    );
+// ServiceNow returns fields as either plain strings or objects with
+// { display_value: string; value: string } when sysparm_display_value=true
+interface SnowField {
+  display_value: string;
+  value: string;
+}
+
+type SnowValue = string | SnowField | undefined;
+
+interface SnowRecord {
+  sys_id?: SnowValue;
+  name?: SnowValue;
+  u_product?: SnowValue;
+  u_status?: SnowValue;
+  u_customer_success_engineer?: SnowValue;
+  u_account_name?: SnowValue;
+  u_env?: SnowValue;
+  u_ims_org_id?: SnowValue;
+  u_created?: SnowValue;
+  u_updated?: SnowValue;
+}
+
+function getDisplayValue(field: SnowValue): string {
+  if (!field) return "";
+  if (typeof field === "object" && "display_value" in field) {
+    return field.display_value ?? "";
   }
-  const raw = body as { data: unknown[]; nextToken?: string };
+  return String(field);
+}
+
+function mapToRawCustomer(record: SnowRecord, week: string): RawCustomer {
   return {
-    data: raw.data as RawCustomer[],
-    nextToken: raw.nextToken,
+    companyName: getDisplayValue(record.name),
+    week,
+    status: getDisplayValue(record.u_status),
+    eseLead: getDisplayValue(record.u_customer_success_engineer),
+    licenseType: getDisplayValue(record.u_product),
+    deploymentType: getDisplayValue(record.u_env),
+    lastUpdated: getDisplayValue(record.u_updated),
+    // Fields not directly available in ServiceNow core_company —
+    // left as empty defaults; can be enriched via additional queries
+    // or manual data entry in the dashboard.
+    industry: "",
+    engagement: "",
+    blockersStatus: "",
+    blockers: "",
+    feedbackStatus: "",
+    feedback: "",
+    summary: "",
+    mau: "",
+    ttiv: "",
+    autoOptimizeButtonPressed: "",
+    healthScore: 0,
   };
 }
 
-/** Fetch with an AbortController timeout. Returns parsed JSON. */
-async function timedFetch(
+/** Return the current ISO 8601 week string, e.g. "2025-W12". */
+function getCurrentISOWeek(): string {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7
+  );
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+/** Fetch a ServiceNow page; returns parsed records and optional total count. */
+async function timedFetchSnow(
   url: string,
-  init: RequestInit,
+  authHeader: string,
   timeoutMs: number
-): Promise<unknown> {
+): Promise<{ records: SnowRecord[]; total?: number }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(url, { ...init, signal: controller.signal });
+    const res = await fetch(url, {
+      headers: {
+        Authorization: authHeader,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new ApiError(res.status, res.statusText, body);
     }
 
-    return await res.json();
+    const json = (await res.json()) as { result?: unknown[] };
+    const records = (json.result ?? []) as SnowRecord[];
+    const totalHeader = res.headers.get("x-total-count");
+    const total = totalHeader ? parseInt(totalHeader, 10) : undefined;
+
+    return { records, total };
   } finally {
     clearTimeout(timer);
   }
@@ -189,14 +297,4 @@ async function withRetry<T>(
   }
 
   throw lastError;
-}
-
-/** Strip query params from logged URLs to avoid leaking tokens in logs. */
-function redactUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    return `${u.origin}${u.pathname}`;
-  } catch {
-    return url.split("?")[0];
-  }
 }

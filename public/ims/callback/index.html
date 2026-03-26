@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting...</title>
+  <script>
+    // Preserve query string (e.g. ?code=...) when redirecting to the real callback page
+    window.location.replace('/ims/callback.html' + window.location.search);
+  </script>
+  <meta http-equiv="refresh" content="0; url=/ims/callback.html">
+</head>
+<body>
+  <p>Redirecting to complete sign-in...</p>
+</body>
+</html>

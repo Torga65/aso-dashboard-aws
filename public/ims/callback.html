@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASO Dashboard — Signing in...</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f5f5f5;
+      color: #333;
+    }
+    .card {
+      text-align: center;
+      padding: 40px 48px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      max-width: 480px;
+      width: 90%;
+    }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .status { font-size: 14px; color: #666; margin-bottom: 16px; }
+    .spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #1473e6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      color: #c9252d;
+      background: #fff0f0;
+      border: 1px solid #ffd4d4;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      text-align: left;
+      word-break: break-word;
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 20px;
+      background: #1473e6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover { background: #0d66d0; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loading">
+      <div class="spinner"></div>
+      <h1>Signing you in...</h1>
+      <p class="status" id="status-text">Exchanging authorization code</p>
+    </div>
+    <div id="error-container" class="hidden">
+      <h1>Sign-in failed</h1>
+      <div class="error" id="error-message"></div>
+      <p class="status" id="error-cors-hint" style="display:none; margin-top: 12px; font-size: 13px; color: #666;">
+        If this persists, CORS may be blocking the token exchange. Ensure the IMS client allows CORS for this origin, or use a same-origin proxy (see docs).
+      </p>
+      <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button type="button" class="btn" id="error-retry-btn" style="display: none;">Retry</button>
+        <a class="btn" href="/suggestion-lifecycle.html">Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      IMS_CLIENT_ID,
+      IMS_SCOPES,
+      getIMSEnvironment,
+      getIMSBaseURL,
+      getRedirectURI,
+      STORAGE_KEY,
+      PKCE_VERIFIER_KEY,
+    } from '/scripts/auth/ims-config.js';
+
+    const loadingEl = document.getElementById('loading');
+    const errorContainerEl = document.getElementById('error-container');
+    const errorMessageEl = document.getElementById('error-message');
+    const statusTextEl = document.getElementById('status-text');
+    const errorCorsHintEl = document.getElementById('error-cors-hint');
+    const errorRetryBtn = document.getElementById('error-retry-btn');
+
+    function showError(message, options = {}) {
+      loadingEl.classList.add('hidden');
+      errorContainerEl.classList.remove('hidden');
+      errorMessageEl.textContent = message;
+      if (options.corsHint) {
+        errorCorsHintEl.style.display = 'block';
+        errorRetryBtn.style.display = 'inline-block';
+      } else {
+        errorCorsHintEl.style.display = 'none';
+        errorRetryBtn.style.display = 'none';
+      }
+    }
+
+    async function handleCallback() {
+      // 1. Extract authorization code from URL
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
+      const errorDescription = params.get('error_description');
+
+      if (error) {
+        showError(`IMS returned an error: ${error} — ${errorDescription || 'No details'}`);
+        return;
+      }
+
+      if (!code) {
+        showError('No authorization code found in the URL. Please try signing in again.');
+        return;
+      }
+
+      // 2. Retrieve PKCE code_verifier from sessionStorage
+      const codeVerifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+      if (!codeVerifier) {
+        showError(
+          'PKCE code_verifier not found. This can happen if you opened the callback in a different tab '
+          + 'or cleared browser data. Please try signing in again from the dashboard.'
+        );
+        return;
+      }
+
+      // 3. Exchange code for tokens (with retry and CORS-aware error handling)
+      statusTextEl.textContent = 'Exchanging authorization code for tokens...';
+
+      const env = getIMSEnvironment();
+      const baseURL = getIMSBaseURL(env);
+      const tokenURL = `${baseURL}/ims/token/v3`;
+
+      const tokenBody = {
+        grant_type: 'authorization_code',
+        client_id: IMS_CLIENT_ID,
+        code,
+        code_verifier: codeVerifier,
+        redirect_uri: getRedirectURI(),
+      };
+
+      function tryFetchToken() {
+        const body = new URLSearchParams(tokenBody);
+        return fetch(tokenURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+        });
+      }
+
+      let response;
+      let tokenData;
+      try {
+        response = await tryFetchToken();
+        if (!response.ok) {
+          response = await tryFetchToken();
+        }
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Token endpoint returned HTTP ${response.status}: ${errorText}`);
+        }
+        tokenData = await response.json();
+      } catch (fetchErr) {
+        const isCorsOrNetwork = fetchErr.name === 'TypeError' || fetchErr.message?.includes('Failed to fetch');
+        const proxyUrl = document.body.dataset.imsTokenProxyUrl || window.IMS_TOKEN_PROXY_URL;
+        if (isCorsOrNetwork && proxyUrl) {
+          statusTextEl.textContent = 'Using proxy for token exchange...';
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = proxyUrl;
+          form.style.display = 'none';
+          Object.entries(tokenBody).forEach(([key, value]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+          });
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        }
+        showError(
+          `Token exchange failed: ${fetchErr.message}`,
+          { corsHint: isCorsOrNetwork }
+        );
+        errorRetryBtn.onclick = () => {
+          errorContainerEl.classList.add('hidden');
+          loadingEl.classList.remove('hidden');
+          handleCallback();
+        };
+        return;
+      }
+
+      try {
+        // Clean up verifier
+        sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+
+        // 4. Fetch user profile
+        statusTextEl.textContent = 'Loading your profile...';
+
+        const profileURL = `${baseURL}/ims/profile/v1?client_id=${IMS_CLIENT_ID}`;
+        let profile = null;
+        try {
+          const profileResponse = await fetch(profileURL, {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          if (profileResponse.ok) {
+            profile = await profileResponse.json();
+          }
+        } catch (profileErr) {
+          console.warn('[IMS Callback] Profile fetch failed (non-fatal):', profileErr);
+        }
+
+        // 5. Store auth state
+        const authState = {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || null,
+          expiresAt: Date.now() + (tokenData.expires_in * 1000),
+          profile,
+          imsOrgId: profile?.projectedProductContext?.[0]?.prodCtx?.owningEntity || null,
+        };
+
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
+
+        // 6. Redirect to dashboard
+        statusTextEl.textContent = 'Redirecting to dashboard...';
+        window.location.href = '/suggestion-lifecycle.html';
+      } catch (err) {
+        console.error('[IMS Callback] Error:', err);
+        showError(`Failed to complete sign-in: ${err.message}`);
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

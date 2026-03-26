@@ -1,0 +1,3484 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Suggestion Lifecycle - ASO Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Track ASO suggestion deployment, rejection rates, and lifecycle metrics"/>
+  <script src="/scripts/aem.js" type="module"></script>
+  <script src="/scripts/scripts.js" type="module"></script>
+  <link rel="stylesheet" href="styles/styles.css"/>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    
+    main {
+      padding: 12px;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    
+    /* Header Section */
+    .page-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .page-header h1 {
+      color: white;
+      margin: 0 0 8px 0;
+      font-size: 24px;
+    }
+    
+    .page-header p {
+      color: rgb(255 255 255 / 95%);
+      margin: 0;
+      font-size: 14px;
+    }
+    
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      background: #f8f9fa;
+      padding: 14px 16px;
+      border-radius: 8px;
+    }
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      flex-wrap: wrap;
+    }
+    .controls label {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .controls input,
+    .controls select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      min-height: 36px;
+    }
+    .controls select {
+      min-width: 220px;
+    }
+    .controls button {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .controls button:hover { background: #5568d3; }
+    .controls button:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Token row */
+    .token-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .token-group input {
+      width: 280px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .token-group button {
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #6c757d;
+    }
+    .token-group button:hover { background: #5a6268; }
+    .btn-connect {
+      background: #1473e6 !important;
+      padding: 8px 14px !important;
+      font-size: 13px !important;
+    }
+    .btn-connect:hover { background: #0d66d0 !important; }
+    .btn-connect:disabled { background: #a0b4d0 !important; cursor: not-allowed; }
+
+    /* Selector row */
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* Customer/site search autocomplete */
+    .customer-search-row .customer-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 400px;
+    }
+    .customer-search-input {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .customer-search-input:focus {
+      outline: none;
+      border-color: #1473e6;
+      box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.2);
+    }
+    .customer-search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 2px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      z-index: 100;
+      list-style: none;
+      padding: 0;
+    }
+    .customer-search-results[data-visible="true"] {
+      display: block !important;
+    }
+    .customer-search-results .search-result-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .customer-search-results .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .customer-search-results .search-result-item:hover,
+    .customer-search-results .search-result-item[aria-selected="true"] {
+      background: #e8f0fe;
+      color: #1967d2;
+    }
+    .customer-search-results .search-result-item.search-result-customer {
+      font-weight: 600;
+    }
+    .customer-search-results .search-result-item.search-result-site {
+      padding-left: 20px;
+      color: #555;
+    }
+    .selector-spinner {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #666;
+    }
+    .spinner-sm {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e0e0e0;
+      border-top-color: #1473e6;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text { font-size: 12px; }
+
+    /* Manual site fallback */
+    .dev-manual-toggle .btn-link {
+      font-size: 12px;
+      padding: 2px 4px;
+    }
+    #manual-site-input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    /* Action buttons row */
+    .controls-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* View tabs */
+    .view-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .view-tab {
+      padding: 8px 20px;
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      background: #fff;
+      color: #344054;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { background: #f2f4f7; }
+    .view-tab.active {
+      background: #1473e6;
+      color: #fff;
+      border-color: #1473e6;
+    }
+
+    /* View visibility — controlled by data-view on <body>, no inline styles needed.
+       Specificity of body[data-view] rules naturally beats simple class selectors. */
+    #portfolio-view                              { display: none; }
+    #dashboard                                   { display: none; }
+    #selector-row                                { display: none; }
+    #dev-manual-site                             { display: none; }
+
+    /* Site view: show dashboard (when data loaded) and site controls */
+    body[data-view="site"] #dashboard.has-data   { display: block; }
+    body[data-view="site"] #selector-row.visible { display: flex; }
+    body[data-view="site"] #dev-manual-site.visible { display: block; }
+
+    /* Portfolio view: show portfolio panel only; hide Site-view selector and actions */
+    body[data-view="portfolio"] #portfolio-view  { display: block; }
+    body[data-view="portfolio"] #customer-search-row { display: none !important; }
+    body[data-view="portfolio"] #selector-row.visible { display: none; }
+    body[data-view="portfolio"] #site-actions-row { display: none; }
+    body[data-view="portfolio"] #dev-manual-site.visible { display: none; }
+
+    /* Portfolio view — control bar */
+    .portfolio-header {
+      margin-bottom: 20px;
+    }
+    .portfolio-header h2 {
+      margin: 0 0 12px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .portfolio-controls-bar {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .pf-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .pf-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .pf-field--range { flex: 0 0 auto; }
+    .pf-label {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #64748b;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 38px;
+    }
+    .pf-select {
+      flex: 1 1 0;
+      min-width: 0;
+      margin: 0;
+      padding: 8px 30px 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.4;
+      color: #1e293b;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2364748b' d='M5 7L0 2h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+      background-size: 10px;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .pf-field--range .pf-select { flex: 0 0 auto; min-width: 130px; }
+    .pf-select:hover { border-color: #94a3b8; }
+    .pf-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.18); }
+    .pf-field--range { margin-right: 0; }
+    .pf-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .pf-toggle input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      padding: 0;
+      accent-color: #3b82f6;
+      cursor: pointer;
+      font: initial;
+    }
+    .pf-load-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 0 0 auto;
+      padding: 8px 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #fff;
+      background: #3b82f6;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s;
+      white-space: nowrap;
+      text-overflow: unset;
+      overflow: visible;
+      max-width: none;
+    }
+    .pf-load-btn:hover,
+    .pf-load-btn:focus { background: #2563eb; }
+    .pf-load-btn:active { transform: translateY(1px); }
+    .pf-load-btn:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+
+    /* ===== Portfolio view overrides (scoped to #portfolio-view)
+       Replaced older conflicting rules with a single authoritative block.
+       - Scope + Site: side-by-side on wide screens, stacked on small
+       - Removes calc(50% - 12px) flex-basis that collapsed fields
+       - Increases gap between Range, checkboxes, and Load
+       - Scoped rules to beat global styles.css and keep good mobile fallback
+    */
+    #portfolio-view .portfolio-controls-bar {
+      /* ensure scoping of small tweaks */
+      box-sizing: border-box;
+    }
+
+    /* Layout for the scope row: label + select pairs in two columns */
+    #portfolio-view .pf-row--scope {
+      display: grid !important;
+      grid-template-columns: 92px 1fr 92px 1fr; /* label / select | label / select */
+      column-gap: 24px;
+      row-gap: 12px;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Force pf-fields to behave as grid items rather than flex children */
+    #portfolio-view .pf-row--scope .pf-field--scope,
+    #portfolio-view .pf-row--scope .pf-field--site {
+      /* cancel earlier flex-basis / calc rules that come from styles.css */
+      flex: 0 0 auto !important;
+      max-width: none !important;
+      min-width: 240px !important; /* sensible minimum to avoid collapse */
+      display: block !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Make label/select fill their grid cell (label above, select full width) */
+    #portfolio-view .pf-field .pf-label {
+      display: block !important;
+      margin: 0 0 6px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    #portfolio-view .pf-field .pf-select {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+    }
+
+    /* Explicit placement (keeps layout stable if markup order shifts) */
+    #portfolio-view .pf-field--scope { grid-column: 1 / span 2; }
+    #portfolio-view .pf-field--site  { grid-column: 3 / span 2; }
+    /* If site is hidden, scope takes full width */
+    #portfolio-view .pf-field--scope:only-child { grid-column: 1 / -1 !important; }
+
+    /* Options row spacing and inline toggles */
+    #portfolio-view .pf-row--options {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+      padding-bottom: 12px;
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 48px !important;
+      box-sizing: border-box;
+    }
+    #portfolio-view .pf-row--options .pf-field--range {
+      flex: 0 0 auto;
+      min-width: 140px;
+    }
+    #portfolio-view .pf-toggles {
+      display: flex !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding-left: 0 !important;
+      border-left: none !important;
+    }
+    #portfolio-view .pf-load-btn {
+      margin: 0 0 0 auto !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      min-width: 88px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Scoped select & button appearance override to beat global rules */
+    #portfolio-view .portfolio-controls-bar .pf-select {
+      font-size: 13px;
+      line-height: 1.2;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    #portfolio-view .portfolio-controls-bar .pf-load-btn {
+      padding: 0.56em 1.1em;
+      border-radius: 0.35rem;
+      box-sizing: border-box;
+    }
+
+    /* Responsive: revert to stacked layout on small screens */
+    @media (max-width: 680px) {
+      .portfolio-controls-bar { padding: 14px 16px 18px; gap: 14px; }
+      #portfolio-view .pf-row--scope {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        align-items: stretch !important;
+      }
+      #portfolio-view .pf-row--scope .pf-field--scope,
+      #portfolio-view .pf-row--scope .pf-field--site {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+      #portfolio-view .pf-field { display: flex !important; flex-direction: column !important; gap: 6px !important; }
+      #portfolio-view .pf-row--options { gap: 20px !important; flex-wrap: wrap !important; }
+    }
+
+    .sr-only {
+      position: absolute !important;
+      height: 1px;
+      width: 1px;
+      overflow: hidden;
+      clip: rect(1px, 1px, 1px, 1px);
+      white-space: nowrap;
+      border: 0;
+      padding: 0;
+      margin: -1px;
+    }
+
+    /* Global Filters Bar */
+    .global-filters-bar { margin-bottom: 16px; }
+    .global-filters {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 16px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .filter-group label { font-weight: 600; color: #555; }
+    .filter-group select,
+    .filter-group input[type="date"] {
+      padding: 4px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* Auth Bar */
+    .auth-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .auth-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .auth-divider {
+      color: #999;
+      font-size: 13px;
+    }
+    .auth-user {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .btn-primary {
+      background: #1473e6;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #0d66d0; }
+    .btn-primary:active { background: #0b5ab5; }
+    .btn-link {
+      background: transparent;
+      border: none;
+      color: #1473e6;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: underline;
+      padding: 4px 8px;
+      border-radius: 4px;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-link:hover {
+      color: #0d66d0;
+      background: rgba(20, 115, 230, 0.06);
+    }
+    .btn-link:active,
+    .btn-link:focus {
+      color: #0d66d0;
+      background: transparent;
+      outline: none;
+      box-shadow: none;
+    }
+
+    /* Site Name Banner */
+    .site-name-banner {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    .site-name-banner .site-id {
+      font-weight: 400;
+      color: #666;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+    .aso-entitlement-banner {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      color: #92400e;
+      font-size: 14px;
+    }
+    .aso-selector-message {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 6px;
+      margin-bottom: 0;
+      color: #92400e;
+      font-size: 13px;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+    .section-label .label-muted {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #999;
+    }
+
+    /* Score Cards Row */
+    .score-cards-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 900px) {
+      .score-cards-row { grid-template-columns: 1fr; }
+    }
+
+    /* Health Score Card */
+    .health-score-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .health-score-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .health-score-value {
+      font-size: 32px;
+      line-height: 1;
+    }
+    
+    .health-score-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    
+    .health-excellent { background: #d4edda; color: #155724; }
+    .health-good { background: #d1ecf1; color: #0c5460; }
+    .health-fair { background: #fff3cd; color: #856404; }
+    .health-poor { background: #f8d7da; color: #721c24; }
+    .health-critical { background: #f5c6cb; color: #721c24; }
+    
+    .health-details {
+      flex: 1;
+    }
+    
+    .health-details h3 {
+      margin: 0 0 8px 0;
+      color: #333;
+    }
+    
+    .health-breakdown {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    
+    .health-metric {
+      font-size: 13px;
+    }
+    
+    .health-metric-label {
+      color: #666;
+    }
+    
+    .health-metric-value {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      margin-bottom: 16px;
+    }
+    /* Portfolio: grouped stat sections */
+    .portfolio-stats-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .portfolio-stat-group {
+      background: #fafbfc;
+      border: 1px solid #e8eaed;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .portfolio-stat-group--suggestion {
+      background: linear-gradient(180deg, #f0f4ff 0%, #fafbfc 100%);
+      border-color: #c7d2fe;
+    }
+    .portfolio-stat-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #475569;
+      margin: 0 0 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .portfolio-stat-group-subtitle {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #94a3b8;
+    }
+    .portfolio-stat-group--suggestion .portfolio-stat-group-title {
+      color: #4338ca;
+      border-bottom-color: #c7d2fe;
+    }
+    .portfolio-stat-group .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 0;
+    }
+    .portfolio-stat-group .stat-card {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .portfolio-data-source-wrap {
+      margin-top: 8px;
+      padding-top: 16px;
+      border-top: 1px dashed #d0d5dd;
+    }
+    /* Single scope line: "Metrics for: Last 7 days" — visible when data is loaded */
+    .portfolio-metrics-scope {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .portfolio-metrics-scope .portfolio-scope-range {
+      font-weight: 700;
+      color: #334155;
+    }
+    .stats-grid-inner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    
+    .stat-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      overflow: visible;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .stat-card.clickable {
+      cursor: pointer;
+    }
+    .stat-card.clickable:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-card.deployed .stat-value { color: #28a745; }
+    .stat-card.fixed .stat-value { color: #28a745; }
+    .stat-card.pending .stat-value { color: #ffc107; }
+    .stat-card.rejected .stat-value { color: #dc3545; }
+    .stat-card.ignored .stat-value { color: #6c757d; }
+    .stat-card.noise .stat-value { color: #fd7e14; }
+    .stat-card.fixes .stat-value { color: #17a2b8; }
+    
+    /* Info Tooltip */
+    .info-bubble {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #6c757d;
+      color: white;
+      font-size: 10px;
+      line-height: 16px;
+      text-align: center;
+      cursor: help;
+      position: relative;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+    
+    .info-bubble .info-text {
+      display: none;
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 400;
+      white-space: normal;
+      width: 280px;
+      z-index: 100;
+      line-height: 1.4;
+      text-transform: none;
+      letter-spacing: normal;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .info-bubble:hover .info-text {
+      display: block;
+    }
+    
+    /* Section Cards */
+    .section-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .section-card h3 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 16px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+    
+    /* Progress Bars */
+    .progress-bar-container {
+      margin-bottom: 12px;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-fill.deployed { background: #28a745; }
+    .progress-fill.pending { background: #ffc107; }
+    .progress-fill.new { background: #007bff; }
+    .progress-fill.rejected { background: #dc3545; }
+    .progress-fill.ignored { background: #6c757d; }
+    .progress-fill.rejected-bar { background: #e83e8c; }
+    .progress-fill.outdated { background: #fd7e14; }
+    .progress-fill.error { background: #dc3545; }
+    .progress-fill.aging { background: #fd7e14; }
+    .progress-fill.fresh { background: #28a745; }
+    .progress-fill.acceptable { background: #17a2b8; }
+    .progress-fill.warning { background: #ffc107; }
+    .progress-fill.overdue { background: #dc3545; }
+    .progress-fill.critical { background: #721c24; }
+    
+    /* Automation Grid */
+    .automation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .automation-card {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .automation-card.alert {
+      background: #fff3cd;
+      border-color: #ffc107;
+    }
+    .failures-by-type {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .failure-type-badge {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    /* Staleness Grid */
+    .staleness-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .staleness-card {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .staleness-card.alert {
+      background: #fff3cd;
+      border-color: #ffc107;
+    }
+    .staleness-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+    }
+    .staleness-card.alert .staleness-value { color: #856404; }
+    .staleness-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    /* Table Status Filter Pills */
+    .table-status-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .filter-pill {
+      padding: 4px 12px;
+      border: 1px solid #c0c7cf;
+      border-radius: 16px;
+      background: #edf0f4;
+      color: #444;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .filter-pill:hover { background: #dde2e8; }
+    .filter-pill.active {
+      background: #1473e6;
+      color: #fff;
+      border-color: #1473e6;
+    }
+
+    /* Trend Controls */
+    .trend-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .trend-controls select {
+      padding: 4px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* Table Header with Filter */
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .table-header h3 {
+      margin: 0;
+    }
+    .opportunities-date-filter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+    .opportunities-date-filter-wrap label {
+      margin: 0;
+      white-space: nowrap;
+    }
+    .opp-llmo-checkbox-wrap {
+      margin-left: 12px;
+      white-space: nowrap;
+      font-weight: normal;
+    }
+    .opp-llmo-checkbox-wrap input {
+      margin-right: 6px;
+    }
+    .opp-date-range-select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+    .table-filter {
+      font-size: 13px;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #555;
+      user-select: none;
+    }
+    .toggle-label input[type="checkbox"] {
+      accent-color: #1473e6;
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    /* Opportunities Table */
+    .opportunities-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .opportunities-table th,
+    .opportunities-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .opportunities-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .opportunities-table th:hover {
+      background: #e9ecef;
+    }
+    
+    .sort-arrow {
+      margin-left: 4px;
+      font-size: 10px;
+      color: #999;
+    }
+    
+    .sort-arrow.active {
+      color: #667eea;
+    }
+    
+    .opportunities-table tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-NEW { background: #e7f1ff; color: #004085; }
+    .status-IN_PROGRESS { background: #fff3cd; color: #856404; }
+    .status-RESOLVED { background: #d4edda; color: #155724; }
+    .status-IGNORED { background: #e2e3e5; color: #383d41; }
+    
+    /* Age Indicators */
+    .age-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .age-fresh { background: #d4edda; color: #155724; }
+    .age-acceptable { background: #d1ecf1; color: #0c5460; }
+    .age-warning { background: #fff3cd; color: #856404; }
+    .age-overdue { background: #f8d7da; color: #721c24; }
+    .age-critical { background: #f5c6cb; color: #721c24; }
+    
+    /* Loading and Error States */
+    .loading-message,
+    .error-message {
+      padding: 40px;
+      text-align: center;
+      color: #666;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      background: #f8d7da;
+      border-radius: 8px;
+    }
+    
+    /* Demo Mode Banner */
+    .demo-banner {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #856404;
+    }
+    
+    .demo-banner strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .health-score-card {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .stats-grid-inner {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body data-view="site">
+  <header></header>
+  <main>
+    <div class="page-header">
+      <h1>Suggestion Lifecycle</h1>
+      <p>Track ASO suggestion deployment rates, time to resolution, and overall health</p>
+    </div>
+    
+    <div id="demo-banner" class="demo-banner" style="display: none;">
+      <strong>Demo Mode</strong>
+      Using mock data. Sign in with Adobe or use developer mode for live data.
+    </div>
+
+    <!-- IMS Auth Bar -->
+    <div id="auth-bar" class="auth-bar">
+      <div id="auth-signed-out" class="auth-row">
+        <button id="ims-sign-in-btn" class="btn-primary">Sign in with Adobe</button>
+        <span class="auth-divider">or</span>
+        <button id="dev-mode-toggle" class="btn-link">Use developer mode (manual token)</button>
+      </div>
+      <div id="auth-signed-in" class="auth-row" style="display: none;">
+        <span id="auth-user-name" class="auth-user"></span>
+        <button id="ims-sign-out-btn" class="btn-link">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Unified controls bar (token + customer/site selectors) -->
+    <div class="controls" id="controls" style="display: none;">
+      <!-- Row 1: API token (hidden when signed in via IMS) -->
+      <div id="token-row" class="controls-row">
+        <div class="token-group">
+          <label for="token-input">API Token:</label>
+          <input type="password" id="token-input" placeholder="Paste SpaceCat Bearer token"/>
+          <button id="token-toggle" type="button" title="Show/hide token">Show</button>
+          <button id="token-connect-btn" class="btn-connect" type="button">Connect</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Search customer/site (auto-populates when customers are loaded) -->
+      <div id="customer-search-row" class="controls-row customer-search-row" style="display: none;">
+        <div class="selector-group customer-search-wrap">
+          <label for="customer-search-input">Search:</label>
+          <input type="text" id="customer-search-input" class="customer-search-input" placeholder="Type customer or site name..." autocomplete="off"/>
+          <div id="customer-search-results" class="customer-search-results" role="listbox" aria-expanded="false" aria-label="Customer and site matches" style="display: none;"></div>
+        </div>
+      </div>
+      <!-- Row 3: Customer/site selectors + loading spinner -->
+      <div id="selector-row" class="controls-row">
+        <div class="selector-group">
+          <label for="customer-select">Customer:</label>
+          <select id="customer-select"><option value="">Connect to load customers</option></select>
+        </div>
+        <div class="selector-group">
+          <label for="site-select">Site:</label>
+          <select id="site-select"><option value="">Select a customer first</option></select>
+        </div>
+        <div id="selector-spinner" class="selector-spinner" style="display: none;">
+          <span class="spinner-sm"></span>
+          <span class="spinner-text">Loading...</span>
+        </div>
+      </div>
+      <div id="aso-selector-message" class="aso-selector-message" style="display: none;" role="status">
+        This customer does not have Sites Optimizer (ASO). Select an ASO customer to choose a site.
+      </div>
+
+      <!-- Fallback: manual site ID (collapsed by default) -->
+      <div id="dev-manual-site" class="controls-row dev-manual-toggle">
+        <button id="manual-site-toggle" class="btn-link" type="button">Or enter a Site ID manually</button>
+        <div id="manual-site-input-row" style="display: none;">
+          <label for="site-input">Site ID:</label>
+          <input type="text" id="site-input" placeholder="Enter site ID or use demo" value="demo"/>
+        </div>
+      </div>
+
+      <!-- Row 3: Action buttons (Site view only; hidden on Portfolio) -->
+      <div id="site-actions-row" class="controls-row controls-actions">
+        <button id="load-btn">Load Data</button>
+        <button id="refresh-btn" disabled>Refresh</button>
+        <button id="export-btn" disabled>Export Report</button>
+      </div>
+    </div>
+    
+    <!-- View tabs -->
+    <div id="view-tabs" class="view-tabs" style="display: none;">
+      <button class="view-tab active" data-view="site">Site View</button>
+      <button class="view-tab" data-view="portfolio">Portfolio View</button>
+    </div>
+
+    <div id="loading" class="loading-message" style="display: none;">
+      Loading suggestion lifecycle data...
+    </div>
+    
+    <div id="error" class="error-message" style="display: none;"></div>
+
+    <!-- Portfolio View (hidden by default) -->
+    <div id="portfolio-view">
+      <div class="portfolio-header">
+        <h2 id="portfolio-title">Portfolio Overview</h2>
+        <div class="portfolio-controls-bar">
+          <div class="pf-row pf-row--scope" role="form" aria-label="Portfolio controls">
+            <div class="pf-field pf-field--scope">
+              <label class="pf-label" for="portfolio-scope">Scope</label>
+              <select id="portfolio-scope" class="pf-select" name="portfolioScope" aria-describedby="scopeHelp">
+                <option value="global" selected>All Customers</option>
+              </select>
+              <div id="scopeHelp" class="sr-only">Choose a customer scope</div>
+            </div>
+            <div id="portfolio-site-wrap" class="pf-field pf-field--site" style="display: none;" data-visible="false">
+              <label class="pf-label" for="portfolio-site">Site</label>
+              <select id="portfolio-site" class="pf-select" name="portfolioSite">
+                <option value="">All sites</option>
+              </select>
+            </div>
+          </div>
+          <div class="pf-row pf-row--options">
+            <div class="pf-field pf-field--range">
+              <label class="pf-label" for="portfolio-range">Range</label>
+              <select id="portfolio-range" class="pf-select">
+                <option value="7" selected>Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="365">Last year</option>
+              </select>
+            </div>
+            <div class="pf-toggles">
+              <label class="pf-toggle">
+                <input type="checkbox" id="portfolio-include-llmo" />
+                <span>Include LLMO</span>
+              </label>
+              <label class="pf-toggle">
+                <input type="checkbox" id="portfolio-include-generic" />
+                <span>Include Generic</span>
+              </label>
+            </div>
+            <button id="portfolio-refresh-btn" class="pf-load-btn" type="button">Load</button>
+          </div>
+        </div>
+      </div>
+      <div id="portfolio-loading" class="loading-message" style="display: none;">
+        Loading portfolio data...
+      </div>
+      <div id="portfolio-error" class="error-message" style="display: none;"></div>
+      <div id="portfolio-metrics-scope" class="portfolio-metrics-scope" style="display: none;" aria-live="polite" role="status"></div>
+      <div id="portfolio-stats" class="stats-grid" style="display: none;"></div>
+      <div id="portfolio-chart-section" class="section-card" style="display: none;">
+        <div class="table-header">
+          <h3>Opportunity Trends</h3>
+        </div>
+        <div id="portfolio-chart-wrap" style="position:relative; height:300px;">
+          <canvas id="portfolio-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="dashboard">
+      <!-- Site/Customer Name -->
+      <div id="site-name" class="site-name-banner" style="display: none;"></div>
+      <!-- Shown when selected customer does not have Sites Optimizer (ASO) -->
+      <div id="aso-entitlement-banner" class="aso-entitlement-banner" style="display: none;" role="alert">
+        This customer does not have Sites Optimizer (ASO). Dashboard data may be limited or unavailable.
+      </div>
+
+      <!-- Score Cards Row -->
+      <div class="section-label">Overall Health <span class="label-muted">(All time)</span></div>
+      <div class="score-cards-row">
+        <div id="health-score" class="health-score-card"></div>
+        <div id="quality-score" class="health-score-card"></div>
+      </div>
+      
+      <!-- Date Range Filter -->
+      <div id="global-filters-bar" class="global-filters-bar"></div>
+
+      <!-- Key Metrics -->
+      <div id="stats-grid" class="stats-grid"></div>
+      
+      <!-- Trend Chart -->
+      <div class="section-card">
+        <div class="table-header">
+          <h3>Trends</h3>
+          <div class="trend-controls">
+            <select id="trend-metric">
+              <option value="created">Suggestions Created</option>
+              <option value="fixed">Fixed</option>
+              <option value="rejected">Rejected (by ESE)</option>
+              <option value="skipped">Skipped (by customer)</option>
+              <option value="error">Errors</option>
+              <option value="outdated">Outdated</option>
+            </select>
+            <label class="toggle-label">
+              <input type="checkbox" id="trend-by-type" />
+              By type
+            </label>
+          </div>
+        </div>
+        <div id="trend-chart" style="position:relative; height:300px;"></div>
+      </div>
+
+      <!-- Suggestion Lifecycle Breakdown -->
+      <div class="section-card">
+        <h3>Suggestion Lifecycle Breakdown
+          <span class="info-bubble">?<span class="info-text">Distribution of all suggestions across lifecycle statuses. Each bar shows the count and % of total suggestions in that bucket.</span></span>
+        </h3>
+        <div id="lifecycle-breakdown"></div>
+      </div>
+      
+      <!-- Age Distribution -->
+      <div class="section-card">
+        <h3>Open Opportunity Age Distribution
+          <span class="info-bubble">?<span class="info-text">Shows age buckets for open opportunities only (NEW + IN_PROGRESS). Resolved and Ignored opportunities are excluded since they no longer need action.</span></span>
+        </h3>
+        <div id="age-distribution"></div>
+      </div>
+      
+      <!-- Automation vs Manual -->
+      <div class="section-card">
+        <h3>Automation vs Manual Fixes
+          <span class="info-bubble">?<span class="info-text">Distinguishes suggestions fixed via automation (linked to a COMPLETED fix) from manually fixed ones. Shows automation success rate and failures by opportunity type.</span></span>
+        </h3>
+        <div id="automation-metrics"></div>
+      </div>
+
+      <!-- Staleness & Throughput -->
+      <div class="section-card">
+        <h3>Staleness &amp; Throughput
+          <span class="info-bubble">?<span class="info-text">Identifies suggestions stuck in pending states beyond expected thresholds, plus average time-to-action and time-to-resolution.</span></span>
+        </h3>
+        <div id="staleness-metrics"></div>
+      </div>
+
+      <!-- Opportunities Detail -->
+      <div class="section-card">
+        <div class="table-header table-header-with-date">
+          <h3>Opportunities</h3>
+          <div class="opportunities-date-filter-wrap">
+            <label for="opp-date-range">Date range: <span class="info-bubble" title="How counts work">?<span class="info-text">All opportunities are listed. The numbers in each row show how many suggestions were updated (had activity) in this range.</span></span></label>
+            <select id="opp-date-range" class="opp-date-range-select" title="Counts below are filtered by this range (synced with Trends). Custom dates use the filter above the chart.">
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="all">All time</option>
+            </select>
+            <label class="opp-llmo-checkbox-wrap">
+              <input type="checkbox" id="opp-include-llmo" />
+              Include LLMO Data
+            </label>
+            <label class="opp-llmo-checkbox-wrap">
+              <input type="checkbox" id="opp-include-generic" />
+              Include Generic Opportunities
+            </label>
+          </div>
+        </div>
+        <div id="opportunities-table"></div>
+      </div>
+    </div>
+  </main>
+  <footer></footer>
+  
+  <script type="module">
+    import { 
+      getSuggestionsForSite, 
+      getLifecycleReport,
+      clearSiteCache,
+    } from '/scripts/suggestions-manager.js';
+    import {
+      calculateAgeBucket,
+      calculateAgeCounts,
+      getHealthColor,
+      formatDuration,
+      calculateLifecycleMetrics,
+      getHealthLabel,
+    } from '/scripts/utils/suggestions-health.js';
+    import {
+      initIMS,
+      onAuthReady,
+      onAuthStateChange,
+      signIn,
+      signOut,
+      isAuthenticated,
+      getAccessToken,
+      getProfile,
+    } from '/scripts/auth/ims-auth.js';
+    import { setGlobalToken, apiGet, isApiError } from '/scripts/services/spacecat-api.js';
+    import {
+      buildCustomerSiteTree,
+      fetchSiteById,
+      fetchOrgSites,
+      fetchOrganizationEntitlements,
+      hasASOEntitlement,
+      hasPaidASOEntitlement,
+    } from '/scripts/services/org-site-service.js';
+    import { ASO_ENDPOINTS, PORTFOLIO_ENDPOINTS } from '/scripts/constants/api.js';
+    import { renderGlobalFilters } from '/scripts/components/global-filters.js';
+    import { calculateQualityScore, getQualityLabel } from '/scripts/utils/quality-score.js';
+    import { renderTrendChart } from '/scripts/components/trend-chart.js';
+    import {
+      getTrendTotals,
+      getDateFilteredCounts,
+      getOpportunityCountsInRange,
+    } from '/scripts/utils/trend-data.js';
+    import {
+      getFilters,
+      setDateRange,
+      setIncludeLlmoData,
+      setIncludeGenericOpportunities,
+      filterByDateRange,
+      subscribe as subscribeFilters,
+    } from '/scripts/state/filter-state.js';
+    import { isLlmoOnly, isExcludedOpportunity } from '/scripts/utils/llmo-classification.js';
+
+    // ---- DOM elements ----
+    // Auth bar
+    const authBar = document.getElementById('auth-bar');
+    const authSignedOut = document.getElementById('auth-signed-out');
+    const authSignedIn = document.getElementById('auth-signed-in');
+    const authUserName = document.getElementById('auth-user-name');
+    const imsSignInBtn = document.getElementById('ims-sign-in-btn');
+    const imsSignOutBtn = document.getElementById('ims-sign-out-btn');
+    const devModeToggle = document.getElementById('dev-mode-toggle');
+    // Unified controls
+    const devControls = document.getElementById('controls');
+    const tokenRow = document.getElementById('token-row');
+    const tokenInput = document.getElementById('token-input');
+    const tokenToggle = document.getElementById('token-toggle');
+    const tokenConnectBtn = document.getElementById('token-connect-btn');
+    const selectorRow = document.getElementById('selector-row');
+    const customerSearchRow = document.getElementById('customer-search-row');
+    const customerSearchInput = document.getElementById('customer-search-input');
+    const customerSearchResults = document.getElementById('customer-search-results');
+    const customerSelect = document.getElementById('customer-select');
+    const siteSelect = document.getElementById('site-select');
+    const selectorSpinner = document.getElementById('selector-spinner');
+    const manualSiteToggle = document.getElementById('manual-site-toggle');
+    const manualSiteInputRow = document.getElementById('manual-site-input-row');
+    const siteInput = document.getElementById('site-input');
+    const loadBtn = document.getElementById('load-btn');
+    // Shared
+    const refreshBtn = document.getElementById('refresh-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const dashboardEl = document.getElementById('dashboard');
+    const demoBanner = document.getElementById('demo-banner');
+    // View tabs
+    const viewTabs = document.getElementById('view-tabs');
+    const portfolioView = document.getElementById('portfolio-view');
+    const portfolioStats = document.getElementById('portfolio-stats');
+    const portfolioChartSection = document.getElementById('portfolio-chart-section');
+    const portfolioChartWrap = document.getElementById('portfolio-chart-wrap');
+    const portfolioChart = document.getElementById('portfolio-chart');
+    const portfolioLoading = document.getElementById('portfolio-loading');
+    const portfolioError = document.getElementById('portfolio-error');
+    const portfolioMetricsScope = document.getElementById('portfolio-metrics-scope');
+    const portfolioRange = document.getElementById('portfolio-range');
+    const portfolioIncludeLlmo = document.getElementById('portfolio-include-llmo');
+    const portfolioIncludeGeneric = document.getElementById('portfolio-include-generic');
+    const portfolioRefreshBtn = document.getElementById('portfolio-refresh-btn');
+    const portfolioTitle = document.getElementById('portfolio-title');
+    const portfolioScope = document.getElementById('portfolio-scope');
+    const portfolioSiteWrap = document.getElementById('portfolio-site-wrap');
+    const portfolioSiteSelect = document.getElementById('portfolio-site');
+    
+    let currentData = null;
+    let currentView = 'site'; // 'site' | 'portfolio'
+    // Portfolio cache — stores { scope, range, data, fetchedAt } for smart invalidation
+    let portfolioCache = null;
+    const PORTFOLIO_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const SAVED_ORG_KEY = 'aso_saved_org_id';
+    const SAVED_SITE_KEY = 'aso_saved_site_id';
+    let currentSiteId = null;
+    let customerTree = []; // populated after IMS login
+    let isDevMode = false;
+
+    // Profile key to use for "Opportunities (Paid profile)" — config may be keyed as { paid: { audits, config }, ... }
+    const PAID_PROFILE_KEY = 'paid';
+
+    // Session storage key: record SIGN_IN user activity at most once per session (per site or globally)
+    const SIGN_IN_RECORDED_KEY = 'aso_signin_recorded';
+    const AUTH_LOGIN_CALLED_KEY = 'aso_auth_login_called';
+    /** localStorage key for manual API token (persists across tabs and refreshes) */
+    const MANUAL_TOKEN_STORAGE_KEY = 'aso_manual_api_token';
+
+    /** @type {null | { orgId: string, hasASO: boolean, hasPaidASO: boolean }} */
+    let currentOrgEntitlements = null;
+
+    /**
+     * Notify the SpaceCat API of login (POST /auth/login) so the backend can record the user/session if implemented. Once per session.
+     */
+    function recordLoginWithBackend() {
+      if (!ASO_ENDPOINTS.AUTH_LOGIN) return;
+      try {
+        if (sessionStorage.getItem(AUTH_LOGIN_CALLED_KEY)) return;
+        const token = getAccessToken();
+        if (!token) return;
+        const url = ASO_ENDPOINTS.AUTH_LOGIN();
+        apiPost(url, { accessToken: token }, token)
+          .then((res) => {
+            if (res && !isApiError(res)) sessionStorage.setItem(AUTH_LOGIN_CALLED_KEY, '1');
+          })
+          .catch(() => { /* ignore */ });
+      } catch (e) { /* ignore */ }
+    }
+
+    /**
+     * Record a SIGN_IN user activity for the current user/site (once per session).
+     * Uses POST /sites/{siteId}/user-activities so the backend can track who logged in.
+     * Fire-and-forget; does not block UI.
+     */
+    function recordSignInUserActivity(siteId, token) {
+      if (!siteId || !token || !ASO_ENDPOINTS.SITE_USER_ACTIVITIES) return;
+      try {
+        if (sessionStorage.getItem(SIGN_IN_RECORDED_KEY)) return;
+        const url = ASO_ENDPOINTS.SITE_USER_ACTIVITIES(siteId);
+        apiPost(url, { type: 'SIGN_IN', productCode: 'ASO' }, token)
+          .then((res) => {
+            if (res && !isApiError(res)) sessionStorage.setItem(SIGN_IN_RECORDED_KEY, '1');
+          })
+          .catch(() => { /* ignore */ });
+      } catch (e) { /* ignore */ }
+    }
+
+    // Restore manual API token from storage (available across all tabs)
+    try {
+      const saved = localStorage.getItem(MANUAL_TOKEN_STORAGE_KEY);
+      if (saved && tokenInput) tokenInput.value = saved;
+    } catch (e) { /* ignore */ }
+
+    // Persist manual API token to localStorage when user types/pastes (shared across tabs)
+    tokenInput.addEventListener('input', () => {
+      try {
+        const v = tokenInput.value.trim();
+        if (v) localStorage.setItem(MANUAL_TOKEN_STORAGE_KEY, v);
+        else localStorage.removeItem(MANUAL_TOKEN_STORAGE_KEY);
+      } catch (e) { /* ignore */ }
+    });
+    tokenInput.addEventListener('change', () => {
+      try {
+        const v = tokenInput.value.trim();
+        if (v) localStorage.setItem(MANUAL_TOKEN_STORAGE_KEY, v);
+        else localStorage.removeItem(MANUAL_TOKEN_STORAGE_KEY);
+      } catch (e) { /* ignore */ }
+    });
+
+
+    // Token show/hide toggle
+    tokenToggle.addEventListener('click', () => {
+      const isPassword = tokenInput.type === 'password';
+      tokenInput.type = isPassword ? 'text' : 'password';
+      tokenToggle.textContent = isPassword ? 'Hide' : 'Show';
+    });
+
+    // ---- Auth UI helpers ----
+    function showAuthState() {
+      // Auth bar is always visible
+      authBar.style.display = 'flex';
+
+      if (isAuthenticated()) {
+        // Signed in via IMS — hide sign-in row, show profile
+        authSignedOut.style.display = 'none';
+        authSignedIn.style.display = 'flex';
+        const profile = getProfile();
+        authUserName.textContent = profile?.email || profile?.name || 'Signed in';
+        // Show controls with token row hidden (IMS provides the token)
+        devControls.style.display = 'flex';
+        tokenRow.style.display = 'none';
+        selectorRow.classList.add('visible');
+        document.getElementById('dev-manual-site').classList.remove('visible');
+      } else if (isDevMode) {
+        // Developer mode — show sign-in option + controls with token row
+        authSignedOut.style.display = 'flex';
+        authSignedIn.style.display = 'none';
+        devControls.style.display = 'flex';
+        tokenRow.style.display = 'flex';
+        document.getElementById('dev-manual-site').classList.add('visible');
+      } else {
+        // Not signed in, not in dev mode — show sign-in options only
+        authSignedOut.style.display = 'flex';
+        authSignedIn.style.display = 'none';
+        devControls.style.display = 'none';
+        selectorRow.classList.remove('visible');
+        document.getElementById('dev-manual-site').classList.remove('visible');
+      }
+    }
+
+    async function populateCustomers(token) {
+      const effectiveToken = token || getAccessToken();
+      if (!effectiveToken) return;
+      setGlobalToken(effectiveToken);
+
+      // Show selector row + spinner
+      selectorRow.classList.add('visible');
+      selectorSpinner.style.display = 'flex';
+      customerSelect.innerHTML = '<option value="">Loading customers...</option>';
+      siteSelect.innerHTML = '<option value="">—</option>';
+
+      try {
+        // Prefer customer snapshot from server (ASO-only, fast); fall back to live build
+        let fromSnapshot = false;
+        try {
+          const res = await fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS());
+          if (res.ok) {
+            const data = await res.json();
+            if (data.customers && data.customers.length > 0) {
+              customerTree = data.customers;
+              fromSnapshot = true;
+            }
+          }
+        } catch (_) { /* ignore; fall back to buildCustomerSiteTree */ }
+        if (!fromSnapshot) {
+          customerTree = await buildCustomerSiteTree(effectiveToken);
+        }
+        if (customerTree.length === 0) {
+          customerSelect.innerHTML = '<option value="">No customers found</option>';
+          return;
+        }
+        customerSelect.innerHTML = '<option value="">Select a customer</option>'
+          + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+              .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`).join('');
+        siteSelect.innerHTML = '<option value="">Select a customer first</option>';
+        // Show view tabs once customers are loaded
+        viewTabs.style.display = 'flex';
+        // Keep portfolio scope dropdown in sync with available customers
+        updatePortfolioScopeOptions();
+        // Restore previously selected customer and site (and load data if both were set)
+        await restoreSavedCustomerAndSite(effectiveToken);
+
+        // If no saved customer was restored, check for ?customer= URL param
+        if (!customerSelect.value) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const preCustomer = urlParams.get('customer');
+          if (preCustomer) {
+            const cleanTarget = preCustomer.replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
+            const match = customerTree.find((c) => {
+              const cleanOrg = (c.orgName || '').replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
+              return cleanOrg === cleanTarget;
+            });
+            if (match) {
+              customerSelect.value = match.orgId;
+              await populateSites(match.orgId);
+            }
+          }
+        }
+        // Show customer/site search when we have customers
+        if (customerSearchRow) customerSearchRow.style.display = customerTree.length > 0 ? 'flex' : 'none';
+      } catch (err) {
+        console.error('[Auth] Failed to load customers', err);
+        customerSelect.innerHTML = '<option value="">Error loading customers</option>';
+      } finally {
+        selectorSpinner.style.display = 'none';
+      }
+    }
+
+    function renderSiteOptions(sites) {
+      if (!sites || sites.length === 0) {
+        siteSelect.innerHTML = '<option value="">No sites available</option>';
+        return;
+      }
+      siteSelect.innerHTML = [...sites]
+        .sort((a, b) => {
+          const la = a.baseURL ? a.baseURL.replace(/^https?:\/\//, '').replace(/\/$/, '') : a.siteId;
+          const lb = b.baseURL ? b.baseURL.replace(/^https?:\/\//, '').replace(/\/$/, '') : b.siteId;
+          return la.localeCompare(lb);
+        })
+        .map((s) => {
+          const label = s.baseURL ? s.baseURL.replace(/^https?:\/\//, '').replace(/\/$/, '') : s.siteId;
+          return `<option value="${s.siteId}">${label}</option>`;
+        }).join('');
+    }
+
+    async function populateSites(orgId) {
+      const org = customerTree.find((c) => c.orgId === orgId);
+      if (!org) {
+        siteSelect.innerHTML = '<option value="">No sites available</option>';
+        return;
+      }
+
+      // If sites already cached on this org, render immediately
+      if (org.sites && org.sites.length > 0) {
+        renderSiteOptions(org.sites);
+        return;
+      }
+
+      // Fetch sites on demand (show spinner)
+      siteSelect.innerHTML = '<option value="">Loading sites...</option>';
+      selectorSpinner.style.display = 'flex';
+      const token = tokenInput.value.trim() || getAccessToken();
+      try {
+        const sites = await fetchOrgSites(orgId, token);
+        org.sites = sites; // cache for next time
+        renderSiteOptions(sites);
+      } catch (err) {
+        console.error(`[Sites] Failed to load sites for org ${orgId}:`, err);
+        siteSelect.innerHTML = '<option value="">Error loading sites</option>';
+      } finally {
+        selectorSpinner.style.display = 'none';
+      }
+    }
+
+    // ---- Dev mode: Connect with token → populate shared customer/site selectors ----
+    async function connectWithToken() {
+      const token = tokenInput.value.trim();
+      if (!token) {
+        showError('Please paste an API token first.');
+        return;
+      }
+      tokenConnectBtn.disabled = true;
+      tokenConnectBtn.textContent = 'Connecting...';
+
+      await populateCustomers(token);
+
+      tokenConnectBtn.disabled = false;
+      tokenConnectBtn.textContent = 'Connect';
+
+      // API key is loaded — hide mock data banner even if no customer/site selected yet
+      demoBanner.style.display = 'none';
+
+      // If user is on Portfolio view, auto-load portfolio data so aggregate loads without switching tabs
+      if (currentView === 'portfolio') {
+        loadPortfolioData();
+      }
+    }
+
+    tokenConnectBtn.addEventListener('click', connectWithToken);
+    tokenInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') connectWithToken();
+    });
+
+    customerSelect.addEventListener('change', async () => {
+      const orgId = customerSelect.value;
+      currentOrgEntitlements = null; // refetch when loading for this org
+      portfolioCache = null; // invalidate portfolio cache on customer change
+      const asoMessage = document.getElementById('aso-selector-message');
+
+      if (!orgId) {
+        siteSelect.innerHTML = '<option value="">Select a customer first</option>';
+        siteSelect.disabled = false;
+        if (asoMessage) asoMessage.style.display = 'none';
+        return;
+      }
+
+      const token = tokenInput.value.trim() || getAccessToken();
+      if (token) {
+        selectorSpinner.style.display = 'flex';
+        const ent = await ensureOrgEntitlements(orgId, token);
+        selectorSpinner.style.display = 'none';
+        if (ent && !ent.hasASO) {
+          siteSelect.innerHTML = '<option value="">— No ASO —</option>';
+          siteSelect.disabled = true;
+          if (asoMessage) asoMessage.style.display = 'block';
+          return;
+        }
+      }
+
+      siteSelect.disabled = false;
+      if (asoMessage) asoMessage.style.display = 'none';
+      await populateSites(orgId);
+    });
+
+    // ---- Customer/site search autocomplete ----
+    function escapeHtmlForSearch(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    function getCustomerSiteSearchMatches(query) {
+      const q = (query || '').trim().toLowerCase();
+      if (!q || !customerTree || customerTree.length === 0) return [];
+      const matches = [];
+      for (const org of customerTree) {
+        const orgName = (org.orgName || '').trim();
+        const orgMatch = orgName.toLowerCase().includes(q);
+        if (orgMatch) matches.push({ type: 'customer', orgId: org.orgId, orgName });
+        const sites = org.sites || [];
+        for (const site of sites) {
+          const baseURL = (site.baseURL || '').trim();
+          const sid = (site.siteId || '').trim();
+          const urlNorm = baseURL.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+          const siteMatch = urlNorm.includes(q) || sid.toLowerCase().includes(q);
+          if (siteMatch && !orgMatch) matches.push({ type: 'site', orgId: org.orgId, orgName, siteId: site.siteId, baseURL });
+        }
+      }
+      return matches.slice(0, 50);
+    }
+    function renderCustomerSearchResults(matches) {
+      if (!customerSearchResults) return;
+      if (!matches || matches.length === 0) {
+        customerSearchResults.innerHTML = '<div class="search-result-item" style="cursor:default;color:#999;">No matches</div>';
+      } else {
+        customerSearchResults.innerHTML = matches.map((m) => {
+          if (m.type === 'customer') {
+            return `<div class="search-result-item search-result-customer" role="option" data-type="customer" data-org-id="${escapeHtmlForSearch(m.orgId)}" data-org-name="${escapeHtmlForSearch(m.orgName)}">${escapeHtmlForSearch(m.orgName)}</div>`;
+          }
+          const siteLabel = (m.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || m.siteId;
+          return `<div class="search-result-item search-result-site" role="option" data-type="site" data-org-id="${escapeHtmlForSearch(m.orgId)}" data-org-name="${escapeHtmlForSearch(m.orgName)}" data-site-id="${escapeHtmlForSearch(m.siteId)}" data-base-url="${escapeHtmlForSearch(m.baseURL || '')}">${escapeHtmlForSearch(m.orgName)} › ${escapeHtmlForSearch(siteLabel)}</div>`;
+        }).join('');
+      }
+      customerSearchResults.setAttribute('data-visible', 'true');
+      customerSearchResults.setAttribute('aria-expanded', 'true');
+    }
+    function hideCustomerSearchResults() {
+      if (customerSearchResults) {
+        customerSearchResults.setAttribute('data-visible', 'false');
+        customerSearchResults.setAttribute('aria-expanded', 'false');
+      }
+    }
+    let customerSearchBlurTimer = null;
+    if (customerSearchInput && customerSearchResults) {
+      customerSearchInput.addEventListener('input', () => {
+        const query = customerSearchInput.value;
+        const matches = getCustomerSiteSearchMatches(query);
+        renderCustomerSearchResults(matches);
+      });
+      customerSearchInput.addEventListener('focus', () => {
+        const query = customerSearchInput.value;
+        if (query.trim()) {
+          const matches = getCustomerSiteSearchMatches(query);
+          renderCustomerSearchResults(matches);
+        }
+      });
+      customerSearchInput.addEventListener('blur', () => {
+        customerSearchBlurTimer = setTimeout(hideCustomerSearchResults, 150);
+      });
+      customerSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideCustomerSearchResults();
+      });
+      customerSearchResults.addEventListener('click', async (e) => {
+        const item = e.target.closest('.search-result-item[data-type]');
+        if (!item || item.dataset.type === undefined) return;
+        clearTimeout(customerSearchBlurTimer);
+        const orgId = item.dataset.orgId;
+        const siteId = item.dataset.siteId;
+        if (!orgId) return;
+        customerSelect.value = orgId;
+        await populateSites(orgId);
+        if (siteId) siteSelect.value = siteId;
+        if (currentSiteId !== siteId) {
+          currentSiteId = siteSelect.value || null;
+          try { if (siteId) sessionStorage.setItem(SAVED_SITE_KEY, siteId); } catch (err) { /* ignore */ }
+        }
+        try { sessionStorage.setItem(SAVED_ORG_KEY, orgId); } catch (err) { /* ignore */ }
+        customerSearchInput.value = '';
+        hideCustomerSearchResults();
+        const token = tokenInput?.value?.trim() || getAccessToken() || null;
+        if (token && typeof loadUsersSection === 'function') loadUsersSection(orgId, token);
+        if (typeof refreshAutoOptimizeSection === 'function') refreshAutoOptimizeSection();
+      });
+    }
+
+    manualSiteToggle.addEventListener('click', () => {
+      const isVisible = manualSiteInputRow.style.display !== 'none';
+      manualSiteInputRow.style.display = isVisible ? 'none' : 'flex';
+      manualSiteToggle.textContent = isVisible ? 'Or enter a Site ID manually' : 'Hide manual Site ID';
+    });
+
+    // IMS event handlers
+    imsSignInBtn.addEventListener('click', () => {
+      signIn(); // Redirects to IMS authorize endpoint via PKCE
+    });
+    imsSignOutBtn.addEventListener('click', () => {
+      signOut();
+      dashboardEl.classList.remove('has-data');
+      isDevMode = true;
+      showAuthState();
+    });
+    devModeToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!isDevMode) {
+        isDevMode = true;
+        showAuthState();
+      }
+      // Load demo data if nothing is loaded yet
+      if (!currentData) {
+        loadData(false);
+      }
+      // Flash the dev controls to draw attention, and focus the token input
+      devControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      devControls.style.transition = 'background 0.3s';
+      devControls.style.background = '#e8f0fe';
+      setTimeout(() => { devControls.style.background = ''; }, 800);
+      tokenInput.focus();
+    });
+    
+    
+    // Mock data for demo mode
+    async function loadMockData() {
+      const response = await fetch('/data/mock-suggestions.json');
+      const mockData = await response.json();
+      
+      // Transform mock data to match expected structure
+      const opportunities = mockData.opportunities.map(opp => {
+        const suggestions = opp.suggestions || [];
+        const newCount = suggestions.filter(s => s.status === 'NEW').length;
+        const approvedCount = suggestions.filter(s => s.status === 'APPROVED').length;
+        const inProgressCount = suggestions.filter(s => s.status === 'IN_PROGRESS').length;
+        const pendingValidationCount = suggestions.filter(s => s.status === 'PENDING_VALIDATION').length;
+        const fixedCount = suggestions.filter(s => s.status === 'FIXED').length;
+        const skippedCount = suggestions.filter(s => s.status === 'SKIPPED').length;
+        const rejectedRawCount = suggestions.filter(s => s.status === 'REJECTED').length;
+        const errorCount = suggestions.filter(s => s.status === 'ERROR').length;
+        const outdatedCount = suggestions.filter(s => s.status === 'OUTDATED').length;
+        const pendingCount = newCount + approvedCount + inProgressCount + pendingValidationCount;
+        const awaitingCustomerReviewCount = newCount + approvedCount + inProgressCount;
+        const terminalCount = fixedCount + skippedCount + rejectedRawCount + errorCount + outdatedCount;
+        const counts = {
+          totalCount: suggestions.length,
+          newCount, approvedCount, inProgressCount, pendingValidationCount,
+          fixedCount, skippedCount, rejectedRawCount, errorCount, outdatedCount,
+          pendingCount, awaitingCustomerReviewCount, terminalCount,
+        };
+        return { ...opp, suggestionsCounts: counts };
+      });
+      
+      const metrics = calculateLifecycleMetrics(opportunities);
+      return {
+        siteId: mockData.siteId,
+        siteName: 'demo',
+        opportunities,
+        metrics,
+        healthLabel: getHealthLabel(metrics.health.score),
+        fetchedAt: new Date().toISOString(),
+      };
+    }
+    
+    // Load data — works with IMS token (global) or manual token
+    // Auto-select the customer & site matching a given siteId in the dropdowns.
+    // If the site isn't in the tree, look it up via the API, find its org, and inject it.
+    // ---- View tab switching ----
+    function switchView(view) {
+      const previousView = currentView;
+      currentView = view;
+
+      // Single source of truth — CSS rules handle all view-level visibility
+      document.body.dataset.view = view;
+
+      document.querySelectorAll('.view-tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.view === view);
+      });
+
+      // When switching from Portfolio to Site, sync Scope to Customer dropdown so context is consistent
+      if (view === 'site' && previousView === 'portfolio') {
+        const scopeValue = portfolioScope.value;
+        if (scopeValue && scopeValue !== 'global' && customerTree && customerTree.some((c) => c.orgId === scopeValue)) {
+          customerSelect.value = scopeValue;
+          populateSites(scopeValue);
+        }
+      }
+
+      // Portfolio auto-load when switching to portfolio tab
+      if (view === 'portfolio') {
+        syncPortfolioSiteVisibility();
+        if (portfolioIncludeLlmo) portfolioIncludeLlmo.checked = getFilters().includeLlmoData;
+        if (portfolioIncludeGeneric) portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
+        const hasToken = !!(tokenInput.value.trim() || getAccessToken());
+        const cacheValid = portfolioCache
+          && portfolioCache.scope === portfolioScope.value
+          && portfolioCache.site === (portfolioSiteSelect?.value ?? '')
+          && portfolioCache.range === portfolioRange.value
+          && portfolioCache.llmo === (portfolioIncludeLlmo && portfolioIncludeLlmo.checked)
+          && portfolioCache.generic === (portfolioIncludeGeneric && portfolioIncludeGeneric.checked)
+          && (Date.now() - portfolioCache.fetchedAt) < PORTFOLIO_CACHE_TTL_MS;
+        if (hasToken && !cacheValid) {
+          loadPortfolioData();
+        } else if (cacheValid) {
+          renderPortfolioDashboard(portfolioCache.data);
+        }
+      }
+    }
+
+    // ---- Portfolio: populate scope dropdown with customers ----
+    function updatePortfolioScopeOptions() {
+      const currentVal = portfolioScope.value;
+      // Build all options as a single string to avoid O(n²) innerHTML += loop
+      let html = '<option value="global">All Customers</option>';
+      if (customerTree && customerTree.length > 0) {
+        html += [...customerTree]
+          .sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+          .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
+          .join('');
+      }
+      portfolioScope.innerHTML = html;
+      // Restore previous selection if it still exists
+      if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
+        portfolioScope.value = currentVal;
+      }
+      syncPortfolioSiteVisibility();
+    }
+
+    /**
+     * Show or hide the Site dropdown and populate it when Scope is a specific customer.
+     */
+    async function updatePortfolioSiteOptions(orgId) {
+      if (!orgId || !portfolioSiteSelect || !portfolioSiteWrap) return;
+      const org = customerTree.find((c) => c.orgId === orgId);
+      if (!org) {
+        portfolioSiteWrap.style.display = 'none';
+        portfolioSiteWrap.setAttribute('data-visible', 'false');
+        return;
+      }
+      let sites = org.sites || [];
+      if (sites.length === 0) {
+        const token = tokenInput.value.trim() || getAccessToken();
+        if (token) {
+          portfolioSiteSelect.innerHTML = '<option value="">Loading sites...</option>';
+          portfolioSiteWrap.style.display = 'flex';
+          portfolioSiteWrap.setAttribute('data-visible', 'true');
+          try {
+            sites = await fetchOrgSites(orgId, token);
+            org.sites = sites;
+          } catch (err) {
+            console.error(`[Portfolio] Failed to load sites for org ${orgId}:`, err);
+            portfolioSiteSelect.innerHTML = '<option value="">Error loading sites</option>';
+            return;
+          }
+        }
+      }
+      const sorted = [...sites].sort((a, b) => {
+        const la = (a.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || a.siteId || '';
+        const lb = (b.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || b.siteId || '';
+        return la.localeCompare(lb);
+      });
+      let html = '<option value="">All sites</option>';
+      html += sorted.map((s) => {
+        const label = (s.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || s.siteId || s;
+        return `<option value="${s.siteId}">${label}</option>`;
+      }).join('');
+      portfolioSiteSelect.innerHTML = html;
+      portfolioSiteSelect.value = '';
+      portfolioSiteWrap.style.display = 'flex';
+      portfolioSiteWrap.setAttribute('data-visible', 'true');
+    }
+
+    function syncPortfolioSiteVisibility() {
+      if (!portfolioScope || !portfolioSiteWrap) return;
+      const scopeValue = portfolioScope.value;
+      if (scopeValue === 'global' || !scopeValue) {
+        portfolioSiteWrap.style.display = 'none';
+        portfolioSiteWrap.setAttribute('data-visible', 'false');
+        portfolioSiteSelect.innerHTML = '<option value="">All sites</option>';
+        return;
+      }
+      updatePortfolioSiteOptions(scopeValue);
+    }
+
+    // ---- Portfolio data loading ----
+    async function loadPortfolioData() {
+      const token = tokenInput.value.trim() || getAccessToken();
+      if (!token) {
+        portfolioError.textContent = 'An API token is required. Paste one in developer mode or sign in with Adobe.';
+        portfolioError.style.display = 'block';
+        return;
+      }
+
+      const scopeValue = portfolioScope.value; // 'global' or an orgId
+      const siteValue = (portfolioSiteSelect?.value ?? '').trim();
+
+      // Compute date range from the dropdown
+      const rangeDays = parseInt(portfolioRange.value, 10);
+      const to = new Date();
+      const from = new Date();
+      from.setDate(from.getDate() - rangeDays);
+      const fromStr = from.toISOString().slice(0, 10);
+      const toStr = to.toISOString().slice(0, 10);
+
+      portfolioLoading.textContent = scopeValue === 'global'
+        ? 'Loading portfolio data across all customers... this may take a minute.'
+        : siteValue ? 'Loading portfolio data...' : 'Loading portfolio data...';
+      portfolioLoading.style.display = 'block';
+      portfolioError.style.display = 'none';
+      errorEl.style.display = 'none'; // clear global error banner when loading portfolio
+      portfolioStats.style.display = 'none';
+      portfolioMetricsScope.style.display = 'none';
+      portfolioChartSection.style.display = 'none';
+
+      // Update title
+      if (scopeValue === 'global') {
+        portfolioTitle.textContent = 'Portfolio: All Customers';
+      } else {
+        const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
+        if (siteValue) {
+          const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
+          const siteLabel = siteOpt?.text || siteValue;
+          portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
+        } else {
+          portfolioTitle.textContent = `Portfolio: ${scopeLabel} (all sites)`;
+        }
+      }
+
+      try {
+        const params = new URLSearchParams({ from: fromStr, to: toStr });
+        if (scopeValue === 'global') {
+          params.set('siteScope', 'global');
+        } else if (siteValue) {
+          params.set('siteIds', siteValue);
+        } else {
+          params.set('orgId', scopeValue);
+        }
+        if (portfolioIncludeLlmo && portfolioIncludeLlmo.checked) params.set('includeLlmo', '1');
+        if (portfolioIncludeGeneric && portfolioIncludeGeneric.checked) params.set('includeGeneric', '1');
+
+        const url = `${PORTFOLIO_ENDPOINTS.OPPORTUNITY_METRICS()}?${params.toString()}`;
+        const startTime = Date.now();
+
+        // Elapsed-time ticker so the user sees progress
+        const ticker = setInterval(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          portfolioLoading.textContent = scopeValue === 'global'
+            ? `Loading portfolio data across all customers... ${elapsed}s elapsed`
+            : `Loading portfolio data... ${elapsed}s elapsed`;
+        }, 1000);
+
+        // 5-minute timeout for global, 2-minute for org (all sites), 1-minute for single site
+        const timeoutMs = scopeValue === 'global' ? 300_000 : (siteValue ? 60_000 : 120_000);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        let res;
+        try {
+          res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+          clearInterval(ticker);
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        portfolioCache = {
+          data,
+          scope: scopeValue,
+          site: siteValue,
+          range: String(rangeDays),
+          llmo: !!(portfolioIncludeLlmo && portfolioIncludeLlmo.checked),
+          generic: !!(portfolioIncludeGeneric && portfolioIncludeGeneric.checked),
+          fetchedAt: Date.now(),
+        };
+        if (portfolioIncludeLlmo) setIncludeLlmoData(portfolioIncludeLlmo.checked);
+        if (portfolioIncludeGeneric) setIncludeGenericOpportunities(portfolioIncludeGeneric.checked);
+        // Only render if still on portfolio view (user may have switched away)
+        if (currentView === 'portfolio') {
+          renderPortfolioDashboard(data);
+        }
+      } catch (err) {
+        console.error('[Portfolio] Load failed:', err);
+        const msg = err.name === 'AbortError'
+          ? 'Request timed out. The server may still be processing — try again in a moment, or select a specific customer for faster results.'
+          : `Failed to load portfolio data: ${err.message}`;
+        portfolioError.textContent = msg;
+        portfolioError.style.display = 'block';
+      } finally {
+        portfolioLoading.style.display = 'none';
+      }
+    }
+
+    // ---- Portfolio rendering ----
+    function renderPortfolioDashboard(data) {
+      const { buckets, totalCounts, siteCount, summary, statusChangeBuckets, snapshotDate, source } = data;
+
+      const sm = summary || {};
+      const totalAvailable = sm.totalAvailable || 0;
+      const createdInPeriod = sm.createdInPeriod || 0;
+      const fixedInPeriod = sm.fixedInPeriod || 0;
+      const skippedByCustomer = sm.skippedByCustomer ?? 0;
+      const totalSuggestions = sm.totalSuggestions ?? 0;
+      const suggestionsFixed = sm.suggestionsFixed ?? 0;
+
+      const awaitingCustomerReview = sm.awaitingCustomerReview ?? 0;
+      const customerEngagement = sm.customerEngagement ?? (skippedByCustomer + suggestionsFixed);
+      const movedToFixed = sm.movedToFixed ?? 0;
+      const movedToAwaitingCustomerReview = sm.movedToAwaitingCustomerReview ?? 0;
+      const movedToAwaitingEseReview = sm.movedToAwaitingEseReview ?? 0;
+      const movedToSkipped = sm.movedToSkipped ?? 0;
+      const movedToRejected = sm.movedToRejected ?? 0;
+      const movedToOutdated = sm.movedToOutdated ?? 0;
+      const movedToError = sm.movedToError ?? 0;
+      const movedToCustomerEngagement = sm.movedToCustomerEngagement ?? 0;
+      const hasMovedToMetrics = (sm.movedToFixed !== undefined || sm.movedToAwaitingCustomerReview !== undefined);
+      // When using "moved to" metrics, total = suggestions created or updated in period so percentages add up to 100%
+      const totalCreatedOrUpdatedInPeriod = sm.totalCreatedOrUpdatedInPeriod ?? (hasMovedToMetrics
+        ? (movedToFixed + movedToAwaitingCustomerReview + movedToAwaitingEseReview + movedToSkipped + movedToRejected + movedToOutdated + movedToError)
+        : 0);
+      const totalForMovedPct = hasMovedToMetrics && totalCreatedOrUpdatedInPeriod > 0 ? totalCreatedOrUpdatedInPeriod : totalSuggestions;
+      const pct = (num, denom) => (denom > 0 ? ((num / denom) * 100).toFixed(1) : '0');
+      const pctSkipped = totalSuggestions > 0 ? pct(skippedByCustomer, totalSuggestions) : '0';
+      const pctRejected = totalSuggestions > 0 ? pct(sm.rejectedByEse ?? 0, totalSuggestions) : '0';
+      const pctFixedOpp = totalAvailable > 0 ? pct(fixedInPeriod, totalAvailable) : '0';
+      const pctFixedSug = totalSuggestions > 0 ? pct(suggestionsFixed, totalSuggestions) : '0';
+      const pctAwaitingCustomer = totalSuggestions > 0 ? pct(awaitingCustomerReview, totalSuggestions) : '0';
+      const pctAwaitingEse = totalSuggestions > 0 ? pct(sm.pendingValidation ?? 0, totalSuggestions) : '0';
+      const pctCustomerEngagement = totalSuggestions > 0 ? pct(customerEngagement, totalSuggestions) : '0';
+      const pctMovedCustomerEngagement = totalForMovedPct > 0 && (hasMovedToMetrics && movedToCustomerEngagement !== undefined)
+        ? pct(movedToCustomerEngagement, totalForMovedPct) : pctCustomerEngagement;
+      const pctMovedFixed = totalForMovedPct > 0 ? pct(hasMovedToMetrics ? movedToFixed : suggestionsFixed, totalForMovedPct) : '0';
+      const pctMovedAwaitingCustomer = totalForMovedPct > 0
+        ? pct(hasMovedToMetrics ? movedToAwaitingCustomerReview : awaitingCustomerReview, totalForMovedPct) : '0';
+      const pctMovedAwaitingEse = totalForMovedPct > 0 ? pct(movedToAwaitingEseReview, totalForMovedPct) : '0';
+      const pctMovedSkipped = totalForMovedPct > 0 ? pct(movedToSkipped, totalForMovedPct) : '0';
+      const pctMovedRejected = totalForMovedPct > 0 ? pct(movedToRejected, totalForMovedPct) : '0';
+      const pctMovedOutdated = totalForMovedPct > 0 ? pct(movedToOutdated, totalForMovedPct) : '0';
+      const pctMovedError = totalForMovedPct > 0 ? pct(movedToError, totalForMovedPct) : '0';
+      const pctCreated = totalAvailable > 0 ? pct(createdInPeriod, totalAvailable) : '0';
+      const customerEngagementMainValue = (hasMovedToMetrics && movedToCustomerEngagement !== undefined)
+        ? movedToCustomerEngagement : customerEngagement;
+      const customerEngagementTooltip = 'Suggestions that had customer engagement in this period: skipped by customer, or fixed (deployed and confirmed). '
+        + ((hasMovedToMetrics && movedToCustomerEngagement !== undefined)
+          ? 'Number shown is how many moved into these states in the selected date range.'
+          : 'Count reflects current snapshot totals.');
+
+      // Data source label + staleness (built once for footer)
+      let dataSourceBlock = '';
+      if (snapshotDate || source) {
+        const sourceLabel = source === 'snapshot' ? `Data from snapshot (${snapshotDate})`
+          : source === 'snapshot+live' ? `Snapshot ${snapshotDate} + live delta`
+          : 'Live data';
+        let staleWarning = '';
+        if (snapshotDate) {
+          const ageDays = Math.round((Date.now() - new Date(snapshotDate).getTime()) / 86400000);
+          if (ageDays > 7) {
+            staleWarning = `<div style="margin-top:6px;padding:6px 8px;background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;color:#92400e;font-size:12px;">`
+              + `Snapshot is ${ageDays} days old. Run <code>npm run snapshot:refresh</code> to update.</div>`;
+          }
+        } else if (source === 'live') {
+          staleWarning = `<div style="margin-top:6px;padding:6px 8px;background:#eff6ff;border:1px solid #93c5fd;border-radius:4px;color:#1e40af;font-size:12px;">`
+            + `Loaded live from SpaceCat. Generate a snapshot for faster loads: <code>npm run snapshot</code></div>`;
+        }
+        dataSourceBlock = `
+          <div class="portfolio-data-source-wrap">
+            <div class="stat-card" style="background: #f9fafb; border: 1px dashed #d0d5dd;">
+              <div class="stat-value" style="font-size: 14px; color: #667085;">${sourceLabel}</div>
+              <div class="stat-label">Data Source</div>
+              ${staleWarning}
+            </div>
+          </div>`;
+      }
+
+      // Scope line: "Metrics for: Last 7 days" with tooltip — one clear place so users know numbers are range-based
+      const rangeLabel = portfolioRange.options[portfolioRange.selectedIndex]?.text || `Last ${portfolioRange.value || 7} days`;
+      const scopeTooltip = hasMovedToMetrics
+        ? 'Total = suggestions created or updated in this date range. Each "Moved to" card shows count and % of that total (percentages add up to 100%).'
+        : 'Total = suggestions on in-scope opportunities. Each card shows count and % of that total.';
+      portfolioMetricsScope.innerHTML = `Metrics for: <span class="portfolio-scope-range">${rangeLabel}</span> <span class="info-bubble">?<span class="info-text">${scopeTooltip}</span></span>`;
+      portfolioMetricsScope.style.display = 'flex';
+
+      // Stat cards — grouped: Suggestions (primary) then Opportunities
+      portfolioStats.innerHTML = `
+        <div class="portfolio-stats-inner">
+          <section class="portfolio-stat-group portfolio-stat-group--suggestion" aria-label="Suggestion-level metrics">
+            <h3 class="portfolio-stat-group-title">Suggestions</h3>
+            <div class="stats-grid">
+              <div class="stat-card" style="border-left: 4px solid #0d9488;">
+                <div class="stat-value">${customerEngagementMainValue.toLocaleString()}</div>
+                <div class="stat-label">Customer Engagement <span class="info-bubble">?<span class="info-text">${customerEngagementTooltip}</span></span></div>
+                <div class="stat-detail">${pctMovedCustomerEngagement}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToFixed : suggestionsFixed).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Fixed' : 'Fixed'}</div>
+                <div class="stat-detail">${pctMovedFixed}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToAwaitingCustomerReview : awaitingCustomerReview).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Awaiting Customer Review' : 'Awaiting Customer Review'}</div>
+                <div class="stat-detail">${pctMovedAwaitingCustomer}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #6366f1;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToAwaitingEseReview : (sm.pendingValidation ?? 0)).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Awaiting ESE Review' : 'Awaiting ESE Review'}</div>
+                <div class="stat-detail">${hasMovedToMetrics ? pctMovedAwaitingEse : pctAwaitingEse}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #9ca3af;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToSkipped : skippedByCustomer).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Skipped (by customer)' : 'Skipped (by customer)'}</div>
+                <div class="stat-detail">${hasMovedToMetrics ? pctMovedSkipped : pctSkipped}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #e83e8c;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToRejected : (sm.rejectedByEse ?? 0)).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Rejected (by ESE)' : 'Rejected (by ESE)'}</div>
+                <div class="stat-detail">${hasMovedToMetrics ? pctMovedRejected : pctRejected}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #78716c;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToOutdated : (sm.outdatedSuggestions ?? 0)).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Outdated' : 'Outdated'}</div>
+                <div class="stat-detail">${hasMovedToMetrics ? pctMovedOutdated : (totalSuggestions > 0 ? pct(sm.outdatedSuggestions ?? 0, totalSuggestions) : '0')}% of total</div>
+              </div>
+              ${hasMovedToMetrics && movedToError > 0 ? `
+              <div class="stat-card" style="border-left: 4px solid #dc2626;">
+                <div class="stat-value">${movedToError.toLocaleString()}</div>
+                <div class="stat-label">Moved to Error</div>
+                <div class="stat-detail">${pctMovedError}% of total</div>
+              </div>
+              ` : ''}
+            </div>
+          </section>
+          <section class="portfolio-stat-group portfolio-stat-group--opportunity" aria-label="Opportunity-level metrics">
+            <h3 class="portfolio-stat-group-title">Opportunities</h3>
+            <div class="stats-grid">
+              <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+                <div class="stat-value">${totalAvailable.toLocaleString()}</div>
+                <div class="stat-label">Total Available</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+                <div class="stat-value">${createdInPeriod.toLocaleString()}</div>
+                <div class="stat-label">Created in Period</div>
+                <div class="stat-detail">${pctCreated}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-value">${fixedInPeriod.toLocaleString()}</div>
+                <div class="stat-label">Fixed in Period</div>
+                <div class="stat-detail">${pctFixedOpp}% of total</div>
+              </div>
+            </div>
+          </section>
+          ${dataSourceBlock}
+        </div>
+      `;
+      portfolioStats.style.display = 'block';
+
+      // Portfolio data is now displayed — hide global loading and error banners so they don't overlay the UI
+      hideLoading();
+      errorEl.style.display = 'none';
+
+      // Trend chart — show section first so Chart.js can measure container, then render
+      portfolioChartSection.style.display = 'block';
+      const statuses = [
+        { key: 'NEW', label: 'New', color: '#3b82f6' },
+        { key: 'IN_PROGRESS', label: 'In Progress', color: '#f59e0b' },
+        { key: 'RESOLVED', label: 'Resolved', color: '#10b981' },
+        { key: 'IGNORED', label: 'Skipped / Ignored (by customer)', color: '#6b7280' },
+      ];
+      renderPortfolioChart(buckets, statuses);
+    }
+
+    async function renderPortfolioChart(buckets, statuses) {
+      const safeBuckets = Array.isArray(buckets) ? buckets : [];
+
+      // Ensure canvas exists (e.g. after a prior Chart.js load error that replaced wrap content)
+      let canvasEl = document.getElementById('portfolio-chart');
+      if (!canvasEl && portfolioChartWrap) {
+        canvasEl = document.createElement('canvas');
+        canvasEl.id = 'portfolio-chart';
+        portfolioChartWrap.innerHTML = '';
+        portfolioChartWrap.appendChild(canvasEl);
+      }
+      if (!canvasEl) return;
+
+      // Dynamically load Chart.js if not already loaded
+      if (typeof Chart === 'undefined') {
+        try {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        } catch {
+          if (portfolioChartWrap) portfolioChartWrap.innerHTML = '<p style="color:#999;">Could not load Chart.js</p>';
+          return;
+        }
+      }
+
+      // Destroy previous chart instance if any
+      const existing = Chart.getChart(canvasEl);
+      if (existing) existing.destroy();
+
+      const labels = safeBuckets.map((b) => b.date);
+      const datasets = (statuses || []).map((s) => ({
+        label: s.label,
+        data: safeBuckets.map((b) => (b.counts && b.counts[s.key]) || 0),
+        backgroundColor: s.color + '33',
+        borderColor: s.color,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+      }));
+
+      new Chart(canvasEl, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              title: { display: true, text: 'Date' },
+              ticks: { maxTicksLimit: 15 },
+            },
+            y: {
+              title: { display: true, text: 'Opportunities' },
+              beginAtZero: true,
+              ticks: { precision: 0 },
+            },
+          },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index' },
+          },
+        },
+      });
+    }
+
+    /**
+     * Fetch and cache entitlements for the given org (one request per org).
+     * @param {string} orgId
+     * @param {string} token
+     * @returns {Promise<{ orgId: string, hasASO: boolean, hasPaidASO: boolean }>}
+     */
+    async function ensureOrgEntitlements(orgId, token) {
+      if (currentOrgEntitlements && currentOrgEntitlements.orgId === orgId) {
+        return currentOrgEntitlements;
+      }
+      const { ok, list } = await fetchOrganizationEntitlements(orgId, token);
+      if (!ok) {
+        currentOrgEntitlements = null;
+        return null;
+      }
+      currentOrgEntitlements = {
+        orgId,
+        hasASO: hasASOEntitlement(list),
+        hasPaidASO: hasPaidASOEntitlement(list),
+      };
+      return currentOrgEntitlements;
+    }
+
+    async function syncDropdownsToSiteId(siteId, token) {
+      if (!siteId || siteId === 'demo') return;
+
+      const effectiveToken = token || tokenInput.value.trim() || getAccessToken();
+      if (!effectiveToken) return;
+
+      // First: try to find the site in already-loaded org caches
+      if (customerTree && customerTree.length > 0) {
+        for (const org of customerTree) {
+          if (org.sites && org.sites.length > 0) {
+            const match = org.sites.find((s) => s.siteId === siteId);
+            if (match) {
+              if (customerSelect.value !== org.orgId) {
+                customerSelect.value = org.orgId;
+                await populateSites(org.orgId);
+              }
+              siteSelect.value = siteId;
+              return;
+            }
+          }
+        }
+      }
+
+      // Not found in cached sites — look up the site directly to find its org
+      const siteInfo = await fetchSiteById(siteId, effectiveToken);
+      if (!siteInfo || !siteInfo.organizationId) {
+        console.warn(`[Sync] Could not resolve org for site ${siteId}`);
+        return;
+      }
+
+      // Fetch the org details to get its name
+      const orgUrl = ASO_ENDPOINTS.ORGANIZATION(siteInfo.organizationId);
+      const orgResponse = await apiGet(orgUrl, effectiveToken);
+      const orgName = (!isApiError(orgResponse) && (orgResponse.name || orgResponse.orgName)) || siteInfo.organizationId;
+
+      // Fetch all sites for this org
+      const orgSites = await fetchOrgSites(siteInfo.organizationId, effectiveToken);
+
+      // Inject/update the org in the tree
+      const newOrg = {
+        orgId: siteInfo.organizationId,
+        orgName,
+        imsOrgId: orgResponse?.imsOrgId || null,
+        sites: orgSites,
+      };
+
+      if (!customerTree) customerTree = [];
+      const existingIdx = customerTree.findIndex((o) => o.orgId === newOrg.orgId);
+      if (existingIdx >= 0) {
+        customerTree[existingIdx] = newOrg;
+      } else {
+        customerTree.push(newOrg);
+      }
+
+      // Ensure selector row is visible and repopulate dropdowns
+      selectorRow.classList.add('visible');
+      customerSelect.innerHTML = '<option value="">Select a customer</option>'
+        + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+            .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`).join('');
+      customerSelect.value = newOrg.orgId;
+      renderSiteOptions(newOrg.sites); // sites already fetched above
+      siteSelect.value = siteId;
+    }
+
+    async function loadData(forceRefresh = false) {
+      // Resolve site ID from: shared site selector → manual site input
+      const siteId = siteSelect?.value || siteInput.value.trim() || '';
+      if (!siteId) {
+        showError('Please select a site or enter a site ID');
+        return;
+      }
+      
+      currentSiteId = siteId;
+      showLoading();
+
+      try {
+        let data;
+
+        if (siteId === 'demo') {
+          currentOrgEntitlements = null;
+          demoBanner.style.display = 'block';
+          data = await loadMockData();
+        } else {
+          demoBanner.style.display = 'none';
+          // Use explicit token from input, or IMS global token, or fail
+          const manualToken = tokenInput.value.trim() || null;
+          const imsToken = getAccessToken();
+          const token = manualToken || imsToken || null;
+          if (!token) {
+            showError('A valid API token is required for live data. Sign in with Adobe or paste a bearer token in developer mode.');
+            return;
+          }
+          // Ensure global token is set for downstream calls
+          if (!manualToken && imsToken) {
+            setGlobalToken(imsToken);
+          }
+          // Sync dropdowns so we have org for entitlement check (one request per org)
+          await syncDropdownsToSiteId(siteId, token);
+          let orgId = customerSelect?.value || null;
+          if (!orgId && customerTree && siteId) {
+            const org = customerTree.find((c) =>
+              c.sites?.some((s) => s.siteId === siteId),
+            );
+            if (org) orgId = org.orgId;
+          }
+          if (orgId) {
+            await ensureOrgEntitlements(orgId, token);
+          } else {
+            currentOrgEntitlements = null;
+          }
+          data = await getSuggestionsForSite(siteId, token, forceRefresh);
+        }
+        
+        currentData = data;
+        renderDashboard(data);
+        
+        // Enable refresh/export on whichever set of controls is visible
+        refreshBtn.disabled = false;
+        exportBtn.disabled = false;
+        
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showError(`Failed to load data: ${error.message}`);
+      }
+    }
+    
+    // Render dashboard
+    function renderDashboard(data) {
+      hideLoading();
+      dashboardEl.classList.add('has-data');
+
+      // ASO entitlement banner: show when selected org does not have Sites Optimizer
+      const asoBanner = document.getElementById('aso-entitlement-banner');
+      if (asoBanner) {
+        const showNonAso = currentOrgEntitlements && !currentOrgEntitlements.hasASO;
+        asoBanner.style.display = showNonAso ? 'block' : 'none';
+      }
+
+      // Show site/customer name
+      const siteNameEl = document.getElementById('site-name');
+      const rawName = data.siteName || data.siteId || currentSiteId;
+      const displayName = rawName ? rawName.replace(/^https?:\/\//, '').replace(/\/$/, '') : '';
+      if (displayName && displayName !== 'demo') {
+        siteNameEl.innerHTML = `${displayName}<span class="site-id">(${data.siteId || currentSiteId})</span>`;
+        siteNameEl.style.display = 'block';
+      } else if (displayName === 'demo') {
+        siteNameEl.innerHTML = 'Demo Site';
+        siteNameEl.style.display = 'block';
+      } else {
+        siteNameEl.style.display = 'none';
+      }
+
+      // Render global filter bar (date range only — customer is already selected via top controls)
+      renderGlobalFilters(document.getElementById('global-filters-bar'), {
+        customers: [],
+        onFilterChange: () => { if (currentData) renderDashboard(currentData); },
+      });
+
+      // Sync opportunities table date dropdown with global filter (and wire change once)
+      const oppDateSelect = document.getElementById('opp-date-range');
+      if (oppDateSelect) {
+        const preset = getFilters().dateRange.preset;
+        oppDateSelect.value = (preset === 'custom' ? 'all' : preset);
+        if (!oppDateSelect.dataset.initialized) {
+          oppDateSelect.dataset.initialized = '1';
+          oppDateSelect.addEventListener('change', () => {
+            setDateRange(oppDateSelect.value);
+            if (currentData) renderDashboard(currentData);
+          });
+        }
+      }
+
+      // Sync Include LLMO Data checkbox and wire change once
+      const oppIncludeLlmoCheckbox = document.getElementById('opp-include-llmo');
+      if (oppIncludeLlmoCheckbox) {
+        oppIncludeLlmoCheckbox.checked = getFilters().includeLlmoData;
+        if (!oppIncludeLlmoCheckbox.dataset.initialized) {
+          oppIncludeLlmoCheckbox.dataset.initialized = '1';
+          oppIncludeLlmoCheckbox.addEventListener('change', () => {
+            setIncludeLlmoData(oppIncludeLlmoCheckbox.checked);
+            if (currentData) renderDashboard(currentData);
+          });
+        }
+      }
+
+      const oppIncludeGenericCheckbox = document.getElementById('opp-include-generic');
+      if (oppIncludeGenericCheckbox) {
+        oppIncludeGenericCheckbox.checked = getFilters().includeGenericOpportunities;
+        if (!oppIncludeGenericCheckbox.dataset.initialized) {
+          oppIncludeGenericCheckbox.dataset.initialized = '1';
+          oppIncludeGenericCheckbox.addEventListener('change', () => {
+            setIncludeGenericOpportunities(oppIncludeGenericCheckbox.checked);
+            if (currentData) renderDashboard(currentData);
+          });
+        }
+      }
+
+      // Filter out LLMO-only opportunities when Include LLMO Data is unchecked
+      const includeLlmo = getFilters().includeLlmoData;
+      let opportunitiesForView = includeLlmo
+        ? data.opportunities
+        : data.opportunities.filter(opp => !isLlmoOnly(opp));
+      // Filter out generic-opportunity when Include Generic Opportunities is unchecked
+      if (!getFilters().includeGenericOpportunities) {
+        opportunitiesForView = opportunitiesForView.filter(
+          opp => (opp.type || '').toLowerCase() !== 'generic-opportunity',
+        );
+      }
+      // Exclude product-metatags and Commerce-tagged opportunities from all views
+      opportunitiesForView = opportunitiesForView.filter(opp => !isExcludedOpportunity(opp));
+
+      // All-time metrics from filtered opportunities — used for snapshot cards
+      // (totals, pending, health, quality, breakdown, age, automation, staleness)
+      const allMetrics = calculateLifecycleMetrics(opportunitiesForView);
+      const allHealthLabel = getHealthLabel(allMetrics.health.score);
+
+      // Trend totals: suggestion-level date filtering (same as chart)
+      // used for activity cards (Fixed, Rejected, Skipped, Outdated, Errors)
+      const dateRange = getFilters().dateRange;
+      const trendTotals = getTrendTotals(opportunitiesForView, dateRange);
+      const opportunityCountsInRange = getOpportunityCountsInRange(opportunitiesForView, dateRange);
+      if (window.__DEBUG_LIFECYCLE_FILTERS) {
+        console.log('[Suggestion Lifecycle] Date filter applied (client-side only, no API call)', {
+          dateRange: {
+            preset: dateRange.preset,
+            start: dateRange.start?.toISOString?.() ?? dateRange.start,
+            end: dateRange.end?.toISOString?.() ?? dateRange.end,
+          },
+          trendTotals,
+          allMetricsSuggestions: allMetrics.suggestions,
+        });
+      }
+
+      renderHealthScore(allMetrics.health, allHealthLabel);
+      renderQualityScore(allMetrics);
+      renderStatsGrid(allMetrics, trendTotals, opportunityCountsInRange);
+      renderTrends(opportunitiesForView);
+      renderLifecycleBreakdown(allMetrics.suggestions);
+      renderAgeDistribution(opportunitiesForView);
+      renderAutomation(allMetrics.automation);
+      renderStaleness(allMetrics.staleness);
+      // Table receives filtered opportunities with date-filtered counts so pills/columns match the cards
+      const oppsWithDateCounts = opportunitiesForView.map(opp => ({
+        ...opp,
+        dateFilteredCounts: getDateFilteredCounts(opp, dateRange),
+      }));
+      renderOpportunitiesTable(oppsWithDateCounts);
+    }
+    
+    // Render health score card
+    function renderHealthScore(health, label) {
+      const container = document.getElementById('health-score');
+      const colorClass = getHealthColor(health.score);
+      const m = health.metrics;
+      
+      container.innerHTML = `
+        <div class="health-score-circle ${colorClass}">
+          <div class="health-score-value">${health.score}</div>
+          <div class="health-score-label">${label}</div>
+        </div>
+        <div class="health-details">
+          <h3>Health Score Breakdown
+            <span class="info-bubble">?<span class="info-text">Weighted composite of 4 factors: Resolution Rate (35%), Aging Rate (25%), Speed of Resolution (25%), Skip Rate (15%). Each factor is scored 0-100 based on target thresholds, then combined.</span></span>
+          </h3>
+          <div class="health-breakdown">
+            <div class="health-metric">
+              <span class="health-metric-label">Resolution Rate:
+                <span class="info-bubble">?<span class="info-text">FIXED / total suggestions. ${m.fixedCount} of ${m.totalSuggestions} fixed. Target: 80%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.resolutionRate}%</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Aging Rate:
+                <span class="info-bubble">?<span class="info-text">Opportunities older than 30 days / total. ${m.agingCount} of ${m.totalOpportunities} aging. Target: below 10%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.agingRate}%</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Avg Time to Fix:
+                <span class="info-bubble">?<span class="info-text">Average days from suggestion creation to FIXED. Only counts resolved suggestions. Target: 14 days.</span></span>
+              </span>
+              <span class="health-metric-value">${formatDuration(m.avgDaysToFix)}</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Skip Rate:
+                <span class="info-bubble">?<span class="info-text">Skipped by customer (SKIPPED) / terminal suggestions. ${m.skippedCount} of ${m.terminalCount} terminal. Target: below 5%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.skipRate}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Render quality score card
+    function renderQualityScore(metrics) {
+      const container = document.getElementById('quality-score');
+      const qs = calculateQualityScore(
+        {
+          totalCount: metrics.suggestions.total,
+          rejectedRawCount: metrics.suggestions.rejectedRawCount,
+          outdatedCount: metrics.suggestions.outdatedCount,
+        },
+        metrics.fixes,
+      );
+      const label = getQualityLabel(qs.score);
+      const colorClass = getHealthColor(qs.score); // reuse same color fn
+      const m = qs.metrics;
+
+      container.innerHTML = `
+        <div class="health-score-circle ${colorClass}">
+          <div class="health-score-value">${qs.score}</div>
+          <div class="health-score-label">${label}</div>
+        </div>
+        <div class="health-details">
+          <h3>Quality Score Breakdown
+            <span class="info-bubble">?<span class="info-text">Measures ASO signal quality. Weighted: Rejection Rate (40%), Outdated Rate (30%), Fix Error Rate (30%). Higher is better — low rejection + low staleness + reliable automation.</span></span>
+          </h3>
+          <div class="health-breakdown">
+            <div class="health-metric">
+              <span class="health-metric-label">Rejection Rate (by ESE):
+                <span class="info-bubble">?<span class="info-text">REJECTED / total suggestions. ${m.rejectedCount} of ${m.totalSuggestions} rejected by ESE. Target: ≤3%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.rejectionRate}%</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Outdated Rate:
+                <span class="info-bubble">?<span class="info-text">OUTDATED / total suggestions. ${m.outdatedCount} of ${m.totalSuggestions} became stale. Target: ≤10%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.outdatedRate}%</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Fix Error Rate:
+                <span class="info-bubble">?<span class="info-text">FAILED / (COMPLETED + FAILED) from /fixes. ${m.fixFailedCount} failed of ${m.fixCompletedCount + m.fixFailedCount} attempted. Target: ≤5%.</span></span>
+              </span>
+              <span class="health-metric-value">${m.fixErrorRate}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render stats grid
+    // metrics: all-time (used when no range); trendTotals + opportunityCountsInRange: in-range (when date set)
+    function renderStatsGrid(metrics, trendTotals, opportunityCountsInRange) {
+      const container = document.getElementById('stats-grid');
+      const { suggestions, fixes, opportunities, lifecycle } = metrics;
+      const t = trendTotals || {};
+      const oppInRange = opportunityCountsInRange || {};
+
+      const filters = getFilters();
+      const rangeLabels = { '7d': 'Last 7 days', '30d': 'Last 30 days', '90d': 'Last 90 days', 'all': 'All time' };
+      const rangeLabel = rangeLabels[filters.dateRange.preset] || 'Custom range';
+      const hasRange = !!(filters.dateRange.start || filters.dateRange.end);
+
+      // Activity cards: from trendTotals (suggestion updatedAt in range)
+      const fixedCount = t.fixed ?? suggestions.fixedCount;
+      const skippedCount = t.skipped ?? suggestions.skippedCount;
+      const rejectedRawCount = t.rejected ?? suggestions.rejectedRawCount;
+      const outdatedCount = t.outdated ?? suggestions.outdatedCount;
+      const errorCount = t.error ?? (suggestions.errorCount || 0);
+      const awaitingCustomerReviewInRange = t.awaitingCustomerReview ?? suggestions.awaitingCustomerReviewCount;
+      const terminalInRange = fixedCount + skippedCount + rejectedRawCount + outdatedCount + errorCount;
+      const resolutionRateInRange = terminalInRange > 0 ? Math.round((fixedCount / terminalInRange) * 100) : suggestions.resolutionRate;
+      const pendingInRange = t.pending ?? suggestions.pendingCount;
+      const totalSuggestionsInRange = terminalInRange + pendingInRange;
+
+      // Current State: date-filtered when hasRange (same semantics as Activity)
+      const totalOpps = hasRange ? (oppInRange.total ?? opportunities.total) : opportunities.total;
+      const openOpps = hasRange ? (oppInRange.open ?? lifecycle.activeOpportunities) : lifecycle.activeOpportunities;
+      const totalSug = hasRange ? totalSuggestionsInRange : suggestions.total;
+      const awaitingCustomerReviewCount = hasRange ? awaitingCustomerReviewInRange : (suggestions.awaitingCustomerReviewCount ?? 0);
+      const pendingValidationCount = hasRange ? (t.pendingValidation ?? suggestions.pendingValidationCount) : suggestions.pendingValidationCount;
+      const inProgressCount = hasRange ? (t.inProgress ?? suggestions.inProgressCount) : suggestions.inProgressCount;
+
+      const snapshotStats = [
+        { label: 'Total Opportunities', value: totalOpps, class: '', tip: hasRange ? 'Opportunities with activity in this period.' : 'All opportunities regardless of status.', drill: 'all' },
+        { label: 'Open Opportunities', value: openOpps, class: '', tip: hasRange ? 'Open (NEW/IN_PROGRESS) with activity in this period.' : 'Opportunities with status NEW or IN_PROGRESS.', drill: 'open' },
+        { label: 'Total Suggestions', value: totalSug, class: '', tip: hasRange ? 'Suggestions with activity in this period.' : 'All suggestions across all opportunities.', drill: 'all' },
+        { label: 'Awaiting Customer Review', value: awaitingCustomerReviewCount, class: 'pending', tip: 'NEW + APPROVED + IN_PROGRESS — ready for or in progress with customer.', drill: 'pending' },
+      ];
+      if (awaitingCustomerReviewCount > 0 || pendingValidationCount > 0) {
+        if (pendingValidationCount > 0) {
+          snapshotStats.push({ label: 'Awaiting ESE Review', value: pendingValidationCount, class: 'pending', tip: 'PENDING_VALIDATION — fix applied, awaiting ESE confirmation.', drill: 'PENDING_VALIDATION' });
+        }
+        if (inProgressCount > 0) {
+          snapshotStats.push({ label: 'In Progress', value: inProgressCount, class: 'pending', tip: 'IN_PROGRESS — work underway.', drill: 'IN_PROGRESS' });
+        }
+      }
+
+      // Activity cards: date-filtered to match chart
+      const activityStats = [
+        { label: 'Fixed', value: fixedCount, class: 'fixed', tip: 'Suggestions fixed in this period.', drill: 'FIXED' },
+        { label: 'Skipped / Ignored (by customer)', value: skippedCount, class: 'ignored', tip: 'SKIPPED — customer chose to skip/ignore.', drill: 'SKIPPED' },
+        { label: 'Rejected (by ESE)', value: rejectedRawCount, class: 'rejected', tip: 'REJECTED — ESE flagged as false positive.', drill: 'REJECTED' },
+        { label: 'Outdated', value: outdatedCount, class: 'noise', tip: 'OUTDATED — suggestion became irrelevant.', drill: 'OUTDATED' },
+        { label: 'Resolution Rate', value: `${resolutionRateInRange}%`, class: 'fixed', tip: 'FIXED / terminal suggestions in this period.' },
+      ];
+      if ((errorCount || 0) >= 1) {
+        activityStats.splice(activityStats.length - 1, 0, { label: 'Errors', value: errorCount, class: 'rejected', tip: 'ERROR — autofix attempt failed.', drill: 'ERROR' });
+      }
+      if ((fixes.totalFixes || 0) > 0) {
+        activityStats.push({ label: 'Deployed Fixes', value: fixes.completedFixes, class: 'fixes', tip: `Fix operations with COMPLETED status. ${fixes.completedFixes} of ${fixes.totalFixes} total.` });
+        if (fixes.autoFixSuccessRate >= 0) {
+          activityStats.push({ label: 'Auto-fix Success', value: `${fixes.autoFixSuccessRate}%`, class: 'fixes', tip: `COMPLETED / (COMPLETED + FAILED). ${fixes.completedFixes} succeeded, ${fixes.failedFixes} failed.` });
+        }
+      }
+
+      const renderCards = (stats) => stats.map(stat => `
+        <div class="stat-card ${stat.class}${stat.drill ? ' clickable' : ''}" ${stat.drill ? `data-drill="${stat.drill}"` : ''}>
+          <div class="stat-value">${stat.value}</div>
+          <div class="stat-label">${stat.label}${stat.tip ? ` <span class="info-bubble">?<span class="info-text">${stat.tip}</span></span>` : ''}</div>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="section-label">Current State${hasRange ? ` <span class="label-muted">(${rangeLabel})</span>` : ''}</div>
+        <div class="stats-grid-inner">${renderCards(snapshotStats)}</div>
+        <div class="section-label" style="margin-top:20px;">Activity <span class="label-muted">(${rangeLabel})</span></div>
+        <div class="stats-grid-inner">${renderCards(activityStats)}</div>
+      `;
+
+      // Attach drill-down click handlers
+      container.querySelectorAll('.stat-card[data-drill]').forEach((card) => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.info-bubble')) return; // don't drill on tooltip click
+          tableStatusFilter = card.dataset.drill;
+          renderOpportunitiesTable();
+          // Scroll to table
+          document.getElementById('opportunities-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+    
+    // Render trend chart
+    let _trendOpps = [];
+    function renderTrends(opportunities) {
+      _trendOpps = opportunities;
+      const metric = document.getElementById('trend-metric').value;
+      const byType = document.getElementById('trend-by-type').checked;
+      const filters = getFilters();
+      // Use the filter date range as-is. Do NOT derive for "all time" so we don't filter
+      // by a derived range (e.g. createdAt) and drop items whose metric date (e.g. updatedAt) falls outside it.
+      const dateRange = filters.dateRange;
+      renderTrendChart(document.getElementById('trend-chart'), {
+        opportunities,
+        metric,
+        dateRange,
+        byType,
+      });
+    }
+    document.getElementById('trend-metric').addEventListener('change', () => renderTrends(_trendOpps));
+    document.getElementById('trend-by-type').addEventListener('change', () => renderTrends(_trendOpps));
+
+    // Render suggestion lifecycle breakdown bars
+    function renderLifecycleBreakdown(suggestions) {
+      const container = document.getElementById('lifecycle-breakdown');
+      const total = suggestions.total || 1;
+      
+      function pct(v) { return parseFloat(((v / total) * 100).toFixed(1)); }
+      
+      const awaitingCustomerReview = suggestions.awaitingCustomerReviewCount
+        ?? (suggestions.pendingCount - (suggestions.pendingValidationCount || 0)) ?? 0;
+      const bars = [
+        { label: 'Fixed', value: suggestions.fixedCount, percent: pct(suggestions.fixedCount), class: 'deployed' },
+        { label: 'Awaiting Customer Review', value: awaitingCustomerReview, percent: pct(awaitingCustomerReview), class: 'pending' },
+        { label: 'Awaiting ESE Review', value: suggestions.pendingValidationCount || 0, percent: pct(suggestions.pendingValidationCount || 0), class: 'pending' },
+        { label: 'Skipped / Ignored (by customer)', value: suggestions.skippedCount, percent: pct(suggestions.skippedCount), class: 'ignored' },
+        { label: 'Rejected (by ESE)', value: suggestions.rejectedRawCount, percent: pct(suggestions.rejectedRawCount), class: 'rejected-bar' },
+        { label: 'Outdated', value: suggestions.outdatedCount, percent: pct(suggestions.outdatedCount), class: 'outdated' },
+      ];
+      if ((suggestions.errorCount || 0) > 0) {
+        bars.push({ label: 'Error', value: suggestions.errorCount, percent: pct(suggestions.errorCount), class: 'error' });
+      }
+      
+      container.innerHTML = bars.map(bar => `
+        <div class="progress-bar-container">
+          <div class="progress-label">
+            <span>${bar.label}</span>
+            <span>${bar.value} (${bar.percent}%)</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill ${bar.class}" style="width: ${Math.max(bar.percent, bar.value > 0 ? 1 : 0)}%"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // Render age distribution — only active (NEW + IN_PROGRESS) opportunities
+    function renderAgeDistribution(opportunities) {
+      const container = document.getElementById('age-distribution');
+      const activeOpps = opportunities.filter(
+        opp => opp.status === 'NEW' || opp.status === 'IN_PROGRESS',
+      );
+      const ageCounts = calculateAgeCounts(activeOpps);
+
+      const total = (ageCounts.fresh || 0) + (ageCounts.acceptable || 0) + (ageCounts.warning || 0) + (ageCounts.overdue || 0) + (ageCounts.critical || 0);
+      const denominator = total || 1;
+      
+      const buckets = [
+        { label: 'Fresh (0-7 days)', value: ageCounts.fresh, colorClass: 'fresh' },
+        { label: 'Acceptable (8-14 days)', value: ageCounts.acceptable, colorClass: 'acceptable' },
+        { label: 'Warning (15-30 days)', value: ageCounts.warning, colorClass: 'warning' },
+        { label: 'Overdue (31-60 days)', value: ageCounts.overdue, colorClass: 'overdue' },
+        { label: 'Critical (60+ days)', value: ageCounts.critical, colorClass: 'critical' },
+      ];
+      
+      container.innerHTML = (activeOpps.length === 0
+        ? '<p style="color:#666; font-size:13px;">No open opportunities.</p>'
+        : buckets.map(bucket => {
+            const percent = Math.round((bucket.value / denominator) * 100);
+            return `
+              <div class="progress-bar-container">
+                <div class="progress-label">
+                  <span>${bucket.label}</span>
+                  <span>${bucket.value} (${percent}%)</span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill ${bucket.colorClass}" style="width: ${percent}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('')
+      );
+    }
+    
+    // Render automation vs manual metrics
+    function renderAutomation(automation) {
+      const container = document.getElementById('automation-metrics');
+      if (!automation || (automation.autoFixedCount === 0 && automation.manualFixedCount === 0 && automation.failedFixCount === 0)) {
+        container.innerHTML = '<p style="color:#999; font-size:13px;">No fix data available. Automation metrics require /fixes API data.</p>';
+        return;
+      }
+
+      const totalFixed = automation.autoFixedCount + automation.manualFixedCount;
+      const autoPct = totalFixed > 0 ? ((automation.autoFixedCount / totalFixed) * 100).toFixed(1) : 0;
+      const manualPct = totalFixed > 0 ? ((automation.manualFixedCount / totalFixed) * 100).toFixed(1) : 0;
+
+      const failureRows = Object.entries(automation.failuresByType || {}).sort((a, b) => b[1] - a[1]);
+
+      container.innerHTML = `
+        <div class="automation-grid">
+          <div class="automation-card">
+            <div class="staleness-value" style="color:#28a745">${automation.autoFixedCount}</div>
+            <div class="staleness-label">Auto-fixed (${autoPct}%)</div>
+          </div>
+          <div class="automation-card">
+            <div class="staleness-value" style="color:#1473e6">${automation.manualFixedCount}</div>
+            <div class="staleness-label">Manual (${manualPct}%)</div>
+          </div>
+          <div class="automation-card">
+            <div class="staleness-value" style="color:${automation.automationSuccessRate >= 90 ? '#28a745' : automation.automationSuccessRate >= 70 ? '#ffc107' : '#dc3545'}">${automation.automationSuccessRate >= 0 ? automation.automationSuccessRate + '%' : 'N/A'}</div>
+            <div class="staleness-label">Automation Success Rate
+              <span class="info-bubble">?<span class="info-text">COMPLETED / (COMPLETED + FAILED) from /fixes. ${automation.completedFixCount} completed, ${automation.failedFixCount} failed.</span></span>
+            </div>
+          </div>
+          <div class="automation-card${automation.failedFixCount > 0 ? ' alert' : ''}">
+            <div class="staleness-value">${automation.failedFixCount}</div>
+            <div class="staleness-label">Failed Fixes</div>
+          </div>
+        </div>
+        ${failureRows.length > 0 ? `
+          <div style="margin-top:12px;">
+            <strong style="font-size:13px; color:#555;">Failures by Type:</strong>
+            <div class="failures-by-type">
+              ${failureRows.map(([type, count]) => `
+                <span class="failure-type-badge">${type}: ${count}</span>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    // Render staleness & throughput metrics
+    function renderStaleness(staleness) {
+      const container = document.getElementById('staleness-metrics');
+      if (!staleness) { container.innerHTML = ''; return; }
+
+      const items = [
+        { label: 'Stale Pending Validation', value: staleness.stalePendingValidation, tip: `PENDING_VALIDATION suggestions older than 7 days.`, alert: staleness.stalePendingValidation > 0 },
+        { label: 'Stale New', value: staleness.staleNew, tip: `NEW suggestions older than 14 days.`, alert: staleness.staleNew > 0 },
+        { label: 'Stale In Progress', value: staleness.staleInProgress, tip: `IN_PROGRESS suggestions older than 21 days.`, alert: staleness.staleInProgress > 0 },
+        { label: 'Total Stale', value: staleness.totalStale, tip: 'Sum of all stale suggestions.', alert: staleness.totalStale > 0 },
+        { label: 'Avg Time to Action', value: staleness.avgTimeToAction >= 0 ? `${staleness.avgTimeToAction}d` : 'N/A', tip: 'Average days from suggestion creation to first status change beyond NEW/PENDING_VALIDATION.' },
+        { label: 'Avg Time to Resolution', value: staleness.avgTimeToResolution >= 0 ? `${staleness.avgTimeToResolution}d` : 'N/A', tip: 'Average days from creation to a terminal status (FIXED, SKIPPED, REJECTED, ERROR, OUTDATED).' },
+      ];
+
+      container.innerHTML = `
+        <div class="staleness-grid">
+          ${items.map(item => `
+            <div class="staleness-card${item.alert ? ' alert' : ''}">
+              <div class="staleness-value">${item.value}</div>
+              <div class="staleness-label">${item.label}
+                <span class="info-bubble">?<span class="info-text">${item.tip}</span></span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Table state
+    let sortColumn = 'type';
+    let sortDirection = 'asc';
+    let allOpportunities = []; // full list for filter toggle
+    let tableStatusFilter = 'open'; // default: show open (NEW + IN_PROGRESS) opportunities
+    
+    function getFilteredOpportunities() {
+      const opps = allOpportunities;
+      // Use date-filtered counts when available so pills match the cards/chart
+      const counts = (opp) => opp.dateFilteredCounts || opp.suggestionsCounts || {};
+
+      switch (tableStatusFilter) {
+        case 'open':
+          return opps.filter(opp => opp.status === 'NEW' || opp.status === 'IN_PROGRESS');
+        case 'resolved':
+          return opps.filter(opp => opp.status === 'RESOLVED' || opp.status === 'IGNORED');
+        case 'all':
+          return opps;
+        case 'pending':
+          return opps.filter(opp => {
+            const c = counts(opp);
+            const aw = c.awaitingCustomerReviewCount ?? ((c.pendingCount || 0) - (c.pendingValidationCount || 0));
+            return (aw || 0) > 0;
+          });
+        default: {
+          const statusKey = {
+            FIXED: 'fixedCount', SKIPPED: 'skippedCount', REJECTED: 'rejectedRawCount',
+            ERROR: 'errorCount', OUTDATED: 'outdatedCount', NEW: 'newCount',
+            IN_PROGRESS: 'inProgressCount', PENDING_VALIDATION: 'pendingValidationCount',
+          }[tableStatusFilter];
+          if (statusKey) {
+            return opps.filter(opp => (counts(opp)[statusKey] || 0) > 0);
+          }
+          return opps;
+        }
+      }
+    }
+    
+    function sortOpportunities(opportunities, column, direction) {
+      return [...opportunities].sort((a, b) => {
+        const ca = a.dateFilteredCounts || a.suggestionsCounts || {};
+        const cb = b.dateFilteredCounts || b.suggestionsCounts || {};
+        let valA, valB;
+        switch (column) {
+          case 'type':
+            valA = (a.type || '').toLowerCase();
+            valB = (b.type || '').toLowerCase();
+            break;
+          case 'status':
+            valA = a.status || '';
+            valB = b.status || '';
+            break;
+          case 'age':
+            valA = new Date(a.createdAt || 0).getTime();
+            valB = new Date(b.createdAt || 0).getTime();
+            break;
+          case 'total':
+            valA = ca.totalCount || 0;
+            valB = cb.totalCount || 0;
+            break;
+          case 'fixed':
+            valA = ca.fixedCount || 0;
+            valB = cb.fixedCount || 0;
+            break;
+          case 'pending':
+            valA = ca.awaitingCustomerReviewCount ?? Math.max(0, (ca.pendingCount || 0) - (ca.pendingValidationCount || 0));
+            valB = cb.awaitingCustomerReviewCount ?? Math.max(0, (cb.pendingCount || 0) - (cb.pendingValidationCount || 0));
+            break;
+          case 'pv':
+            valA = ca.pendingValidationCount || 0;
+            valB = cb.pendingValidationCount || 0;
+            break;
+          case 'skipped':
+            valA = ca.skippedCount || 0;
+            valB = cb.skippedCount || 0;
+            break;
+          case 'rejected':
+            valA = ca.rejectedRawCount || 0;
+            valB = cb.rejectedRawCount || 0;
+            break;
+          case 'errors':
+            valA = ca.errorCount || 0;
+            valB = cb.errorCount || 0;
+            break;
+          case 'outdated':
+            valA = ca.outdatedCount || 0;
+            valB = cb.outdatedCount || 0;
+            break;
+          case 'created':
+            valA = new Date(a.createdAt || 0).getTime();
+            valB = new Date(b.createdAt || 0).getTime();
+            break;
+          default:
+            return 0;
+        }
+        if (valA < valB) return direction === 'asc' ? -1 : 1;
+        if (valA > valB) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    // Render opportunities table
+    function renderOpportunitiesTable(opportunities) {
+      // Store full list on first call (from renderDashboard)
+      if (opportunities) {
+        allOpportunities = opportunities;
+      }
+      const container = document.getElementById('opportunities-table');
+
+      // Render status filter pills (show Errors only when at least one opportunity has errors)
+      const hasAnyErrors = (allOpportunities || []).some(opp => {
+        const c = opp.dateFilteredCounts || opp.suggestionsCounts || {};
+        return (c.errorCount || 0) >= 1;
+      });
+      const statuses = ['open', 'all', 'resolved', 'FIXED', 'pending', 'PENDING_VALIDATION', 'SKIPPED', 'REJECTED', 'OUTDATED']
+        .concat(hasAnyErrors ? ['ERROR'] : []);
+      const statusLabels = { open: 'Open', all: 'All', resolved: 'Resolved / Ignored', FIXED: 'Fixed', pending: 'Awaiting Customer Review', PENDING_VALIDATION: 'Awaiting ESE Review', SKIPPED: 'Skipped (by customer)', REJECTED: 'Rejected (by ESE)', OUTDATED: 'Outdated', ERROR: 'Errors' };
+      const pillsHtml = statuses.map(s =>
+        `<button class="filter-pill${tableStatusFilter === s ? ' active' : ''}" data-status="${s}">${statusLabels[s] || s}</button>`
+      ).join('');
+
+      const filtered = getFilteredOpportunities();
+      
+      if (!filtered || filtered.length === 0) {
+        const msg = tableStatusFilter === 'open'
+          ? 'No open opportunities. Try "All" to see resolved &amp; ignored.'
+          : 'No opportunities match this filter.';
+        container.innerHTML = `<div class="table-status-filter">${pillsHtml}</div>`
+          + `<p style="color:#666; font-size:13px;">${msg}</p>`;
+        attachPillHandlers(container);
+        return;
+      }
+      
+      const sorted = sortOpportunities(filtered, sortColumn, sortDirection);
+      
+      function arrow(col) {
+        if (col !== sortColumn) return '<span class="sort-arrow">&#x25B4;&#x25BE;</span>';
+        return sortDirection === 'asc' 
+          ? '<span class="sort-arrow active">&#x25B4;</span>' 
+          : '<span class="sort-arrow active">&#x25BE;</span>';
+      }
+      
+      const showAge = tableStatusFilter === 'open';
+      // Look up org ID for deep links (SpaceCat UUID, not IMS @AdobeOrg format)
+      const selectedOrg = customerTree.find(c => c.orgId === customerSelect?.value);
+      const deepLinkOrgId = selectedOrg?.orgId || '';
+      const siteId = currentSiteId || '';
+      const rows = sorted.map(opp => {
+        const counts = opp.dateFilteredCounts || opp.suggestionsCounts || {};
+        const total = counts.totalCount || 0;
+        const totalDisplay = total === 0 ? '<span style="color:#999">0</span>' : total;
+        const llmoOnly = isLlmoOnly(opp);
+        const deepLink = llmoOnly
+          ? ''
+          : (deepLinkOrgId
+            ? `https://experience.adobe.com/?organizationId=${deepLinkOrgId}#/@sitesinternal/sites-optimizer/sites/${opp.siteId || siteId}/opportunities/${opp.id || ''}`
+            : `https://experience.adobe.com/#/@sitesinternal/sites-optimizer/sites/${opp.siteId || siteId}/opportunities/${opp.id || ''}`);
+        const ageTd = showAge
+          ? `<td><span class="age-badge age-${calculateAgeBucket(opp.createdAt, opp.updatedAt, opp.status, 'opportunity')}">${calculateAgeBucket(opp.createdAt, opp.updatedAt, opp.status, 'opportunity')}</span></td>`
+          : '';
+        
+        const errorsTd = hasAnyErrors ? `<td>${counts.errorCount || 0}</td>` : '';
+        return `
+          <tr class="opp-row${llmoOnly ? ' opp-row-no-link' : ''}" data-link="${deepLink}">
+            <td><strong>${opp.type || 'Unknown'}</strong></td>
+            <td><span class="status-badge status-${opp.status}">${opp.status}</span></td>
+            ${ageTd}
+            <td>${totalDisplay}</td>
+            <td>${counts.fixedCount || 0}</td>
+            <td>${(counts.awaitingCustomerReviewCount ?? Math.max(0, (counts.pendingCount || 0) - (counts.pendingValidationCount || 0))) || 0}</td>
+            <td>${counts.pendingValidationCount || 0}</td>
+            <td>${counts.skippedCount || 0}</td>
+            <td>${counts.rejectedRawCount || 0}</td>
+            ${errorsTd}
+            <td>${counts.outdatedCount || 0}</td>
+            <td>${new Date(opp.createdAt).toLocaleDateString()}</td>
+          </tr>
+        `;
+      });
+      
+      container.innerHTML = `
+        <div class="table-status-filter">${pillsHtml}</div>
+        <table class="opportunities-table">
+          <thead>
+            <tr>
+              <th data-sort="type">Type ${arrow('type')}</th>
+              <th data-sort="status">Status ${arrow('status')}</th>
+              ${showAge ? `<th data-sort="age">Age ${arrow('age')}</th>` : ''}
+              <th data-sort="total">Total ${arrow('total')}</th>
+              <th data-sort="fixed">Fixed ${arrow('fixed')}</th>
+              <th data-sort="pending" title="NEW + APPROVED + IN_PROGRESS">Awaiting Customer Review ${arrow('pending')}</th>
+              <th data-sort="pv" title="PENDING_VALIDATION">Awaiting ESE Review ${arrow('pv')}</th>
+              <th data-sort="skipped" title="SKIPPED — by customer">Skipped (by customer) ${arrow('skipped')}</th>
+              <th data-sort="rejected" title="REJECTED — by ESE">Rejected (by ESE) ${arrow('rejected')}</th>
+              ${hasAnyErrors ? `<th data-sort="errors">Errors ${arrow('errors')}</th>` : ''}
+              <th data-sort="outdated">Outdated ${arrow('outdated')}</th>
+              <th data-sort="created">Created ${arrow('created')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.join('')}
+          </tbody>
+        </table>
+      `;
+      
+      // Attach sort handlers
+      container.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.sort;
+          if (sortColumn === col) {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortColumn = col;
+            sortDirection = 'asc';
+          }
+          renderOpportunitiesTable();
+        });
+      });
+
+      // Row click → deep link (LLMO-only rows have no link)
+      container.querySelectorAll('.opp-row').forEach(row => {
+        const link = row.dataset.link;
+        row.style.cursor = link ? 'pointer' : 'default';
+        row.addEventListener('click', () => {
+          if (link) window.open(link, '_blank');
+        });
+      });
+
+      attachPillHandlers(container);
+    }
+
+    function attachPillHandlers(container) {
+      container.querySelectorAll('.filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          tableStatusFilter = pill.dataset.status;
+          renderOpportunitiesTable();
+        });
+      });
+    }
+    
+    // Export report
+    async function exportReport() {
+      if (!currentData) return;
+      
+      const token = tokenInput.value.trim() || getAccessToken() || null;
+      const report = await getLifecycleReport(currentSiteId, token);
+      
+      const json = JSON.stringify(report, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `suggestion-lifecycle-${currentSiteId}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // UI helpers
+    function showLoading() {
+      loadingEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      dashboardEl.classList.remove('has-data');
+    }
+    
+    function hideLoading() {
+      loadingEl.style.display = 'none';
+    }
+    
+    function showError(message) {
+      hideLoading();
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+      dashboardEl.classList.remove('has-data');
+    }
+    
+    // ---- View tab listeners ----
+    document.querySelectorAll('.view-tab').forEach((tab) => {
+      tab.addEventListener('click', () => switchView(tab.dataset.view));
+    });
+    portfolioScope.addEventListener('change', () => { syncPortfolioSiteVisibility(); });
+    portfolioRefreshBtn.addEventListener('click', () => {
+      portfolioCache = null; // force refresh
+      loadPortfolioData();
+    });
+    // Portfolio data updates only when Load is clicked; filter changes do not trigger a fetch
+    if (portfolioIncludeLlmo) {
+      portfolioIncludeLlmo.checked = getFilters().includeLlmoData;
+      portfolioIncludeLlmo.addEventListener('change', () => setIncludeLlmoData(portfolioIncludeLlmo.checked));
+    }
+    if (portfolioIncludeGeneric) {
+      portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
+      portfolioIncludeGeneric.addEventListener('change', () => setIncludeGenericOpportunities(portfolioIncludeGeneric.checked));
+    }
+
+    // Event listeners
+    loadBtn.addEventListener('click', () => loadData(false));
+    refreshBtn.addEventListener('click', () => {
+      if (currentSiteId) {
+        clearSiteCache(currentSiteId);
+        loadData(true);
+      }
+    });
+    exportBtn.addEventListener('click', exportReport);
+    
+    
+    siteInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadData(false);
+      }
+    });
+    
+    // ---- Initialization ----
+
+    // Listen for auth state changes (e.g. token refresh)
+    onAuthStateChange(async (profile) => {
+      if (profile && isAuthenticated()) {
+        isDevMode = false;
+        showAuthState();
+        await populateCustomers();
+      }
+    });
+
+    // Check stored token (synchronous check + possible async refresh)
+    await initIMS();
+
+    if (isAuthenticated()) {
+      // User has a valid IMS session
+      isDevMode = false;
+      showAuthState();
+      await populateCustomers();
+    } else {
+      // No IMS session — start in dev mode with demo data
+      isDevMode = true;
+      showAuthState();
+      // If a manual token was persisted (e.g. after refresh), auto-connect and load last customer data
+      const hasSavedToken = !!(localStorage.getItem(MANUAL_TOKEN_STORAGE_KEY) || tokenInput?.value?.trim());
+      if (hasSavedToken) {
+        await connectWithToken();
+      } else {
+        loadData(false);
+      }
+    }
+  </script>
+</body>
+</html>

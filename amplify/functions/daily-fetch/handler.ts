@@ -25,15 +25,27 @@ export const handler: Handler<
   logger.info("Invocation started");
 
   // ── Validate env ──────────────────────────────────────────────────────────
-  const externalApiKey    = process.env.EXTERNAL_API_KEY;
-  const externalApiBase   = process.env.EXTERNAL_API_BASE_URL;
-  const appsyncEndpoint   = process.env.APPSYNC_ENDPOINT;
-  const appsyncApiKey     = process.env.APPSYNC_API_KEY;
+  // ServiceNow auth: accept either a pre-encoded token or user+password pair.
+  const snowUser     = process.env.SERVICENOW_USER;
+  const snowPassword = process.env.SERVICENOW_PASSWORD;
+  const snowToken    = process.env.SERVICENOW_AUTH_TOKEN;
+  const appsyncEndpoint = process.env.APPSYNC_ENDPOINT;
+  const appsyncApiKey   = process.env.APPSYNC_API_KEY;
 
-  if (!externalApiKey)   throw new Error("EXTERNAL_API_KEY is not set");
-  if (!externalApiBase)  throw new Error("EXTERNAL_API_BASE_URL is not set");
-  if (!appsyncEndpoint)  throw new Error("APPSYNC_ENDPOINT is not set");
-  if (!appsyncApiKey)    throw new Error("APPSYNC_API_KEY is not set");
+  // Build the auth token from whichever credentials are present
+  let servicenowAuthToken: string;
+  if (snowToken) {
+    servicenowAuthToken = snowToken;
+  } else if (snowUser && snowPassword) {
+    servicenowAuthToken = Buffer.from(`${snowUser}:${snowPassword}`).toString("base64");
+  } else {
+    throw new Error(
+      "ServiceNow credentials not set — provide SERVICENOW_AUTH_TOKEN or both SERVICENOW_USER and SERVICENOW_PASSWORD"
+    );
+  }
+
+  if (!appsyncEndpoint) throw new Error("APPSYNC_ENDPOINT is not set");
+  if (!appsyncApiKey)   throw new Error("APPSYNC_API_KEY is not set");
 
   // ── AppSync client (API key auth, no Amplify framework needed) ────────────
   const client = new AppSyncClient(appsyncEndpoint, appsyncApiKey);
@@ -41,7 +53,7 @@ export const handler: Handler<
   // ── Open audit record ─────────────────────────────────────────────────────
   const jobId = await openSyncJob(
     client,
-    { dataSource: "external-api", triggeredBy: "schedule" },
+    { dataSource: "servicenow", triggeredBy: "schedule" },
     logger
   );
 
@@ -50,9 +62,9 @@ export const handler: Handler<
 
   try {
     // ── 1. Fetch ─────────────────────────────────────────────────────────────
-    jobLogger.info("Fetching data from external API");
+    jobLogger.info("Fetching ASO customer records from ServiceNow");
     const rawRecords = await fetchCustomers(
-      { baseUrl: externalApiBase, apiKey: externalApiKey },
+      { authToken: servicenowAuthToken },
       jobLogger
     );
     jobLogger.info("Fetch complete", { rawRecordCount: rawRecords.length });
