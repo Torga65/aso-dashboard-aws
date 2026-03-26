@@ -46,16 +46,9 @@ const STATUS_COLOR = { valid: "#16a34a", expiring: "#d97706", expired: "#dc2626"
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AuthButton() {
-  const { isAuthenticated, accessToken, profile, isReady, signIn, signOut } = useIMSAuth();
+  const { isAuthenticated, accessToken, profile, signIn, signOut } = useIMSAuth();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-
-  // Auto sign-in when imslib is ready and user is not signed in
-  useEffect(() => {
-    if (isReady && !isAuthenticated) {
-      signIn();
-    }
-  }, [isReady, isAuthenticated, signIn]);
 
   // Close dropdown on outside click
   useEffect(() => {
