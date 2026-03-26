@@ -1,171 +1,116 @@
 /**
  * imslib-adapter.js
  *
- * Drop-in replacement for ims-auth.js that delegates to window.adobeIMS
- * (Adobe IMS library loaded from CDN via <script> before this module).
+ * Receives the IMS access token from the parent React app via postMessage.
+ * The parent (StaticPageFrame) holds the real imslib instance and posts the
+ * token into the iframe whenever it changes — avoiding the X-Frame-Options:DENY
+ * issue that blocks auth-stg1.services.adobe.com inside an iframe.
  *
- * Exports the same functions as ims-auth.js so call sites need only change
- * the import path — no other code changes required.
- *
- * Timing: imslib fires onReady / onProfile synchronously-or-soon after it
- * loads, which may be before ES modules execute. The HTML sets up a small
- * queue (window.__imsAdapterQueue) that captures those early events; this
- * module drains the queue on load and registers its handlers for any
- * subsequent events.
+ * Exports the same public API as the original ims-auth.js so call sites need
+ * only change the import path.
  */
 
 /* ------------------------------------------------------------------ */
 /*  Internal state                                                     */
 /* ------------------------------------------------------------------ */
 
-let _imsReady = false;
-let _profile = null;
-let _accessToken = null;
+let _token = null;
+let _ready = false;
 
 const _readyCallbacks = [];
 const _authStateListeners = [];
 
-function _extractToken(t) {
-  if (!t) return null;
-  return (typeof t === 'object' ? t.token : t) || null;
-}
-
 /* ------------------------------------------------------------------ */
-/*  Hooks called by window.adobeid callbacks (set in the HTML)        */
+/*  postMessage listener — receives token from parent frame           */
 /* ------------------------------------------------------------------ */
 
-function _onAccessToken(token) {
-  _accessToken = token || null;
-  _authStateListeners.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
-}
+window.addEventListener('message', (event) => {
+  // Only accept messages from the same origin
+  if (event.origin !== window.location.origin) return;
 
-function _onReady(profile) {
-  _imsReady = true;
-  _profile = profile || window.adobeIMS?.getProfile?.() || null;
-  // Capture token if onAccessToken hasn't fired yet
-  if (!_accessToken) {
-    _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  const { type, token } = event.data || {};
+
+  if (type === 'ims-token') {
+    _token = token || null;
+
+    if (!_ready) {
+      _ready = true;
+      const cbs = _readyCallbacks.splice(0);
+      cbs.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
+    }
+
+    _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
   }
 
-  const cbs = _readyCallbacks.splice(0);
-  cbs.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
-}
-
-function _onProfile(profile) {
-  _profile = profile;
-  if (!_accessToken) {
-    _accessToken = _extractToken(window.adobeIMS?.getAccessToken?.());
+  if (type === 'ims-signout') {
+    _token = null;
+    _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
   }
-  _authStateListeners.forEach((cb) => { try { cb(_profile); } catch (e) { /* silent */ } });
-}
-
-function _onExpired() {
-  _accessToken = null;
-  _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
-}
-
-// Register hooks so the HTML callbacks can reach us
-window.__imsAdapterOnAccessToken = _onAccessToken;
-window.__imsAdapterOnReady = _onReady;
-window.__imsAdapterOnProfile = _onProfile;
-window.__imsAdapterOnExpired = _onExpired;
-
-// Drain events that fired before this module loaded
-const queue = window.__imsAdapterQueue;
-if (Array.isArray(queue)) {
-  queue.forEach(([type, data]) => {
-    if (type === 'accessToken') _onAccessToken(data);
-    else if (type === 'ready') _onReady(data);
-    else if (type === 'profile') _onProfile(data);
-    else if (type === 'expired') _onExpired();
-  });
-  window.__imsAdapterQueue = null; // stop queuing
-}
+});
 
 /* ------------------------------------------------------------------ */
 /*  Public API (same surface as ims-auth.js)                          */
 /* ------------------------------------------------------------------ */
 
 /**
- * Wait for imslib to finish initialising.  Resolves immediately if already
- * ready (e.g. returning user whose token was found in localStorage).
+ * Resolves when the parent has posted the token (or immediately if already received).
+ * Times out after 5 s and resolves anyway so the page doesn't hang if loaded standalone.
  */
 export async function initIMS() {
-  if (_imsReady) return;
+  if (_ready) return;
   return new Promise((resolve) => {
-    _readyCallbacks.push(() => resolve());
+    _readyCallbacks.push(resolve);
+    // Fallback: resolve after 5 s so the page doesn't hang forever
+    setTimeout(() => {
+      if (!_ready) {
+        _ready = true;
+        resolve();
+      }
+    }, 5000);
   });
 }
 
-/** Redirect to IMS sign-in. */
+/** Sign in — delegate to the parent window (can't redirect inside an iframe). */
 export function signIn() {
-  window.adobeIMS?.signIn?.();
+  window.parent?.postMessage({ type: 'ims-signin-required' }, window.location.origin);
 }
 
-/**
- * Sign out and clear local state.
- * @param {boolean} [imsLogout=false] – if true, also redirect to IMS logout endpoint
- */
-export function signOut(imsLogout = false) {
-  _accessToken = null;
-  _profile = null;
+/** Sign out — notify parent and clear local token. */
+export function signOut() {
+  _token = null;
   _authStateListeners.forEach((cb) => { try { cb(null); } catch (e) { /* silent */ } });
-  // adobeIMS.signOut() always redirects to IMS logout page
-  if (imsLogout) {
-    window.adobeIMS?.signOut?.();
-  } else {
-    // Local-only sign-out without IMS redirect — clear imslib storage manually
-    try {
-      const patterns = ['adobeid', 'imslib'];
-      [localStorage, sessionStorage].forEach((store) => {
-        for (let i = store.length - 1; i >= 0; i -= 1) {
-          const key = store.key(i);
-          if (key && patterns.some((p) => key.toLowerCase().includes(p))) {
-            store.removeItem(key);
-          }
-        }
-      });
-    } catch { /* silent */ }
-  }
+  window.parent?.postMessage({ type: 'ims-signout-required' }, window.location.origin);
 }
 
-/** Synchronous — returns true when a valid session exists. */
+/** True when a valid token has been received from the parent. */
 export function isAuthenticated() {
-  return !!(window.adobeIMS?.isSignedInUser?.());
+  return !!_token;
 }
 
-/**
- * Synchronous — returns the cached access token string, or null.
- * The cache is updated by onReady / onProfile.
- */
+/** Returns the cached access token string, or null. */
 export function getAccessToken() {
-  // Re-read on every call in case imslib refreshed the token silently
-  const fresh = _extractToken(window.adobeIMS?.getAccessToken?.());
-  if (fresh) _accessToken = fresh;
-  return _accessToken;
+  return _token;
 }
 
-/** Returns the current profile object, or null. */
+/** Profile is not passed through the token bridge — returns null. */
 export function getProfile() {
-  return _profile || window.adobeIMS?.getProfile?.() || null;
+  return null;
 }
 
 /**
- * Register a callback invoked once auth is ready (or immediately if already
- * ready).  Receives the profile object (may be null).
+ * Register a callback invoked once auth token is received (or immediately if already ready).
  * @param {Function} cb
  */
 export function onAuthReady(cb) {
-  if (_imsReady) {
-    try { cb(_profile); } catch (e) { /* silent */ }
+  if (_ready) {
+    try { cb(null); } catch (e) { /* silent */ }
   } else {
     _readyCallbacks.push(cb);
   }
 }
 
 /**
- * Register a callback invoked when auth state changes (token refresh,
- * sign-out, etc.).  Receives the profile object (may be null).
+ * Register a callback invoked when auth state changes.
  * @param {Function} cb
  */
 export function onAuthStateChange(cb) {

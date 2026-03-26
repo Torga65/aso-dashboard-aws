@@ -4,57 +4,6 @@
   <title>Customer Historical Analysis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="description" content="Historical analysis of customer data across all 28 columns and 16 weeks"/>
-  <!-- IMS: configure window.adobeid BEFORE loading imslib -->
-  <script>
-    // Queue for IMS events that fire before the adapter ES module loads
-    window.__imsAdapterQueue = [];
-    window.adobeid = {
-      client_id: 'ASO-dashboard',
-      scope: 'AdobeID,openid',
-      environment: 'stg1',
-      useLocalStorage: false,
-      autoValidateToken: true,
-      debug: true,
-      api_parameters: { authorize: { redirect_uri: window.location.href } },
-      onAccessToken(token) {
-        const fn = window.__imsAdapterOnAccessToken;
-        const t = token?.token || token || null;
-        if (fn) fn(t);
-        else (window.__imsAdapterQueue || []).push(['accessToken', t]);
-      },
-      onReauthAccessToken(token) {
-        const fn = window.__imsAdapterOnAccessToken;
-        const t = token?.token || token || null;
-        if (fn) fn(t);
-        else (window.__imsAdapterQueue || []).push(['accessToken', t]);
-      },
-      onReady() {
-        const fn = window.__imsAdapterOnReady;
-        const profile = window.adobeIMS?.getProfile?.() || null;
-        if (fn) fn(profile);
-        else (window.__imsAdapterQueue || []).push(['ready', profile]);
-        ensureSignedIn();
-      },
-      onProfile(profile) {
-        const fn = window.__imsAdapterOnProfile;
-        if (fn) fn(profile);
-        else (window.__imsAdapterQueue || []).push(['profile', profile]);
-      },
-      onAccessTokenHasExpired() {
-        const fn = window.__imsAdapterOnExpired;
-        if (fn) fn();
-        else (window.__imsAdapterQueue || []).push(['expired', null]);
-      },
-      onError(type, err) { console.error('[IMS]', type, err); },
-    };
-
-    function ensureSignedIn() {
-      if (!adobeIMS.isSignedInUser()) {
-        adobeIMS.signIn();
-      }
-    }
-  </script>
-  <script src="/scripts/auth/imslib.js"></script>
   <script>document.body.classList.add('appear');</script>
   <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
   <link rel="stylesheet" href="/styles/styles.css"/>
