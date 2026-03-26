@@ -5,16 +5,13 @@
  * to track ASO suggestions, opportunities, and fixes.
  */
 
-// Base API URL for SpaceCat
-export const SPACECAT_API_BASE = 'https://spacecat.experiencecloud.live/api/v1';
+// Base API URL for SpaceCat — proxied through Next.js backend to handle token exchange
+export const SPACECAT_API_BASE = '/api/spacecat';
 
 /**
  * ASO-specific SpaceCat API endpoints
  */
 export const ASO_ENDPOINTS = {
-  // Auth — exchange IMS access token for a SpaceCat JWT
-  AUTH_LOGIN: () => `${SPACECAT_API_BASE}/auth/login`,
-
   // Organizations
   ORGANIZATIONS: () => `${SPACECAT_API_BASE}/organizations`,
   ORGANIZATION: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}`,
