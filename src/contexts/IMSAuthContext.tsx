@@ -97,7 +97,7 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           client_id: IMS_CLIENT_ID,
           scope: IMS_SCOPES,
           locale: "en-US",
-          environment: "prod",
+          environment: "stg1",
           redirect_uri: window.location.origin + window.location.pathname,
           autoValidateToken: true,
 
