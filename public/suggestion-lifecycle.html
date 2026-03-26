@@ -13,7 +13,8 @@
       scope: 'openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext',
       environment: 'stg1',
       autoValidateToken: true,
-      api_parameters: { authorize: { redirect_uri: window.location.origin + window.location.pathname } },
+      debug: true,
+      api_parameters: { authorize: { redirect_uri: window.location.href } },
       onReady() {
         const fn = window.__imsAdapterOnReady;
         const profile = window.adobeIMS?.getProfile?.() || null;
