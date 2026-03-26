@@ -11,7 +11,7 @@
     window.adobeid = {
       client_id: '307b29831bd0423e9f2c720545df2251',
       scope: 'openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext',
-      environment: 'prod',
+      environment: 'stg1',
       autoValidateToken: true,
       api_parameters: { authorize: { redirect_uri: window.location.origin + window.location.pathname } },
       onReady() {
@@ -33,7 +33,7 @@
       onError(type, err) { console.error('[IMS]', type, err); },
     };
   </script>
-  <script src="https://static.adobelogin.com/imslib/imslib.min.js"></script>
+  <script src="https://static.adobelogin.com/imslib/stg1/imslib.js"></script>
   <script src="/scripts/aem.js" type="module"></script>
   <script src="/scripts/scripts.js" type="module"></script>
   <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
