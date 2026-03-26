@@ -1,9 +1,5 @@
-import { redirect } from "next/navigation";
+import StaticPageFrame from "@/components/layout/StaticPageFrame";
 
-/**
- * Redirect to the self-contained static customer history page
- * (copied from cm-p186978-s23215-asodashboard) served from /public.
- */
 export default function CustomerHistoryPage() {
-  redirect("/customer-history.html");
+  return <StaticPageFrame src="/customer-history.html" title="Customer History" />;
 }
