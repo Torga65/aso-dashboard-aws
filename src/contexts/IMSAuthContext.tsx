@@ -105,6 +105,11 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
             const tokenStr =
               typeof token === "object" ? token.token : token;
             setImsToken(tokenStr ?? "");
+            // Eagerly fetch profile in case onProfile hasn't fired yet
+            try {
+              const p = (instance as { getProfile: () => IMSProfile }).getProfile();
+              if (p) setProfile(p);
+            } catch { /* ignore */ }
           },
 
           onReauthAccessToken: (token: { token: string } | string) => {
@@ -122,6 +127,12 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           },
 
           onReady: () => {
+            // onProfile may not fire for already-authenticated users —
+            // pull the profile directly from imslib on ready.
+            try {
+              const p = (instance as { getProfile: () => IMSProfile }).getProfile();
+              if (p) setProfile(p);
+            } catch { /* ignore */ }
             setIsReady(true);
           },
 
