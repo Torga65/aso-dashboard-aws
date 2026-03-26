@@ -1,0 +1,91 @@
+{
+  "siteId": "demo",
+  "opportunities": [
+    {
+      "id": "opp-001",
+      "siteId": "demo",
+      "type": "meta-tags",
+      "status": "IN_PROGRESS",
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-02-20T14:30:00.000Z",
+      "suggestions": [
+        { "id": "sug-001", "status": "FIXED", "createdAt": "2025-01-16T09:00:00.000Z", "updatedAt": "2025-02-18T11:00:00.000Z" },
+        { "id": "sug-002", "status": "FIXED", "createdAt": "2025-01-16T09:00:00.000Z", "updatedAt": "2025-02-19T11:00:00.000Z" },
+        { "id": "sug-003", "status": "APPROVED", "createdAt": "2025-01-17T10:00:00.000Z", "updatedAt": "2025-02-20T08:00:00.000Z" },
+        { "id": "sug-004", "status": "NEW", "createdAt": "2025-01-18T10:00:00.000Z", "updatedAt": "2025-01-18T10:00:00.000Z" },
+        { "id": "sug-005", "status": "NEW", "createdAt": "2025-01-18T10:00:00.000Z", "updatedAt": "2025-01-18T10:00:00.000Z" },
+        { "id": "sug-006", "status": "SKIPPED", "createdAt": "2025-01-19T10:00:00.000Z", "updatedAt": "2025-02-01T10:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "opp-002",
+      "siteId": "demo",
+      "type": "broken-backlinks",
+      "status": "NEW",
+      "createdAt": "2025-02-01T08:00:00.000Z",
+      "updatedAt": "2025-02-01T08:00:00.000Z",
+      "suggestions": [
+        { "id": "sug-010", "status": "NEW", "createdAt": "2025-02-02T08:00:00.000Z", "updatedAt": "2025-02-02T08:00:00.000Z" },
+        { "id": "sug-011", "status": "NEW", "createdAt": "2025-02-02T08:00:00.000Z", "updatedAt": "2025-02-02T08:00:00.000Z" },
+        { "id": "sug-012", "status": "NEW", "createdAt": "2025-02-03T08:00:00.000Z", "updatedAt": "2025-02-03T08:00:00.000Z" },
+        { "id": "sug-013", "status": "REJECTED", "createdAt": "2025-02-04T08:00:00.000Z", "updatedAt": "2025-02-10T12:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "opp-003",
+      "siteId": "demo",
+      "type": "alt-text",
+      "status": "IN_PROGRESS",
+      "createdAt": "2025-01-20T12:00:00.000Z",
+      "updatedAt": "2025-03-01T09:00:00.000Z",
+      "suggestions": [
+        { "id": "sug-020", "status": "FIXED", "createdAt": "2025-01-21T10:00:00.000Z", "updatedAt": "2025-02-15T10:00:00.000Z" },
+        { "id": "sug-021", "status": "FIXED", "createdAt": "2025-01-21T10:00:00.000Z", "updatedAt": "2025-02-16T10:00:00.000Z" },
+        { "id": "sug-022", "status": "FIXED", "createdAt": "2025-01-22T10:00:00.000Z", "updatedAt": "2025-02-17T10:00:00.000Z" },
+        { "id": "sug-023", "status": "PENDING_VALIDATION", "createdAt": "2025-01-23T10:00:00.000Z", "updatedAt": "2025-03-01T08:00:00.000Z" },
+        { "id": "sug-024", "status": "IN_PROGRESS", "createdAt": "2025-01-24T10:00:00.000Z", "updatedAt": "2025-02-28T10:00:00.000Z" },
+        { "id": "sug-025", "status": "ERROR", "createdAt": "2025-01-25T10:00:00.000Z", "updatedAt": "2025-02-20T10:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "opp-004",
+      "siteId": "demo",
+      "type": "structured-data",
+      "status": "RESOLVED",
+      "createdAt": "2024-12-10T10:00:00.000Z",
+      "updatedAt": "2025-01-30T16:00:00.000Z",
+      "suggestions": [
+        { "id": "sug-030", "status": "FIXED", "createdAt": "2024-12-11T10:00:00.000Z", "updatedAt": "2025-01-28T10:00:00.000Z" },
+        { "id": "sug-031", "status": "FIXED", "createdAt": "2024-12-11T10:00:00.000Z", "updatedAt": "2025-01-29T10:00:00.000Z" },
+        { "id": "sug-032", "status": "FIXED", "createdAt": "2024-12-12T10:00:00.000Z", "updatedAt": "2025-01-30T10:00:00.000Z" },
+        { "id": "sug-033", "status": "SKIPPED", "createdAt": "2024-12-13T10:00:00.000Z", "updatedAt": "2025-01-05T10:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "opp-005",
+      "siteId": "demo",
+      "type": "canonical",
+      "status": "NEW",
+      "createdAt": "2025-02-10T08:00:00.000Z",
+      "updatedAt": "2025-02-10T08:00:00.000Z",
+      "suggestions": [
+        { "id": "sug-040", "status": "NEW", "createdAt": "2025-02-11T08:00:00.000Z", "updatedAt": "2025-02-11T08:00:00.000Z" },
+        { "id": "sug-041", "status": "NEW", "createdAt": "2025-02-11T08:00:00.000Z", "updatedAt": "2025-02-11T08:00:00.000Z" },
+        { "id": "sug-042", "status": "OUTDATED", "createdAt": "2025-02-12T08:00:00.000Z", "updatedAt": "2025-03-05T08:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "opp-006",
+      "siteId": "demo",
+      "type": "internal-linking",
+      "status": "IGNORED",
+      "createdAt": "2025-01-05T08:00:00.000Z",
+      "updatedAt": "2025-01-10T12:00:00.000Z",
+      "suggestions": [
+        { "id": "sug-050", "status": "SKIPPED", "createdAt": "2025-01-06T08:00:00.000Z", "updatedAt": "2025-01-10T10:00:00.000Z" },
+        { "id": "sug-051", "status": "SKIPPED", "createdAt": "2025-01-06T08:00:00.000Z", "updatedAt": "2025-01-10T10:00:00.000Z" },
+        { "id": "sug-052", "status": "REJECTED", "createdAt": "2025-01-07T08:00:00.000Z", "updatedAt": "2025-01-09T10:00:00.000Z" }
+      ]
+    }
+  ]
+}
