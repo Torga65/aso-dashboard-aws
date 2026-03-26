@@ -12,6 +12,9 @@ export const SPACECAT_API_BASE = 'https://spacecat.experiencecloud.live/api/v1';
  * ASO-specific SpaceCat API endpoints
  */
 export const ASO_ENDPOINTS = {
+  // Auth — exchange IMS access token for a SpaceCat JWT
+  AUTH_LOGIN: () => `${SPACECAT_API_BASE}/auth/login`,
+
   // Organizations
   ORGANIZATIONS: () => `${SPACECAT_API_BASE}/organizations`,
   ORGANIZATION: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}`,
