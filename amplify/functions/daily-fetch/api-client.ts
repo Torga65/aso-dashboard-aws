@@ -44,7 +44,7 @@ export interface ServiceNowConfig {
 // ServiceNow query constants
 const SNOW_TABLE = "core_company";
 const SNOW_QUERY =
-  "u_product=aso^u_statusINPre-Production,Production^u_active=true";
+  "nameLIKEASO -^u_active=true";
 const SNOW_FIELDS = [
   "sys_id",
   "name",
