@@ -18,12 +18,10 @@ export const IMS_CLIENT_ID = '307b29831bd0423e9f2c720545df2251';
  * IMS scopes required by this app.
  * - openid: standard OpenID Connect
  * - AdobeID: Adobe Identity
- * - additional_info: basic additional info
- * - additional_info.projectedProductContext: IMS org context
  * - read_organizations: list orgs the user belongs to
  * - account_cluster.read: org discovery (e.g. for SpaceCat/LLMO auth/orgs)
  */
-export const IMS_SCOPES = 'openid,AdobeID,additional_info,additional_info.projectedProductContext,read_organizations,account_cluster.read';
+export const IMS_SCOPES = 'openid,AdobeID,read_organizations,account_cluster.read';
 
 /**
  * Determine IMS environment.
