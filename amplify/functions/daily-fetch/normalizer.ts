@@ -163,7 +163,8 @@ export function normalizeHealthScore(raw: number | string | undefined): number {
 function normalizeWeek(raw: string | undefined): string {
   if (!raw) return "";
   const trimmed = raw.trim();
-  // Basic sanity check — real validation happens via the source data contract
+  // Accept ISO week format (2026-W14) or date format (YYYY-MM-DD)
+  if (/^\d{4}-W\d{2}$/.test(trimmed)) return trimmed;
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
   return "";
 }
