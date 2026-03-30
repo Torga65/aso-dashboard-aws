@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import styles from "./AuthButton.module.css";
 
@@ -155,6 +156,9 @@ export function AuthButton() {
                 )}
               </div>
             )}
+            <Link href="/developer" className={styles.devModeLink} onClick={() => setOpen(false)}>
+              Developer mode
+            </Link>
             {isManualToken ? (
               <button className={styles.signOutBtn} onClick={handleClearDevToken}>
                 Clear token
@@ -178,6 +182,9 @@ export function AuthButton() {
         <button className={styles.signIn} onClick={signIn}>
           Sign in with Adobe
         </button>
+        <Link href="/developer" className={styles.devModeLink}>
+          Developer mode
+        </Link>
         <button
           className={styles.devToggle}
           onClick={() => setDevOpen((v) => !v)}
