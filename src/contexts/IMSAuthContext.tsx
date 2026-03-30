@@ -24,7 +24,7 @@ import React, {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-export const IMS_CLIENT_ID = "307b29831bd0423e9f2c720545df2251";
+export const IMS_CLIENT_ID = "ASO-dashboard";
 const IMS_SCOPES = "openid,AdobeID";
 
 /** localStorage key for developer-entered manual token */
