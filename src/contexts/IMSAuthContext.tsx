@@ -70,7 +70,6 @@ const IMSAuthContext = createContext<IMSAuthContextValue | undefined>(undefined)
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
-  const [adobeIMS, setAdobeIMS] = useState<unknown>(null);
   const [isReady, setIsReady] = useState(false);
   const [imsToken, setImsToken] = useState<string>("");
   const [profile, setProfile] = useState<IMSProfile | null>(null);
@@ -101,39 +100,24 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           redirect_uri: window.location.origin + window.location.pathname,
           autoValidateToken: true,
 
+          // Fires when a (new or refreshed) access token is available
           onAccessToken: (token: { token: string } | string) => {
-            const tokenStr =
-              typeof token === "object" ? token.token : token;
+            const tokenStr = typeof token === "object" ? token.token : token;
             setImsToken(tokenStr ?? "");
-            // Eagerly fetch profile in case onProfile hasn't fired yet
-            try {
-              const p = (instance as { getProfile: () => IMSProfile }).getProfile();
-              if (p) setProfile(p);
-            } catch { /* ignore */ }
+            // Fetch profile async — getProfile() returns a Promise in this version
+            (instance as { getProfile: () => Promise<IMSProfile> })
+              .getProfile()
+              .then((p) => { if (p) setProfile(p); })
+              .catch(() => { /* ignore */ });
           },
 
           onReauthAccessToken: (token: { token: string } | string) => {
-            const tokenStr =
-              typeof token === "object" ? token.token : token;
+            const tokenStr = typeof token === "object" ? token.token : token;
             setImsToken(tokenStr ?? "");
           },
 
           onAccessTokenHasExpired: () => {
             setImsToken("");
-          },
-
-          onProfile: (p: IMSProfile) => {
-            setProfile(p);
-          },
-
-          onReady: () => {
-            // onProfile may not fire for already-authenticated users —
-            // pull the profile directly from imslib on ready.
-            try {
-              const p = (instance as { getProfile: () => IMSProfile }).getProfile();
-              if (p) setProfile(p);
-            } catch { /* ignore */ }
-            setIsReady(true);
           },
 
           onError: (type: string, err: unknown) => {
@@ -143,8 +127,24 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         imsRef.current = instance;
-        setAdobeIMS(instance);
-        (instance as { initialize: () => void }).initialize();
+
+        // initialize() is a Promise — must await it before signIn/signOut are usable.
+        // onReady / onProfile don't exist in this version; initialize() resolving is the signal.
+        await (instance as { initialize: () => Promise<unknown> }).initialize();
+
+        if (cancelled) return;
+
+        // If user already has a session, grab the token and profile now
+        try {
+          const tokenInfo = (instance as { getAccessToken: () => { token: string } | null }).getAccessToken();
+          if (tokenInfo?.token) {
+            setImsToken(tokenInfo.token);
+            const p = await (instance as { getProfile: () => Promise<IMSProfile> }).getProfile();
+            if (p) setProfile(p);
+          }
+        } catch { /* no active session — that's fine */ }
+
+        setIsReady(true);
       } catch (err) {
         console.error("[IMS] Failed to initialize imslib", err);
         // Still mark as ready so the app doesn't hang
@@ -169,10 +169,11 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(() => {
-    if (adobeIMS) {
-      (adobeIMS as { signIn: () => void }).signIn();
+    const ims = imsRef.current;
+    if (ims) {
+      (ims as { signIn: () => void }).signIn();
     }
-  }, [adobeIMS]);
+  }, []);
 
   const signOut = useCallback(() => {
     // Clear manual token
@@ -194,14 +195,15 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
       });
     } catch { /* silent */ }
 
-    if (adobeIMS) {
+    const ims = imsRef.current;
+    if (ims) {
       try {
-        (adobeIMS as { signOut: () => void }).signOut();
+        (ims as { signOut: () => void }).signOut();
       } catch {
         window.location.reload();
       }
     }
-  }, [adobeIMS]);
+  }, []);
 
   const setManualToken = useCallback((token: string) => {
     const trimmed = token.trim();
