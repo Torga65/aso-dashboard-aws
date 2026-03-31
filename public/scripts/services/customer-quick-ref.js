@@ -116,31 +116,83 @@ async function resolveOrg(customerName, token, forcedOrgId = null) {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Fetch the real enabled/disabled audit state for a site from the global
+ * SpaceCat configuration. SpaceCat does NOT store enabled/disabled on
+ * individual opportunity records — it is in CONFIGURATIONS_LATEST under
+ * handlers[auditType].disabled.{sites,orgs}.
+ *
+ * Returns { enabled: string[], disabled: string[] } or null on failure.
+ */
+async function fetchAuditStatusForSite(siteId, orgId, token) {
+  if (!siteId || !token) return null;
+  const url = ASO_ENDPOINTS.CONFIGURATIONS_LATEST?.();
+  if (!url) return null;
+
+  const response = await apiGet(url, token);
+  if (isApiError(response) || !response || typeof response !== 'object') return null;
+
+  const handlers = response.handlers ?? response.data?.handlers ?? {};
+  if (!handlers || typeof handlers !== 'object') return null;
+
+  const enabled = [];
+  const disabled = [];
+
+  Object.entries(handlers).forEach(([auditType, handler]) => {
+    const lc = auditType.toLowerCase();
+    // Skip LLMO and free geo-brand-presence audits — not shown in ASO panel
+    if (lc.includes('llmo') || lc.startsWith('geo-brand-presence-free')) return;
+    if (!handler || typeof handler !== 'object') return;
+
+    const disabledSites = handler.disabled?.sites ?? [];
+    const disabledOrgs = handler.disabled?.orgs ?? [];
+    const enabledSites = handler.enabled?.sites ?? [];
+    const enabledOrgs = handler.enabled?.orgs ?? [];
+    const enabledByDefault = handler.enabledByDefault !== false;
+
+    const isDisabled = disabledSites.includes(siteId)
+      || (orgId && disabledOrgs.includes(orgId))
+      || (!enabledByDefault
+          && !enabledSites.includes(siteId)
+          && !(orgId && enabledOrgs.includes(orgId)));
+
+    if (isDisabled) disabled.push(auditType);
+    else enabled.push(auditType);
+  });
+
+  return { enabled, disabled };
+}
+
+/**
  * Fetch opportunity audits for a site, shaped for the quick-ref panel.
  * Returns { audits, disabledAudits, pendingValidationOpps }.
- * Pending validations are counted by fetching suggestions for each opportunity
- * and checking for PENDING_VALIDATION suggestion status.
+ *
+ * Enabled/disabled state comes from CONFIGURATIONS_LATEST (the global SpaceCat
+ * config), NOT from opp.enabled which is not a real SpaceCat field.
  */
-async function fetchAudits(siteId, token) {
-  const url = ASO_ENDPOINTS.SITE_OPPORTUNITIES(siteId);
-  const response = await apiGet(url, token);
+async function fetchAudits(siteId, orgId, token) {
+  const [oppsResponse, auditStatus] = await Promise.all([
+    apiGet(ASO_ENDPOINTS.SITE_OPPORTUNITIES(siteId), token),
+    fetchAuditStatusForSite(siteId, orgId, token),
+  ]);
 
-  if (isApiError(response)) {
+  if (isApiError(oppsResponse)) {
     return { audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } };
   }
 
-  const raw = Array.isArray(response) ? response : (response.opportunities || response.data || []);
+  const raw = Array.isArray(oppsResponse)
+    ? oppsResponse
+    : (oppsResponse.opportunities || oppsResponse.data || []);
   const opportunities = Array.isArray(raw) ? raw : [];
+
+  const disabledSet = new Set(auditStatus?.disabled ?? []);
 
   const audits = [];
   const disabledAudits = [];
-
-  // Fetch suggestions for each opportunity to count PENDING_VALIDATION status
   const pendingTypes = [];
+
   await Promise.all(opportunities.map(async (opp) => {
     const auditType = opp.type || opp.opportunityType || 'unknown';
     const status = (opp.status || '').toUpperCase();
-    const isEnabled = opp.enabled !== false;
     const autoFix = opp.autoFix === true || opp.autoFix === 'Yes' ? 'Yes' : 'No';
 
     const row = {
@@ -150,7 +202,7 @@ async function fetchAudits(siteId, token) {
       opportunityId: opp.id,
     };
 
-    if (!isEnabled) {
+    if (disabledSet.has(auditType)) {
       disabledAudits.push(row);
     } else {
       audits.push(row);
@@ -164,7 +216,9 @@ async function fetchAudits(siteId, token) {
         const sugList = Array.isArray(suggestions)
           ? suggestions
           : (suggestions.suggestions || suggestions.data || []);
-        const hasPending = sugList.some((s) => (s.status || '').toUpperCase() === 'PENDING_VALIDATION');
+        const hasPending = sugList.some(
+          (s) => (s.status || '').toUpperCase() === 'PENDING_VALIDATION',
+        );
         if (hasPending) pendingTypes.push(auditType);
       }
     }
@@ -334,7 +388,7 @@ export async function getCustomerQuickRef(customerName, token = null, options = 
 
   // 3. Fetch audits + users in parallel (only if we have a site)
   const [auditData, userData] = await Promise.all([
-    siteId ? fetchAudits(siteId, token) : Promise.resolve({ audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } }),
+    siteId ? fetchAudits(siteId, org.orgId, token) : Promise.resolve({ audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } }),
     fetchUsers(org.orgId, token, sites),
   ]);
 

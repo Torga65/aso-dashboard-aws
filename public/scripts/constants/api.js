@@ -19,10 +19,16 @@ export const ASO_ENDPOINTS = {
   ORGANIZATION_ENTITLEMENTS: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}/entitlements`,
   ORGANIZATION_TRIAL_USERS: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}/trial-users`,
 
+  // Configurations
+  CONFIGURATIONS_LATEST: () => `${SPACECAT_API_BASE}/configurations/latest`,
+
   // Sites
   SITES: () => `${SPACECAT_API_BASE}/sites`,
   SITE: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}`,
+  SITE_AUDITS: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/audits`,
+  SITE_AUDITS_LATEST: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/audits/latest`,
   SITE_USER_ACTIVITIES: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/user-activities`,
+  LLMO_SITE_CONFIG: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/llmo/config`,
 
   // Opportunities (per site)
   SITE_OPPORTUNITIES: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/opportunities`,
