@@ -405,9 +405,7 @@ export async function signIn() {
 
   const authorizeURL = `${baseURL}/ims/authorize/v3?${params.toString()}`;
 
-  // Navigate the top window so IMS auth doesn't load inside an iframe
-  // (IMS blocks iframe embedding via X-Frame-Options).
-  (window.top || window).location.href = authorizeURL;
+  window.location.href = authorizeURL;
 }
 
 /**

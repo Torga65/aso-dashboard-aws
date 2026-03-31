@@ -241,9 +241,9 @@
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(authState));
 
-        // 6. Redirect to dashboard (Next.js route so the full app loads with the iframe)
+        // 6. Redirect to dashboard
         statusTextEl.textContent = 'Redirecting to dashboard...';
-        window.location.href = '/suggestion-lifecycle';
+        window.location.href = '/suggestion-lifecycle.html';
       } catch (err) {
         console.error('[IMS Callback] Error:', err);
         showError(`Failed to complete sign-in: ${err.message}`);
