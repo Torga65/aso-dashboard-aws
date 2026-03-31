@@ -21,9 +21,6 @@ export const dailyFetch = defineFunction({
   // 512 MB: safe for JSON parsing of large payloads; reduce to 256 if cost matters
   memoryMB: 512,
   environment: {
-    EXTERNAL_API_KEY: secret("EXTERNAL_API_KEY"),
-    // Base URL kept as a secret so it can differ between sandbox / staging / prod
-    // without code changes. Set with: npx ampx secret set EXTERNAL_API_BASE_URL
-    EXTERNAL_API_BASE_URL: secret("EXTERNAL_API_BASE_URL"),
+    SERVICENOW_AUTH_TOKEN: secret("SERVICENOW_AUTH_TOKEN"),
   },
 });

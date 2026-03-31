@@ -198,15 +198,6 @@ export async function apiDelete(url, token = null) {
 }
 
 /**
- * Check if a response is an error
- * @param {Object} response - API response object
- * @returns {boolean} True if response indicates an error
- */
-export function isApiError(response) {
-  return response && response.error === true;
-}
-
-/**
  * Exchange an IMS access token for a SpaceCat JWT.
  * SpaceCat issues its own token (aud: "spacecat-users") via POST /auth/login.
  * Sets the returned token as the global token for subsequent API calls.
@@ -238,6 +229,15 @@ export async function exchangeImsToken(imsAccessToken) {
     console.error('[SpaceCat] Token exchange error:', err);
     return null;
   }
+}
+
+/**
+ * Check if a response is an error
+ * @param {Object} response - API response object
+ * @returns {boolean} True if response indicates an error
+ */
+export function isApiError(response) {
+  return response && response.error === true;
 }
 
 /**

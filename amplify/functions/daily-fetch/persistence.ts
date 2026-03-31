@@ -193,9 +193,13 @@ export async function upsertSnapshot(
       { input: snapshot }
     );
     if (createResult.errors?.length) {
-      throw new Error(
-        `CustomerSnapshot.create failed: ${createResult.errors.map((e) => e.message).join(", ")}`
-      );
+      const msg = createResult.errors.map((e) => e.message).join(", ");
+      // DynamoDB conditional check failure means the record was created by a concurrent
+      // write between our get and create — treat as skipped rather than failed
+      if (msg.includes("conditional request failed")) {
+        return { action: "skipped", ...key };
+      }
+      throw new Error(`CustomerSnapshot.create failed: ${msg}`);
     }
     return { action: "created", ...key };
   }

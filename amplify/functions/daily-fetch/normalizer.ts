@@ -8,7 +8,7 @@ import type {
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DATA_SOURCE = "external-api";
+const DATA_SOURCE = "ServiceNow";
 
 /**
  * Normalize one raw customer record into the shape expected by DynamoDB.
@@ -27,6 +27,8 @@ export function normalizeCustomer(
   return {
     companyName,
     week,
+    imsOrgId: raw.imsOrgId?.trim() ?? "",
+    tenantId: raw.tenantId?.trim() ?? "",
     licenseType: raw.licenseType?.trim() ?? "",
     industry: raw.industry?.trim() ?? "",
     eseLead: raw.eseLead?.trim() ?? "",
@@ -42,6 +44,8 @@ export function normalizeCustomer(
     mau: raw.mau?.trim() ?? "",
     ttiv: raw.ttiv?.trim() ?? "",
     autoOptimizeButtonPressed: raw.autoOptimizeButtonPressed?.trim() ?? "No",
+    terminationReason: raw.terminationReason?.trim() ?? "",
+    comments: raw.comments?.trim() ?? "",
     sourceLastUpdated: raw.lastUpdated?.trim() ?? "",
     ingestedAt,
     dataSource: DATA_SOURCE,
@@ -163,7 +167,8 @@ export function normalizeHealthScore(raw: number | string | undefined): number {
 function normalizeWeek(raw: string | undefined): string {
   if (!raw) return "";
   const trimmed = raw.trim();
-  // Basic sanity check — real validation happens via the source data contract
+  // Accept ISO week format (2026-W14) or date format (YYYY-MM-DD)
+  if (/^\d{4}-W\d{2}$/.test(trimmed)) return trimmed;
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
   return "";
 }

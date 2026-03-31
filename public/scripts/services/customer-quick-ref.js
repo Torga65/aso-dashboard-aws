@@ -69,14 +69,36 @@ export function updateQuickRefCacheAudits(customerName, audits) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Try to find a SpaceCat org that matches customerName by fuzzy name match.
+ * Look up a previously-saved SpaceCat org ID for a customer from the server DB.
+ * Returns the orgId string, or null if not found.
+ * @param {string} customerName
+ * @returns {Promise<string|null>}
+ */
+async function getSavedOrgId(customerName) {
+  try {
+    const res = await fetch(`/api/org-mapping?company=${encodeURIComponent(customerName)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.spacecatOrgId || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Try to find a SpaceCat org that matches customerName.
+ * Resolution order: forcedOrgId → saved DB mapping → fuzzy name match.
  * Returns { org, allOrgs } where org may be null if no match found.
  */
 async function resolveOrg(customerName, token, forcedOrgId = null) {
-  const allOrgs = await fetchSpaceCatOrgs(token);
+  const [allOrgs, savedOrgId] = await Promise.all([
+    fetchSpaceCatOrgs(token),
+    forcedOrgId ? Promise.resolve(null) : getSavedOrgId(customerName),
+  ]);
 
-  if (forcedOrgId) {
-    const org = allOrgs.find((o) => o.orgId === forcedOrgId) || null;
+  const resolveId = forcedOrgId || savedOrgId;
+  if (resolveId) {
+    const org = allOrgs.find((o) => o.orgId === resolveId) || null;
     return { org, allOrgs };
   }
 
@@ -150,38 +172,10 @@ async function fetchAudits(siteId, token) {
 /**
  * Fetch users signed in to a site from SpaceCat.
  * Returns { users, loginCountByDay, usersByDay }.
+ * Note: SpaceCat does not currently expose a /users endpoint — returns empty.
  */
-async function fetchUsers(siteId, token) {
-  // SpaceCat doesn't have a dedicated users endpoint exposed in ASO_ENDPOINTS yet;
-  // attempt a generic path and fall back gracefully.
-  try {
-    const url = `${ASO_ENDPOINTS.SITE(siteId)}/users`;
-    const response = await apiGet(url, token);
-
-    if (isApiError(response)) {
-      return { users: [], loginCountByDay: {}, usersByDay: {} };
-    }
-
-    const raw = Array.isArray(response) ? response : (response.users || response.data || []);
-    const users = Array.isArray(raw) ? raw : [];
-
-    // Build day-indexed maps for the quick-ref sparkline / table
-    const loginCountByDay = {};
-    const usersByDay = {};
-
-    users.forEach((u) => {
-      const day = (u.lastLoginDate || u.date || '').slice(0, 10);
-      if (day) {
-        loginCountByDay[day] = (loginCountByDay[day] || 0) + 1;
-        if (!usersByDay[day]) usersByDay[day] = [];
-        usersByDay[day].push(u);
-      }
-    });
-
-    return { users, loginCountByDay, usersByDay };
-  } catch {
-    return { users: [], loginCountByDay: {}, usersByDay: {} };
-  }
+async function fetchUsers() {
+  return { users: [], loginCountByDay: {}, usersByDay: {} };
 }
 
 /* ------------------------------------------------------------------ */

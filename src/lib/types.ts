@@ -16,6 +16,7 @@ export type EngagementLevel = "High" | "Medium" | "Low" | "Unknown" | "None" | s
 export interface Customer {
   week: string;
   companyName: string;
+  imsOrgId: string;
   licenseType: string;
   industry: string;
   eseLead: string;

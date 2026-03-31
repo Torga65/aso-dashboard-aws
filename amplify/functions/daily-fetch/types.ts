@@ -5,6 +5,8 @@
 export interface RawCustomer {
   week?: string;
   companyName?: string;
+  imsOrgId?: string;
+  tenantId?: string;
   licenseType?: string;
   industry?: string;
   eseLead?: string;
@@ -20,6 +22,8 @@ export interface RawCustomer {
   mau?: string;
   ttiv?: string;
   autoOptimizeButtonPressed?: string;
+  terminationReason?: string;
+  comments?: string;
   lastUpdated?: string;
 }
 
@@ -36,6 +40,8 @@ export interface RawApiResponse {
 export interface NormalizedSnapshot {
   companyName: string;
   week: string;
+  imsOrgId: string;
+  tenantId: string;
   licenseType: string;
   industry: string;
   eseLead: string;
@@ -51,6 +57,8 @@ export interface NormalizedSnapshot {
   mau: string;
   ttiv: string;
   autoOptimizeButtonPressed: string;
+  terminationReason: string;
+  comments: string;
   sourceLastUpdated: string;
   ingestedAt: string;
   dataSource: string;

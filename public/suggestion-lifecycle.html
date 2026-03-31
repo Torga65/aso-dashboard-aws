@@ -4,7 +4,7 @@
   <title>Suggestion Lifecycle - ASO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="description" content="Track ASO suggestion deployment, rejection rates, and lifecycle metrics"/>
-  <script>document.body.classList.add('appear');</script>
+  <script>document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('appear'); });</script>
   <link rel="stylesheet" href="styles/styles.css"/>
   <style>
     * {
@@ -1485,6 +1485,7 @@
     import { setGlobalToken, apiGet, isApiError } from '/scripts/services/spacecat-api.js';
     import {
       buildCustomerSiteTree,
+      fetchSpaceCatOrgs,
       fetchSiteById,
       fetchOrgSites,
       fetchOrganizationEntitlements,
@@ -1696,20 +1697,54 @@
       siteSelect.innerHTML = '<option value="">—</option>';
 
       try {
-        // Prefer customer snapshot from server (ASO-only, fast); fall back to live build
+        // Fetch snapshot customers and SpaceCat orgs in parallel.
+        // Snapshot gives us the ASO customer list; SpaceCat gives us the UUIDs
+        // needed for subsequent /organizations/{uuid}/sites calls.
         let fromSnapshot = false;
+        const [snapshotRes, spacecatOrgs] = await Promise.allSettled([
+          fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS()),
+          fetchSpaceCatOrgs(effectiveToken),
+        ]);
+
+        const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
+        // Build lookup map: imsOrgId → SpaceCat org
+        const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
+
+        /** Fuzzy match a customer name against SpaceCat orgs (same algorithm as history page). */
+        function fuzzyFindOrg(name) {
+          const needle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return scOrgs.find((o) => {
+            const haystack = (o.orgName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return haystack.includes(needle) || needle.includes(haystack);
+          }) || null;
+        }
+
         try {
-          const res = await fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS());
-          if (res.ok) {
-            const data = await res.json();
-            if (data.customers && data.customers.length > 0) {
-              customerTree = data.customers;
-              fromSnapshot = true;
+          if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
+            const data = await snapshotRes.value.json();
+            const records = data.data || data.customers || [];
+            if (records.length > 0) {
+              const seen = new Set();
+              customerTree = records
+                .map((c) => {
+                  const name = c.companyName || c.orgName || '';
+                  // Prefer SpaceCat UUID (required for /organizations/{id}/sites calls)
+                  const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
+                    || fuzzyFindOrg(name);
+                  return {
+                    orgId: scOrg?.orgId || c.imsOrgId || c.orgId || name,
+                    orgName: name,
+                  };
+                })
+                .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
+              if (customerTree.length > 0) fromSnapshot = true;
             }
           }
         } catch (_) { /* ignore; fall back to buildCustomerSiteTree */ }
         if (!fromSnapshot) {
-          customerTree = await buildCustomerSiteTree(effectiveToken);
+          customerTree = scOrgs.length > 0
+            ? scOrgs.map((o) => ({ orgId: o.orgId, orgName: o.orgName }))
+            : await buildCustomerSiteTree(effectiveToken);
         }
         if (customerTree.length === 0) {
           customerSelect.innerHTML = '<option value="">No customers found</option>';
@@ -1749,6 +1784,25 @@
         customerSelect.innerHTML = '<option value="">Error loading customers</option>';
       } finally {
         selectorSpinner.style.display = 'none';
+      }
+    }
+
+    async function restoreSavedCustomerAndSite(token) {
+      try {
+        const savedOrg = sessionStorage.getItem(SAVED_ORG_KEY);
+        if (!savedOrg) return;
+        const match = customerTree.find((c) => c.orgId === savedOrg);
+        if (!match) return;
+        customerSelect.value = savedOrg;
+        await populateSites(savedOrg);
+        const savedSite = sessionStorage.getItem(SAVED_SITE_KEY);
+        if (savedSite && siteSelect.querySelector(`option[value="${savedSite}"]`)) {
+          siteSelect.value = savedSite;
+          currentSiteId = savedSite;
+          await loadData(true);
+        }
+      } catch (err) {
+        // Non-critical — ignore restore failures
       }
     }
 

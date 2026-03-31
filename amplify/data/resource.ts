@@ -55,9 +55,13 @@ const schema = a.schema({
       autoOptimizeButtonPressed: a.string(),
 
       // ── Ingestion metadata ────────────────────────────────────────────
+      imsOrgId: a.string(), // IMS Org ID from ServiceNow (u_ims_org_id)
+      tenantId: a.string(), // Tenant ID from ServiceNow (u_tenant_id)
+      terminationReason: a.string(), // Termination reason from ServiceNow (u_termination_reason)
+      comments: a.string(), // Comments from ServiceNow (u_comments)
       sourceLastUpdated: a.string(), // "lastUpdated" from the source record
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
-      dataSource: a.string(), // e.g. "sharepoint-excel" — where the data came from
+      dataSource: a.string(), // "ServiceNow" | "Manual"
     })
     .identifier(["companyName", "week"])
     .secondaryIndexes((index) => [
@@ -162,6 +166,26 @@ const schema = a.schema({
     ])
     .authorization((allow) => [
       allow.publicApiKey(), // full CRUD via API key (site protected by Hosting Basic Auth)
+    ]),
+
+  /**
+   * CustomerOrgMapping
+   *
+   * Persists the manually-confirmed SpaceCat org UUID for each customer.
+   * Written when an ESE selects an org from the org-picker on the history page.
+   * Read by the quick-ref service so subsequent loads skip the fuzzy-match step.
+   *
+   * Primary key: companyName (one record per customer, upserted on change).
+   */
+  CustomerOrgMapping: a
+    .model({
+      companyName: a.string().required(),
+      spacecatOrgId: a.string().required(),
+      updatedBy: a.string(),
+    })
+    .identifier(["companyName"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
     ]),
 });
 
