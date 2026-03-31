@@ -71,10 +71,9 @@ export async function GET() {
     let nextToken: string | undefined = undefined;
 
     do {
-      const result = await client.models.CustomerSnapshot.list({
-        limit: 1000,
-        nextToken,
-      });
+      const listOpts: { limit: number; nextToken?: string } = { limit: 1000 };
+      if (nextToken) listOpts.nextToken = nextToken;
+      const result = await client.models.CustomerSnapshot.list(listOpts);
       const { data, errors } = result;
       const next: string | undefined = (result as { nextToken?: string }).nextToken ?? undefined;
 
