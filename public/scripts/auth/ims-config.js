@@ -20,6 +20,8 @@ export const IMS_CLIENT_ID = '307b29831bd0423e9f2c720545df2251';
  * - AdobeID: Adobe Identity
  * - read_organizations: list orgs the user belongs to
  * - account_cluster.read: org discovery (e.g. for SpaceCat/LLMO auth/orgs)
+ * - additional_info.roles: role/entitlement information
+ * - additional_info.projectedProductContext: IMS org context
  */
 export const IMS_SCOPES = 'openid,AdobeID,read_organizations,account_cluster.read,additional_info.roles,additional_info.projectedProductContext';
 

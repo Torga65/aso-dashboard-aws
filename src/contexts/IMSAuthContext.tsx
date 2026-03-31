@@ -129,10 +129,16 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
           onReady: () => {
             // onProfile may not fire for already-authenticated users —
             // pull the profile directly from imslib on ready.
+            // getProfile() throws a ProfileException (as a rejected Promise) when
+            // no user is signed in — catch both sync throws and async rejections.
             try {
-              const p = (instance as { getProfile: () => IMSProfile }).getProfile();
-              if (p) setProfile(p);
-            } catch { /* ignore */ }
+              const result = (instance as { getProfile: () => IMSProfile | Promise<IMSProfile> }).getProfile();
+              if (result && typeof (result as Promise<IMSProfile>).then === "function") {
+                (result as Promise<IMSProfile>).then((p) => { if (p) setProfile(p); }).catch(() => {});
+              } else if (result) {
+                setProfile(result as IMSProfile);
+              }
+            } catch { /* not signed in — ignore */ }
             setIsReady(true);
           },
 
