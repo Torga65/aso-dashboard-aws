@@ -20,21 +20,20 @@ export async function GET() {
 
     // Paginate through all CustomerSnapshot records
     do {
-      const { data, errors, nextToken: token } =
-        await client.models.CustomerSnapshot.list({
-          limit: 1000,
-          ...(nextToken ? { nextToken } : {}),
-        });
+      const result = await client.models.CustomerSnapshot.list({
+        limit: 1000,
+        ...(nextToken ? { nextToken } : {}),
+      });
 
-      if (errors?.length) {
+      if (result.errors?.length) {
         return NextResponse.json(
-          { error: errors[0].message },
+          { error: result.errors[0].message },
           { status: 500 }
         );
       }
 
-      allRecords.push(...(data ?? []).map(toCustomer));
-      nextToken = token;
+      allRecords.push(...(result.data ?? []).map(toCustomer));
+      nextToken = result.nextToken;
     } while (nextToken);
 
     return NextResponse.json({ data: allRecords });
