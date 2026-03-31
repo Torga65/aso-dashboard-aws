@@ -4,7 +4,7 @@
   <title>Customer Historical Analysis</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="description" content="Historical analysis of customer data across all 28 columns and 16 weeks"/>
-  <script>document.body.classList.add('appear');</script>
+  <script>document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('appear'); });</script>
   <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
   <link rel="stylesheet" href="/styles/styles.css"/>
   <style>
@@ -760,7 +760,7 @@
           }
         }
         if (allData.length === 0) {
-          const response = await fetch('/data/customers.json');
+          const response = await fetch('/api/customers');
           const data = await response.json();
           allData = data.data || [];
         }

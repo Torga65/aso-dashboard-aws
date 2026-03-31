@@ -198,6 +198,40 @@ export async function apiDelete(url, token = null) {
 }
 
 /**
+ * Exchange an IMS access token for a SpaceCat JWT.
+ * SpaceCat issues its own token (aud: "spacecat-users") via POST /auth/login.
+ * Sets the returned token as the global token for subsequent API calls.
+ *
+ * @param {string} imsAccessToken - IMS access token from imslib
+ * @returns {Promise<string|null>} SpaceCat JWT, or null on failure
+ */
+export async function exchangeImsToken(imsAccessToken) {
+  if (!imsAccessToken) return null;
+  try {
+    const { SPACECAT_API_BASE } = await import('../constants/api.js');
+    const url = `${SPACECAT_API_BASE}/auth/login`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: imsAccessToken }),
+    });
+    if (!response.ok) {
+      console.warn('[SpaceCat] Token exchange failed:', response.status);
+      return null;
+    }
+    const data = await response.json();
+    const spacecatToken = data.token || data.accessToken || data.access_token || null;
+    if (spacecatToken) {
+      setGlobalToken(spacecatToken);
+    }
+    return spacecatToken;
+  } catch (err) {
+    console.error('[SpaceCat] Token exchange error:', err);
+    return null;
+  }
+}
+
+/**
  * Check if a response is an error
  * @param {Object} response - API response object
  * @returns {boolean} True if response indicates an error

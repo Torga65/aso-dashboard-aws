@@ -106,11 +106,9 @@ export const CACHE_CONFIG = {
 };
 
 /**
- * Portfolio backend (aggregation server).
- * TODO: Replace with production URL when deployed (e.g. Amplify, App Runner, etc.)
+ * Portfolio backend — served by the same Next.js origin.
  */
-export const PORTFOLIO_API_BASE = 'http://localhost:3001';
 export const PORTFOLIO_ENDPOINTS = {
-  OPPORTUNITY_METRICS: () => `${PORTFOLIO_API_BASE}/api/portfolio/opportunity-metrics`,
-  CUSTOMERS: () => `${PORTFOLIO_API_BASE}/api/customers`,
+  OPPORTUNITY_METRICS: () => `/api/portfolio/opportunity-metrics`,
+  CUSTOMERS: () => `/api/customers`,
 };
