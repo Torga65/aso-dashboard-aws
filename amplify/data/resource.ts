@@ -55,9 +55,10 @@ const schema = a.schema({
       autoOptimizeButtonPressed: a.string(),
 
       // ── Ingestion metadata ────────────────────────────────────────────
+      imsOrgId: a.string(), // IMS Org ID from ServiceNow (u_ims_org_id)
       sourceLastUpdated: a.string(), // "lastUpdated" from the source record
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
-      dataSource: a.string(), // e.g. "sharepoint-excel" — where the data came from
+      dataSource: a.string(), // "ServiceNow" | "Manual"
     })
     .identifier(["companyName", "week"])
     .secondaryIndexes((index) => [

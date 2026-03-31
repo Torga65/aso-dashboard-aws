@@ -5,6 +5,7 @@
 export interface RawCustomer {
   week?: string;
   companyName?: string;
+  imsOrgId?: string;
   licenseType?: string;
   industry?: string;
   eseLead?: string;
@@ -36,6 +37,7 @@ export interface RawApiResponse {
 export interface NormalizedSnapshot {
   companyName: string;
   week: string;
+  imsOrgId: string;
   licenseType: string;
   industry: string;
   eseLead: string;

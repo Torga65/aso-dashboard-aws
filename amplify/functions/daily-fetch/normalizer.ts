@@ -8,7 +8,7 @@ import type {
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DATA_SOURCE = "external-api";
+const DATA_SOURCE = "ServiceNow";
 
 /**
  * Normalize one raw customer record into the shape expected by DynamoDB.
@@ -27,6 +27,7 @@ export function normalizeCustomer(
   return {
     companyName,
     week,
+    imsOrgId: raw.imsOrgId?.trim() ?? "",
     licenseType: raw.licenseType?.trim() ?? "",
     industry: raw.industry?.trim() ?? "",
     eseLead: raw.eseLead?.trim() ?? "",

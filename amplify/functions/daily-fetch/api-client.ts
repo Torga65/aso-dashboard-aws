@@ -179,6 +179,7 @@ function mapToRawCustomer(record: SnowRecord, week: string): RawCustomer {
   return {
     companyName: getDisplayValue(record.name),
     week,
+    imsOrgId: getDisplayValue(record.u_ims_org_id),
     status: getDisplayValue(record.u_status),
     eseLead: getDisplayValue(record.u_customer_success_engineer),
     licenseType: getDisplayValue(record.u_product),
