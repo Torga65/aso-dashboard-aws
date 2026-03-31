@@ -1696,28 +1696,46 @@
       siteSelect.innerHTML = '<option value="">—</option>';
 
       try {
-        // Prefer customer snapshot from server (ASO-only, fast); fall back to live build
+        // Fetch snapshot customers and SpaceCat orgs in parallel.
+        // Snapshot gives us the ASO customer list; SpaceCat gives us the UUIDs
+        // needed for subsequent /organizations/{uuid}/sites calls.
         let fromSnapshot = false;
+        const [snapshotRes, spacecatOrgs] = await Promise.allSettled([
+          fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS()),
+          fetchSpaceCatOrgs(effectiveToken),
+        ]);
+
+        const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
+        // Build lookup maps: imsOrgId → SpaceCat UUID, lowercased name → SpaceCat UUID
+        const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
+        const scByName = new Map(scOrgs.map((o) => [(o.orgName || '').toLowerCase(), o]));
+
         try {
-          const res = await fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS());
-          if (res.ok) {
-            const data = await res.json();
+          if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
+            const data = await snapshotRes.value.json();
             const records = data.data || data.customers || [];
             if (records.length > 0) {
-              // Deduplicate by companyName, keeping one entry per customer
               const seen = new Set();
               customerTree = records
-                .map((c) => ({
-                  orgId: c.imsOrgId || c.orgId || c.companyName || '',
-                  orgName: c.companyName || c.orgName || '',
-                }))
+                .map((c) => {
+                  const name = c.companyName || c.orgName || '';
+                  // Prefer SpaceCat UUID (required for /organizations/{id}/sites calls)
+                  const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
+                    || scByName.get(name.toLowerCase());
+                  return {
+                    orgId: scOrg?.orgId || c.imsOrgId || c.orgId || name,
+                    orgName: name,
+                  };
+                })
                 .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
               if (customerTree.length > 0) fromSnapshot = true;
             }
           }
         } catch (_) { /* ignore; fall back to buildCustomerSiteTree */ }
         if (!fromSnapshot) {
-          customerTree = await buildCustomerSiteTree(effectiveToken);
+          customerTree = scOrgs.length > 0
+            ? scOrgs.map((o) => ({ orgId: o.orgId, orgName: o.orgName }))
+            : await buildCustomerSiteTree(effectiveToken);
         }
         if (customerTree.length === 0) {
           customerSelect.innerHTML = '<option value="">No customers found</option>';
