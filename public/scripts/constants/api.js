@@ -17,10 +17,12 @@ export const ASO_ENDPOINTS = {
   ORGANIZATION: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}`,
   ORGANIZATION_SITES: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}/sites`,
   ORGANIZATION_ENTITLEMENTS: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}/entitlements`,
+  ORGANIZATION_TRIAL_USERS: (orgId) => `${SPACECAT_API_BASE}/organizations/${orgId}/trial-users`,
 
   // Sites
   SITES: () => `${SPACECAT_API_BASE}/sites`,
   SITE: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}`,
+  SITE_USER_ACTIVITIES: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/user-activities`,
 
   // Opportunities (per site)
   SITE_OPPORTUNITIES: (siteId) => `${SPACECAT_API_BASE}/sites/${siteId}/opportunities`,
