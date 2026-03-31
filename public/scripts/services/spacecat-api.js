@@ -212,10 +212,7 @@ export async function exchangeImsToken(imsAccessToken) {
     const url = `${SPACECAT_API_BASE}/auth/login`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${imsAccessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessToken: imsAccessToken }),
     });
     if (!response.ok) {

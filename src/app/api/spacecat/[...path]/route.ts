@@ -26,25 +26,30 @@ async function handleRequest(
 ): Promise<NextResponse> {
   const authHeader = req.headers.get("authorization") ?? "";
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Missing IMS token" }, { status: 401 });
-  }
-
   // Build upstream URL, preserving query params
   const { path } = await params;
-  const upstreamUrl = new URL(`${SPACECAT_BASE}/${path.join("/")}`);
+  const pathStr = path.join("/");
+  const upstreamUrl = new URL(`${SPACECAT_BASE}/${pathStr}`);
   req.nextUrl.searchParams.forEach((value, key) => {
     upstreamUrl.searchParams.set(key, value);
   });
 
+  // auth/login receives the IMS token in the request body — no Bearer header needed.
+  // All other endpoints require a Bearer token.
+  const isAuthLogin = pathStr === "auth/login";
+  if (!isAuthLogin && !authHeader.startsWith("Bearer ")) {
+    return NextResponse.json({ error: "Missing IMS token" }, { status: 401 });
+  }
+
   const method = req.method;
   const body = ["GET", "HEAD"].includes(method) ? undefined : await req.text();
 
-  // Forward request to SpaceCat with the user's IMS token as-is
+  // Forward request to SpaceCat. Don't forward Authorization on auth/login
+  // since SpaceCat's login endpoint only expects the token in the body.
   const upstreamResp = await fetch(upstreamUrl.toString(), {
     method,
     headers: {
-      Authorization: authHeader,
+      ...(!isAuthLogin && authHeader ? { Authorization: authHeader } : {}),
       Accept: "application/json",
       ...(body ? { "Content-Type": "application/json" } : {}),
     },

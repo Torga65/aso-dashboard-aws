@@ -1702,9 +1702,17 @@
           const res = await fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS());
           if (res.ok) {
             const data = await res.json();
-            if (data.customers && data.customers.length > 0) {
-              customerTree = data.customers;
-              fromSnapshot = true;
+            const records = data.data || data.customers || [];
+            if (records.length > 0) {
+              // Deduplicate by imsOrgId/orgId, keeping one entry per org
+              const seen = new Set();
+              customerTree = records
+                .map((c) => ({
+                  orgId: c.imsOrgId || c.orgId || '',
+                  orgName: c.companyName || c.orgName || '',
+                }))
+                .filter((c) => c.orgId && !seen.has(c.orgId) && seen.add(c.orgId));
+              if (customerTree.length > 0) fromSnapshot = true;
             }
           }
         } catch (_) { /* ignore; fall back to buildCustomerSiteTree */ }
