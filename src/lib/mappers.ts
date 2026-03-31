@@ -56,6 +56,7 @@ export function toCustomer(snap: SnapshotRecord): Customer {
   return {
     week:                       snap.week,
     companyName:                snap.companyName,
+    imsOrgId:                   snap.imsOrgId                ?? "",
     licenseType:                snap.licenseType             ?? "",
     industry:                   snap.industry                ?? "",
     eseLead:                    snap.eseLead                 ?? "",
