@@ -1760,6 +1760,25 @@
       }
     }
 
+    async function restoreSavedCustomerAndSite(token) {
+      try {
+        const savedOrg = sessionStorage.getItem(SAVED_ORG_KEY);
+        if (!savedOrg) return;
+        const match = customerTree.find((c) => c.orgId === savedOrg);
+        if (!match) return;
+        customerSelect.value = savedOrg;
+        await populateSites(savedOrg);
+        const savedSite = sessionStorage.getItem(SAVED_SITE_KEY);
+        if (savedSite && siteSelect.querySelector(`option[value="${savedSite}"]`)) {
+          siteSelect.value = savedSite;
+          currentSiteId = savedSite;
+          await loadData(true);
+        }
+      } catch (err) {
+        // Non-critical — ignore restore failures
+      }
+    }
+
     function renderSiteOptions(sites) {
       if (!sites || sites.length === 0) {
         siteSelect.innerHTML = '<option value="">No sites available</option>';
