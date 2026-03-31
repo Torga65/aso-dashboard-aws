@@ -172,38 +172,10 @@ async function fetchAudits(siteId, token) {
 /**
  * Fetch users signed in to a site from SpaceCat.
  * Returns { users, loginCountByDay, usersByDay }.
+ * Note: SpaceCat does not currently expose a /users endpoint — returns empty.
  */
-async function fetchUsers(siteId, token) {
-  // SpaceCat doesn't have a dedicated users endpoint exposed in ASO_ENDPOINTS yet;
-  // attempt a generic path and fall back gracefully.
-  try {
-    const url = `${ASO_ENDPOINTS.SITE(siteId)}/users`;
-    const response = await apiGet(url, token);
-
-    if (isApiError(response)) {
-      return { users: [], loginCountByDay: {}, usersByDay: {} };
-    }
-
-    const raw = Array.isArray(response) ? response : (response.users || response.data || []);
-    const users = Array.isArray(raw) ? raw : [];
-
-    // Build day-indexed maps for the quick-ref sparkline / table
-    const loginCountByDay = {};
-    const usersByDay = {};
-
-    users.forEach((u) => {
-      const day = (u.lastLoginDate || u.date || '').slice(0, 10);
-      if (day) {
-        loginCountByDay[day] = (loginCountByDay[day] || 0) + 1;
-        if (!usersByDay[day]) usersByDay[day] = [];
-        usersByDay[day].push(u);
-      }
-    });
-
-    return { users, loginCountByDay, usersByDay };
-  } catch {
-    return { users: [], loginCountByDay: {}, usersByDay: {} };
-  }
+async function fetchUsers() {
+  return { users: [], loginCountByDay: {}, usersByDay: {} };
 }
 
 /* ------------------------------------------------------------------ */
