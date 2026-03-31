@@ -1353,7 +1353,7 @@
             <div class="pf-field pf-field--scope">
               <label class="pf-label" for="portfolio-scope">Scope</label>
               <select id="portfolio-scope" class="pf-select" name="portfolioScope" aria-describedby="scopeHelp">
-                <option value="global" selected>All Customers</option>
+                <option value="" disabled selected>Select a customer…</option>
               </select>
               <div id="scopeHelp" class="sr-only">Choose a customer scope</div>
             </div>
@@ -2283,17 +2283,21 @@
     // ---- Portfolio: populate scope dropdown with customers ----
     function updatePortfolioScopeOptions() {
       const currentVal = portfolioScope.value;
-      // Build all options as a single string to avoid O(n²) innerHTML += loop
-      let html = '<option value="global">All Customers</option>';
+      // "All Customers" (global) requires fetching 600+ customers' sites live —
+      // that exceeds the serverless function timeout. Require org selection instead.
+      let html = '<option value="" disabled selected>Select a customer…</option>';
       if (customerTree && customerTree.length > 0) {
         html += [...customerTree]
           .sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-          .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
+          .map((c) => {
+            const val = c.orgId || '';
+            return val ? `<option value="${val}">${c.orgName}</option>` : '';
+          })
           .join('');
       }
       portfolioScope.innerHTML = html;
       // Restore previous selection if it still exists
-      if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
+      if (currentVal && currentVal !== 'global' && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
         portfolioScope.value = currentVal;
       }
       syncPortfolioSiteVisibility();
@@ -2364,8 +2368,14 @@
         return;
       }
 
-      const scopeValue = portfolioScope.value; // 'global' or an orgId
+      const scopeValue = portfolioScope.value; // orgId (global scope not supported in cloud)
       const siteValue = (portfolioSiteSelect?.value ?? '').trim();
+
+      if (!scopeValue || scopeValue === 'global') {
+        portfolioError.textContent = 'Please select a customer from the Scope dropdown to load portfolio data.';
+        portfolioError.style.display = 'block';
+        return;
+      }
 
       // Compute date range from the dropdown
       const rangeDays = parseInt(portfolioRange.value, 10);
@@ -2375,9 +2385,7 @@
       const fromStr = from.toISOString().slice(0, 10);
       const toStr = to.toISOString().slice(0, 10);
 
-      portfolioLoading.textContent = scopeValue === 'global'
-        ? 'Loading portfolio data across all customers... this may take a minute.'
-        : siteValue ? 'Loading portfolio data...' : 'Loading portfolio data...';
+      portfolioLoading.textContent = 'Loading portfolio data...';
       portfolioLoading.style.display = 'block';
       portfolioError.style.display = 'none';
       errorEl.style.display = 'none'; // clear global error banner when loading portfolio
@@ -2386,24 +2394,18 @@
       portfolioChartSection.style.display = 'none';
 
       // Update title
-      if (scopeValue === 'global') {
-        portfolioTitle.textContent = 'Portfolio: All Customers';
+      const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
+      if (siteValue) {
+        const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
+        const siteLabel = siteOpt?.text || siteValue;
+        portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
       } else {
-        const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
-        if (siteValue) {
-          const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
-          const siteLabel = siteOpt?.text || siteValue;
-          portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
-        } else {
-          portfolioTitle.textContent = `Portfolio: ${scopeLabel} (all sites)`;
-        }
+        portfolioTitle.textContent = `Portfolio: ${scopeLabel} (all sites)`;
       }
 
       try {
         const params = new URLSearchParams({ from: fromStr, to: toStr });
-        if (scopeValue === 'global') {
-          params.set('siteScope', 'global');
-        } else if (siteValue) {
+        if (siteValue) {
           params.set('siteIds', siteValue);
         } else {
           params.set('orgId', scopeValue);
@@ -2417,13 +2419,11 @@
         // Elapsed-time ticker so the user sees progress
         const ticker = setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
-          portfolioLoading.textContent = scopeValue === 'global'
-            ? `Loading portfolio data across all customers... ${elapsed}s elapsed`
-            : `Loading portfolio data... ${elapsed}s elapsed`;
+          portfolioLoading.textContent = `Loading portfolio data... ${elapsed}s elapsed`;
         }, 1000);
 
-        // 5-minute timeout for global, 2-minute for org (all sites), 1-minute for single site
-        const timeoutMs = scopeValue === 'global' ? 300_000 : (siteValue ? 60_000 : 120_000);
+        // 2-minute timeout for org (all sites), 1-minute for single site
+        const timeoutMs = siteValue ? 60_000 : 120_000;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

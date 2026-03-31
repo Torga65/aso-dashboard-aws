@@ -64,7 +64,12 @@ async function fetchUserAvatar(userId: string): Promise<string | null> {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AuthButton() {
+interface AuthButtonProps {
+  /** When false, suppresses the automatic IMS redirect on page load. Default: true. */
+  autoSignIn?: boolean;
+}
+
+export function AuthButton({ autoSignIn = true }: AuthButtonProps) {
   const { isAuthenticated, accessToken, profile, isReady, signIn, signOut } = useIMSAuth();
   const [open, setOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -76,12 +81,12 @@ export function AuthButton() {
     fetchUserAvatar(profile.userId).then(setAvatarUrl);
   }, [profile?.userId]);
 
-  // Auto sign-in when imslib is ready and user is not signed in
+  // Auto sign-in when imslib is ready and user is not signed in (disabled on developer page)
   useEffect(() => {
-    if (isReady && !isAuthenticated) {
+    if (autoSignIn && isReady && !isAuthenticated) {
       signIn();
     }
-  }, [isReady, isAuthenticated, signIn]);
+  }, [autoSignIn, isReady, isAuthenticated, signIn]);
 
   // Close dropdown on outside click
   useEffect(() => {
