@@ -39,6 +39,11 @@
   opacity: 0.85;
 }
 
+.avatar img,
+img.avatar {
+  object-fit: cover;
+}
+
 /* ── Dropdown ──────────────────────────────────────────────────────── */
 
 .dropdown {

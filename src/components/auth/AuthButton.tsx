@@ -43,12 +43,38 @@ function parseToken(token: string): TokenInfo | null {
 
 const STATUS_COLOR = { valid: "#16a34a", expiring: "#d97706", expired: "#dc2626" };
 
+// ─── Avatar fetch (Behance API, same as llmo-spacecat-dashboard) ──────────────
+
+async function fetchUserAvatar(userId: string): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `https://cc-api-behance.adobe.io/v2/users/${userId}?api_key=susi_auth_service`
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    const images = data.user?.images;
+    if (images) {
+      return images["276"] || images["230"] || images["138"] || images["115"] || images["100"] || images["50"] || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AuthButton() {
   const { isAuthenticated, accessToken, profile, isReady, signIn, signOut } = useIMSAuth();
   const [open, setOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Fetch Behance avatar when userId is available
+  useEffect(() => {
+    if (!profile?.userId) { setAvatarUrl(null); return; }
+    fetchUserAvatar(profile.userId).then(setAvatarUrl);
+  }, [profile?.userId]);
 
   // Auto sign-in when imslib is ready and user is not signed in
   useEffect(() => {
@@ -103,7 +129,10 @@ export function AuthButton() {
           aria-label="Account menu"
           title={profile?.email ?? undefined}
         >
-          <span className={styles.avatar}>{initials}</span>
+          {avatarUrl
+            ? <img src={avatarUrl} alt={displayName} className={styles.avatar} />
+            : <span className={styles.avatar}>{initials}</span>
+          }
         </button>
 
         {open && (
