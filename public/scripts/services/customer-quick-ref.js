@@ -124,42 +124,48 @@ async function resolveOrg(customerName, token, forcedOrgId = null) {
  * Returns { enabled: string[], disabled: string[] } or null on failure.
  */
 async function fetchAuditStatusForSite(siteId, orgId, token) {
-  if (!siteId || !token) return null;
-  const url = ASO_ENDPOINTS.CONFIGURATIONS_LATEST?.();
-  if (!url) return null;
+  try {
+    if (!siteId || !token) return null;
+    const url = ASO_ENDPOINTS.CONFIGURATIONS_LATEST?.();
+    if (!url) return null;
 
-  const response = await apiGet(url, token);
-  if (isApiError(response) || !response || typeof response !== 'object') return null;
+    const response = await apiGet(url, token);
+    if (isApiError(response) || !response || typeof response !== 'object') return null;
 
-  const handlers = response.handlers ?? response.data?.handlers ?? {};
-  if (!handlers || typeof handlers !== 'object') return null;
+    const handlers = response.handlers ?? response.data?.handlers ?? {};
+    if (!handlers || typeof handlers !== 'object') return null;
 
-  const enabled = [];
-  const disabled = [];
+    const enabled = [];
+    const disabled = [];
 
-  Object.entries(handlers).forEach(([auditType, handler]) => {
-    const lc = auditType.toLowerCase();
-    // Skip LLMO and free geo-brand-presence audits — not shown in ASO panel
-    if (lc.includes('llmo') || lc.startsWith('geo-brand-presence-free')) return;
-    if (!handler || typeof handler !== 'object') return;
+    Object.entries(handlers).forEach(([auditType, handler]) => {
+      const lc = auditType.toLowerCase();
+      // Skip LLMO and free geo-brand-presence audits — not shown in ASO panel
+      if (lc.includes('llmo') || lc.startsWith('geo-brand-presence-free')) return;
+      if (!handler || typeof handler !== 'object') return;
 
-    const disabledSites = handler.disabled?.sites ?? [];
-    const disabledOrgs = handler.disabled?.orgs ?? [];
-    const enabledSites = handler.enabled?.sites ?? [];
-    const enabledOrgs = handler.enabled?.orgs ?? [];
-    const enabledByDefault = handler.enabledByDefault !== false;
+      // Use Array.isArray guards — the API may return non-array values (e.g. false)
+      // which would cause .includes() to throw if we relied solely on ?? []
+      const disabledSites = Array.isArray(handler.disabled?.sites) ? handler.disabled.sites : [];
+      const disabledOrgs = Array.isArray(handler.disabled?.orgs) ? handler.disabled.orgs : [];
+      const enabledSites = Array.isArray(handler.enabled?.sites) ? handler.enabled.sites : [];
+      const enabledOrgs = Array.isArray(handler.enabled?.orgs) ? handler.enabled.orgs : [];
+      const enabledByDefault = handler.enabledByDefault !== false;
 
-    const isDisabled = disabledSites.includes(siteId)
-      || (orgId && disabledOrgs.includes(orgId))
-      || (!enabledByDefault
-          && !enabledSites.includes(siteId)
-          && !(orgId && enabledOrgs.includes(orgId)));
+      const isDisabled = disabledSites.includes(siteId)
+        || (orgId && disabledOrgs.includes(orgId))
+        || (!enabledByDefault
+            && !enabledSites.includes(siteId)
+            && !(orgId && enabledOrgs.includes(orgId)));
 
-    if (isDisabled) disabled.push(auditType);
-    else enabled.push(auditType);
-  });
+      if (isDisabled) disabled.push(auditType);
+      else enabled.push(auditType);
+    });
 
-  return { enabled, disabled };
+    return { enabled, disabled };
+  } catch {
+    return null;
+  }
 }
 
 /**
