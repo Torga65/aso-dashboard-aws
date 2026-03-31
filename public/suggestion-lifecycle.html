@@ -2414,18 +2414,12 @@
 
       // ---- Global scope: fan out one request per org, aggregate client-side ----
       if (scopeValue === 'global') {
-        // Use all SpaceCat orgs (the full ASO org list) unless "Paid only" is checked,
-        // in which case we fall back to snapshot customers that have licenseType data.
-        let orgs;
-        if (paidOnly) {
-          orgs = (customerTree || []).filter((c) => c.orgId && /paid/i.test(c.licenseType || ''));
-        } else {
-          orgs = (allSpaceCatOrgs || []).map((o) => ({ orgId: o.orgId, orgName: o.orgName || o.imsOrgId || o.orgId }));
-        }
+        let orgs = (customerTree || []).filter((c) => c.orgId);
+        if (paidOnly) orgs = orgs.filter((c) => /paid/i.test(c.licenseType || ''));
         if (orgs.length === 0) {
           portfolioError.textContent = paidOnly
             ? 'No paid customers with a resolved SpaceCat org found.'
-            : 'No SpaceCat organizations found. Ensure your token is valid.';
+            : 'No customers with a resolved SpaceCat org found.';
           portfolioError.style.display = 'block';
           portfolioLoading.style.display = 'none';
           return;
