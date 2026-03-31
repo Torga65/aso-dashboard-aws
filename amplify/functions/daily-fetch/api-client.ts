@@ -55,6 +55,10 @@ const SNOW_FIELDS = [
   "u_account_name",
   "u_env",
   "u_ims_org_id",
+  "u_tenant_id",
+  "u_industry",
+  "u_termination_reason",
+  "u_comments",
   "u_created",
   "u_updated",
 ].join(",");
@@ -163,6 +167,10 @@ interface SnowRecord {
   u_account_name?: SnowValue;
   u_env?: SnowValue;
   u_ims_org_id?: SnowValue;
+  u_tenant_id?: SnowValue;
+  u_industry?: SnowValue;
+  u_termination_reason?: SnowValue;
+  u_comments?: SnowValue;
   u_created?: SnowValue;
   u_updated?: SnowValue;
 }
@@ -180,15 +188,16 @@ function mapToRawCustomer(record: SnowRecord, week: string): RawCustomer {
     companyName: getDisplayValue(record.name),
     week,
     imsOrgId: getDisplayValue(record.u_ims_org_id),
+    tenantId: getDisplayValue(record.u_tenant_id),
     status: getDisplayValue(record.u_status),
     eseLead: getDisplayValue(record.u_customer_success_engineer),
     licenseType: getDisplayValue(record.u_product),
     deploymentType: getDisplayValue(record.u_env),
+    industry: getDisplayValue(record.u_industry),
+    terminationReason: getDisplayValue(record.u_termination_reason),
+    comments: getDisplayValue(record.u_comments),
     lastUpdated: getDisplayValue(record.u_updated),
-    // Fields not directly available in ServiceNow core_company —
-    // left as empty defaults; can be enriched via additional queries
-    // or manual data entry in the dashboard.
-    industry: "",
+    // Fields not in ServiceNow core_company — enriched via manual entry
     engagement: "",
     blockersStatus: "",
     blockers: "",

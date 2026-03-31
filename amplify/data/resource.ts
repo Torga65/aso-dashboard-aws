@@ -56,6 +56,9 @@ const schema = a.schema({
 
       // ── Ingestion metadata ────────────────────────────────────────────
       imsOrgId: a.string(), // IMS Org ID from ServiceNow (u_ims_org_id)
+      tenantId: a.string(), // Tenant ID from ServiceNow (u_tenant_id)
+      terminationReason: a.string(), // Termination reason from ServiceNow (u_termination_reason)
+      comments: a.string(), // Comments from ServiceNow (u_comments)
       sourceLastUpdated: a.string(), // "lastUpdated" from the source record
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
       dataSource: a.string(), // "ServiceNow" | "Manual"
