@@ -1707,9 +1707,17 @@
         ]);
 
         const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
-        // Build lookup maps: imsOrgId → SpaceCat UUID, lowercased name → SpaceCat UUID
+        // Build lookup map: imsOrgId → SpaceCat org
         const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
-        const scByName = new Map(scOrgs.map((o) => [(o.orgName || '').toLowerCase(), o]));
+
+        /** Fuzzy match a customer name against SpaceCat orgs (same algorithm as history page). */
+        function fuzzyFindOrg(name) {
+          const needle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return scOrgs.find((o) => {
+            const haystack = (o.orgName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return haystack.includes(needle) || needle.includes(haystack);
+          }) || null;
+        }
 
         try {
           if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
@@ -1722,7 +1730,7 @@
                   const name = c.companyName || c.orgName || '';
                   // Prefer SpaceCat UUID (required for /organizations/{id}/sites calls)
                   const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
-                    || scByName.get(name.toLowerCase());
+                    || fuzzyFindOrg(name);
                   return {
                     orgId: scOrg?.orgId || c.imsOrgId || c.orgId || name,
                     orgName: name,
