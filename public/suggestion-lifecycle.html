@@ -1377,6 +1377,10 @@
             </div>
             <div class="pf-toggles">
               <label class="pf-toggle">
+                <input type="checkbox" id="portfolio-paid-only" />
+                <span>Paid only</span>
+              </label>
+              <label class="pf-toggle">
                 <input type="checkbox" id="portfolio-include-llmo" />
                 <span>Include LLMO</span>
               </label>
@@ -1607,6 +1611,7 @@
     const portfolioRange = document.getElementById('portfolio-range');
     const portfolioIncludeLlmo = document.getElementById('portfolio-include-llmo');
     const portfolioIncludeGeneric = document.getElementById('portfolio-include-generic');
+    const portfolioPaidOnly = document.getElementById('portfolio-paid-only');
     const portfolioRefreshBtn = document.getElementById('portfolio-refresh-btn');
     const portfolioTitle = document.getElementById('portfolio-title');
     const portfolioScope = document.getElementById('portfolio-scope');
@@ -1787,6 +1792,7 @@
                     orgId: scOrg?.orgId || null,
                     orgName: name,
                     unresolved: !scOrg,
+                    licenseType: c.licenseType || '',
                   };
                 })
                 .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
@@ -2283,22 +2289,22 @@
     // ---- Portfolio: populate scope dropdown with customers ----
     function updatePortfolioScopeOptions() {
       const currentVal = portfolioScope.value;
-      // "All Customers" (global) requires fetching 600+ customers' sites live —
-      // that exceeds the serverless function timeout. Require org selection instead.
-      let html = '<option value="" disabled selected>Select a customer…</option>';
-      if (customerTree && customerTree.length > 0) {
-        html += [...customerTree]
-          .sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-          .map((c) => {
-            const val = c.orgId || '';
-            return val ? `<option value="${val}">${c.orgName}</option>` : '';
-          })
-          .join('');
+      const paidOnly = portfolioPaidOnly?.checked;
+      let visibleOrgs = (customerTree || []).filter((c) => c.orgId);
+      if (paidOnly) {
+        visibleOrgs = visibleOrgs.filter((c) => /paid/i.test(c.licenseType || ''));
       }
+      let html = '<option value="global">All Customers' + (paidOnly ? ' (Paid)' : '') + '</option>';
+      html += visibleOrgs
+        .slice().sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+        .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
+        .join('');
       portfolioScope.innerHTML = html;
       // Restore previous selection if it still exists
-      if (currentVal && currentVal !== 'global' && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
+      if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
         portfolioScope.value = currentVal;
+      } else {
+        portfolioScope.value = 'global';
       }
       syncPortfolioSiteVisibility();
     }
@@ -2368,11 +2374,12 @@
         return;
       }
 
-      const scopeValue = portfolioScope.value; // orgId (global scope not supported in cloud)
+      const scopeValue = portfolioScope.value; // 'global' or an orgId
       const siteValue = (portfolioSiteSelect?.value ?? '').trim();
+      const paidOnly = portfolioPaidOnly?.checked;
 
-      if (!scopeValue || scopeValue === 'global') {
-        portfolioError.textContent = 'Please select a customer from the Scope dropdown to load portfolio data.';
+      if (!scopeValue) {
+        portfolioError.textContent = 'Please select a scope from the dropdown.';
         portfolioError.style.display = 'block';
         return;
       }
@@ -2400,7 +2407,81 @@
         const siteLabel = siteOpt?.text || siteValue;
         portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
       } else {
-        portfolioTitle.textContent = `Portfolio: ${scopeLabel} (all sites)`;
+        portfolioTitle.textContent = scopeValue === 'global'
+          ? `Portfolio: All Customers${paidOnly ? ' (Paid)' : ''}`
+          : `Portfolio: ${scopeLabel} (all sites)`;
+      }
+
+      // ---- Global scope: fan out one request per org, aggregate client-side ----
+      if (scopeValue === 'global') {
+        let orgs = (customerTree || []).filter((c) => c.orgId);
+        if (paidOnly) orgs = orgs.filter((c) => /paid/i.test(c.licenseType || ''));
+        if (orgs.length === 0) {
+          portfolioError.textContent = paidOnly
+            ? 'No paid customers with a resolved SpaceCat org found.'
+            : 'No customers with a resolved SpaceCat org found.';
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
+        }
+        const startTime = Date.now();
+        const ticker = setInterval(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          portfolioLoading.textContent = `Loading ${orgs.length} customers... ${elapsed}s elapsed`;
+        }, 1000);
+        try {
+          const baseParams = new URLSearchParams({ from: fromStr, to: toStr });
+          if (portfolioIncludeLlmo?.checked) baseParams.set('includeLlmo', '1');
+          if (portfolioIncludeGeneric?.checked) baseParams.set('includeGeneric', '1');
+          // Batch org requests to avoid overwhelming the API
+          const BATCH = 8;
+          const results = [];
+          for (let i = 0; i < orgs.length; i += BATCH) {
+            const batch = orgs.slice(i, i + BATCH);
+            const batchResults = await Promise.all(batch.map(async (org) => {
+              try {
+                const p = new URLSearchParams(baseParams);
+                p.set('orgId', org.orgId);
+                const r = await fetch(`${PORTFOLIO_ENDPOINTS.OPPORTUNITY_METRICS()}?${p.toString()}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                  signal: AbortSignal.timeout(55_000),
+                });
+                if (!r.ok) return null;
+                return r.json();
+              } catch { return null; }
+            }));
+            results.push(...batchResults.filter(Boolean));
+          }
+          clearInterval(ticker);
+          portfolioLoading.style.display = 'none';
+          if (results.length === 0) {
+            portfolioError.textContent = 'No data returned for any customers.';
+            portfolioError.style.display = 'block';
+            return;
+          }
+          // Aggregate summaries across all orgs
+          const merged = { buckets: [], totalCounts: {}, statusChangeBuckets: [], siteCount: 0, summary: {}, source: 'live' };
+          const sumKeys = ['totalAvailable','createdInPeriod','fixedInPeriod','outdatedInPeriod',
+            'skippedByCustomer','rejectedByEse','pendingValidation','awaitingCustomerReview',
+            'suggestionsFixed','totalSuggestions','customerEngagement','movedToFixed',
+            'movedToAwaitingCustomerReview','movedToAwaitingEseReview','movedToSkipped',
+            'movedToRejected','movedToOutdated','movedToError','movedToCustomerEngagement',
+            'totalCreatedOrUpdatedInPeriod'];
+          for (const r of results) {
+            merged.siteCount += r.siteCount || 0;
+            if (r.summary) {
+              sumKeys.forEach((k) => { merged.summary[k] = (merged.summary[k] || 0) + (r.summary[k] || 0); });
+            }
+          }
+          renderPortfolioDashboard(merged, fromStr, toStr, scopeLabel);
+          return;
+        } catch (err) {
+          clearInterval(ticker);
+          portfolioError.textContent = `Load failed: ${err.message}`;
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
+        }
       }
 
       try {
@@ -3642,6 +3723,12 @@
     if (portfolioIncludeGeneric) {
       portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
       portfolioIncludeGeneric.addEventListener('change', () => setIncludeGenericOpportunities(portfolioIncludeGeneric.checked));
+    }
+    if (portfolioPaidOnly) {
+      portfolioPaidOnly.addEventListener('change', () => {
+        portfolioCache = null;
+        updatePortfolioScopeOptions();
+      });
     }
 
     // Event listeners
