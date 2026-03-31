@@ -1704,14 +1704,14 @@
             const data = await res.json();
             const records = data.data || data.customers || [];
             if (records.length > 0) {
-              // Deduplicate by imsOrgId/orgId, keeping one entry per org
+              // Deduplicate by companyName, keeping one entry per customer
               const seen = new Set();
               customerTree = records
                 .map((c) => ({
-                  orgId: c.imsOrgId || c.orgId || '',
+                  orgId: c.imsOrgId || c.orgId || c.companyName || '',
                   orgName: c.companyName || c.orgName || '',
                 }))
-                .filter((c) => c.orgId && !seen.has(c.orgId) && seen.add(c.orgId));
+                .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
               if (customerTree.length > 0) fromSnapshot = true;
             }
           }
