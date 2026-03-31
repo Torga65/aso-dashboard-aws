@@ -71,11 +71,12 @@ export async function GET() {
     let nextToken: string | undefined = undefined;
 
     do {
-      const { data, errors, nextToken: next } =
-        await client.models.CustomerSnapshot.list({
-          limit: 1000,
-          nextToken,
-        });
+      const result = await client.models.CustomerSnapshot.list({
+        limit: 1000,
+        nextToken,
+      });
+      const { data, errors } = result;
+      const next: string | undefined = (result as { nextToken?: string }).nextToken ?? undefined;
 
       if (errors?.length) {
         console.error("[/api/customers] CustomerSnapshot.list errors:", errors);
