@@ -16,35 +16,65 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+// Extend the serverless function timeout as high as Amplify allows
+export const maxDuration = 60;
+
 const SPACECAT_BASE = "https://spacecat.experiencecloud.live/api/v1";
-const BATCH_SIZE = 8;
-const BATCH_DELAY_MS = 100;
+const BATCH_SIZE = 20; // higher parallelism to finish faster
+const BATCH_DELAY_MS = 0;
+
+// ─── In-memory cache (survives across requests within the same Lambda instance) ─
+
+interface CacheEntry { data: unknown; expiresAt: number; }
+const _cache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+function cacheGet(key: string) {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _cache.delete(key); return null; }
+  return entry.data;
+}
+
+function cacheSet(key: string, data: unknown) {
+  _cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
 
 // ─── SpaceCat helpers ────────────────────────────────────────────────────────
 
 async function spacecatGet(url: string, token: string) {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(20_000),
   });
   if (!res.ok) throw new Error(`SpaceCat ${res.status}: ${url}`);
   return res.json();
 }
 
 async function fetchAllSiteIds(token: string): Promise<string[]> {
+  const cacheKey = "sites:global";
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached as string[];
   const data = await spacecatGet(`${SPACECAT_BASE}/sites`, token);
   const sites: { id?: string; siteId?: string }[] = Array.isArray(data)
     ? data
     : data.sites || data.data || [];
-  return sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  const ids = sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  cacheSet(cacheKey, ids);
+  return ids;
 }
 
 async function fetchOrgSiteIds(orgId: string, token: string): Promise<string[]> {
+  const cacheKey = `sites:${orgId}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached as string[];
   const data = await spacecatGet(`${SPACECAT_BASE}/organizations/${orgId}/sites`, token);
   const sites: { id?: string; siteId?: string }[] = Array.isArray(data)
     ? data
     : data.sites || data.data || [];
-  return sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  const ids = sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  cacheSet(cacheKey, ids);
+  return ids;
 }
 
 async function fetchSiteOpportunities(siteId: string, token: string) {
@@ -261,11 +291,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ buckets: [], totalCounts: {}, siteCount: 0, summary: {} });
   }
 
+  const scope = siteIdsParam
+    ? `custom:${siteIdsParam.split(",").sort().join(",")}`
+    : siteScope === "global" ? "global" : (orgId ?? "unknown");
+  const metricsCacheKey = `metrics:${scope}:${from}:${to}:llmo=${includeLlmo}:generic=${includeGeneric}`;
+  const cachedResult = cacheGet(metricsCacheKey);
+  if (cachedResult) {
+    console.log(`[Portfolio] Cache hit: ${metricsCacheKey}`);
+    return NextResponse.json(cachedResult);
+  }
+
   try {
+    console.log(`[Portfolio] Fetching opportunities for ${siteIds.length} sites...`);
     let opps = await fetchOpportunitiesForSites(siteIds, token);
     opps = filterOpps(opps as { tags?: string[]; type?: string }[], includeLlmo, includeGeneric);
-    const result = aggregateOpportunities(opps as Opportunity[], from, to);
-    return NextResponse.json({ ...result, siteCount: siteIds.length, source: "live" });
+    const result = { ...aggregateOpportunities(opps as Opportunity[], from, to), siteCount: siteIds.length, source: "live" };
+    cacheSet(metricsCacheKey, result);
+    return NextResponse.json(result);
   } catch (err) {
     console.error("[/api/portfolio/opportunity-metrics] Aggregation error:", err);
     return NextResponse.json({ error: "Failed to aggregate opportunity metrics" }, { status: 500 });
