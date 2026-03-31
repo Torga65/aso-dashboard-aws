@@ -69,14 +69,36 @@ export function updateQuickRefCacheAudits(customerName, audits) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Try to find a SpaceCat org that matches customerName by fuzzy name match.
+ * Look up a previously-saved SpaceCat org ID for a customer from the server DB.
+ * Returns the orgId string, or null if not found.
+ * @param {string} customerName
+ * @returns {Promise<string|null>}
+ */
+async function getSavedOrgId(customerName) {
+  try {
+    const res = await fetch(`/api/org-mapping?company=${encodeURIComponent(customerName)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.spacecatOrgId || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Try to find a SpaceCat org that matches customerName.
+ * Resolution order: forcedOrgId → saved DB mapping → fuzzy name match.
  * Returns { org, allOrgs } where org may be null if no match found.
  */
 async function resolveOrg(customerName, token, forcedOrgId = null) {
-  const allOrgs = await fetchSpaceCatOrgs(token);
+  const [allOrgs, savedOrgId] = await Promise.all([
+    fetchSpaceCatOrgs(token),
+    forcedOrgId ? Promise.resolve(null) : getSavedOrgId(customerName),
+  ]);
 
-  if (forcedOrgId) {
-    const org = allOrgs.find((o) => o.orgId === forcedOrgId) || null;
+  const resolveId = forcedOrgId || savedOrgId;
+  if (resolveId) {
+    const org = allOrgs.find((o) => o.orgId === resolveId) || null;
     return { org, allOrgs };
   }
 

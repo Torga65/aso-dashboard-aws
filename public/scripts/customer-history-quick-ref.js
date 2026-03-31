@@ -468,7 +468,15 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
               input.value = orgName;
               input.dataset.orgId = orgId;
               dropdown.classList.remove('show');
-              if (orgId) loadCustomerQuickRef(container, customerName, { orgId });
+              if (orgId) {
+                // Persist mapping so future loads skip manual selection
+                fetch('/api/org-mapping', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ companyName: customerName, spacecatOrgId: orgId }),
+                }).catch(() => { /* non-critical */ });
+                loadCustomerQuickRef(container, customerName, { orgId });
+              }
             });
           });
         }

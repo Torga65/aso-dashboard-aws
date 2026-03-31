@@ -164,6 +164,26 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.publicApiKey(), // full CRUD via API key (site protected by Hosting Basic Auth)
     ]),
+
+  /**
+   * CustomerOrgMapping
+   *
+   * Persists the manually-confirmed SpaceCat org UUID for each customer.
+   * Written when an ESE selects an org from the org-picker on the history page.
+   * Read by the quick-ref service so subsequent loads skip the fuzzy-match step.
+   *
+   * Primary key: companyName (one record per customer, upserted on change).
+   */
+  CustomerOrgMapping: a
+    .model({
+      companyName: a.string().required(),
+      spacecatOrgId: a.string().required(),
+      updatedBy: a.string(),
+    })
+    .identifier(["companyName"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
