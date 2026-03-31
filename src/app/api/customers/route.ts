@@ -15,28 +15,13 @@ import { toCustomer } from "@/lib/mappers";
 export async function GET() {
   try {
     const client = getServerClient();
-    const allRecords = [];
-    let nextToken: string | null | undefined = undefined;
+    const { data, errors } = await client.models.CustomerSnapshot.list({ limit: 2000 });
 
-    // Paginate through all CustomerSnapshot records
-    do {
-      const result = await client.models.CustomerSnapshot.list({
-        limit: 1000,
-        ...(nextToken ? { nextToken } : {}),
-      });
+    if (errors?.length) {
+      return NextResponse.json({ error: errors[0].message }, { status: 500 });
+    }
 
-      if (result.errors?.length) {
-        return NextResponse.json(
-          { error: result.errors[0].message },
-          { status: 500 }
-        );
-      }
-
-      allRecords.push(...(result.data ?? []).map(toCustomer));
-      nextToken = result.nextToken;
-    } while (nextToken);
-
-    return NextResponse.json({ data: allRecords });
+    return NextResponse.json({ data: (data ?? []).map(toCustomer) });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to load customers";
     return NextResponse.json({ error: message }, { status: 500 });
