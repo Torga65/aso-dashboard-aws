@@ -5,7 +5,15 @@
       "command": "node",
       "args": ["mcp/server.mjs"],
       "env": {
-        "ASO_BASE_URL": "http://localhost:3000"
+        "ASO_BASE_URL": "https://www.asodashboard.adobecqms.net"
+      }
+    },
+    "aso-dashboard-stage": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/server.mjs"],
+      "env": {
+        "ASO_BASE_URL": "https://stage.d26pj15s9ci49q.amplifyapp.com"
       }
     }
   }
