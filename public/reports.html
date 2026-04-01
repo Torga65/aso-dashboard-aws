@@ -105,12 +105,14 @@
     .field-selector-actions button {
       font-size: 12px;
       padding: 4px 10px;
-      border: 1px solid #ccc;
+      border: 1px solid #999;
       border-radius: 4px;
       background: white;
+      color: #222;
       cursor: pointer;
+      font-weight: 600;
     }
-    .field-selector-actions button:hover { background: #f0f0f0; }
+    .field-selector-actions button:hover { background: #e8e8e8; border-color: #666; }
 
     /* Run button */
     .run-btn {
@@ -325,13 +327,6 @@
         </select>
       </div>
       <div class="config-group">
-        <label>View</label>
-        <select id="view-mode">
-          <option value="latest">Latest snapshot per customer</option>
-          <option value="all">All weekly snapshots</option>
-        </select>
-      </div>
-      <div class="config-group">
         <label>Status</label>
         <select id="filter-status">
           <option value="">All statuses</option>
@@ -344,13 +339,12 @@
         </select>
       </div>
       <div class="config-group">
-        <label>Engagement</label>
-        <select id="filter-engagement">
+        <label>License type</label>
+        <select id="filter-license">
           <option value="">All</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-          <option value="Unknown">Unknown</option>
+          <option value="Paid">Paid</option>
+          <option value="Trial">Trial</option>
+          <option value="Internal">Internal</option>
         </select>
       </div>
       <div class="config-group">
@@ -502,9 +496,8 @@ async function loadData() {
 
 function applyFilters(data) {
   const timeRange = document.getElementById('time-range').value;
-  const viewMode  = document.getElementById('view-mode').value;
   const filterStatus = document.getElementById('filter-status').value;
-  const filterEngagement = document.getElementById('filter-engagement').value;
+  const filterLicense = document.getElementById('filter-license').value;
   const filterCompany = document.getElementById('filter-company').value.trim().toLowerCase();
 
   let rows = data.slice();
@@ -518,21 +511,19 @@ function applyFilters(data) {
   // Status filter
   if (filterStatus) rows = rows.filter(r => r.status === filterStatus);
 
-  // Engagement filter
-  if (filterEngagement) rows = rows.filter(r => r.engagement === filterEngagement);
+  // License type filter (case-insensitive contains)
+  if (filterLicense) rows = rows.filter(r => (r.licenseType || '').toLowerCase().includes(filterLicense.toLowerCase()));
 
   // Company search
   if (filterCompany) rows = rows.filter(r => (r.companyName || '').toLowerCase().includes(filterCompany));
 
-  // Latest-per-customer: keep only the most recent week per company
-  if (viewMode === 'latest') {
-    const map = new Map();
-    rows.forEach(r => {
-      const existing = map.get(r.companyName);
-      if (!existing || r.week > existing.week) map.set(r.companyName, r);
-    });
-    rows = [...map.values()];
-  }
+  // Always show latest snapshot per customer
+  const map = new Map();
+  rows.forEach(r => {
+    const existing = map.get(r.companyName);
+    if (!existing || r.week > existing.week) map.set(r.companyName, r);
+  });
+  rows = [...map.values()];
 
   // Sort by company name then week by default
   rows.sort((a, b) => {
@@ -733,9 +724,8 @@ function exportCSV() {
   const a = document.createElement('a');
   const timeRange = document.getElementById('time-range').value;
   const rangeLabel = timeRange === 'all' ? 'all-time' : `last-${timeRange}wk`;
-  const viewMode = document.getElementById('view-mode').value;
   a.href = url;
-  a.download = `customer-report_${rangeLabel}_${viewMode}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `customer-report_${rangeLabel}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('CSV downloaded');
@@ -755,16 +745,14 @@ async function exportAI() {
     const fields = getSelectedFields();
     const sorted = sortRows(reportRows);
     const timeRange = document.getElementById('time-range').value;
-    const viewMode = document.getElementById('view-mode').value;
     const filterStatus = document.getElementById('filter-status').value;
-    const filterEngagement = document.getElementById('filter-engagement').value;
+    const filterLicense = document.getElementById('filter-license').value;
     const uniqueCompanies = new Set(reportRows.map(r => r.companyName)).size;
 
     const rangeLabel = timeRange === 'all' ? 'all available data' : `the last ${timeRange} weeks`;
-    const viewLabel = viewMode === 'latest' ? 'latest snapshot per customer' : 'all weekly snapshots';
     const filterDesc = [
       filterStatus ? `status = ${filterStatus}` : null,
-      filterEngagement ? `engagement = ${filterEngagement}` : null,
+      filterLicense ? `license = ${filterLicense}` : null,
     ].filter(Boolean).join(', ') || 'no additional filters';
 
     // Header row
@@ -786,7 +774,6 @@ async function exportAI() {
 
 Report parameters:
 - Time range: ${rangeLabel}
-- View: ${viewLabel}
 - Filters: ${filterDesc}
 - Fields: ${fields.map(f => f.label).join(', ')}
 - Total rows: ${sorted.length}
