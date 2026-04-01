@@ -1,9 +1,9 @@
 /**
- * GET /api/transcripts/download?company=&days=30|60|all&type=transcript|attendance|both&id=<single-id>
+ * GET /api/transcripts/download?company=&days=30|60|all&id=<single-id>
  *
  * Returns a combined VTT file for download.
  * If `id` is provided, returns just that single file.
- * Otherwise returns all matching files for the date range combined into one VTT.
+ * Otherwise returns all transcripts for the date range combined into one VTT.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const company   = searchParams.get("company")?.trim();
   const daysParam = searchParams.get("days") ?? "30";
-  const typeParam = searchParams.get("type") ?? "both";
   const singleId  = searchParams.get("id")?.trim();
 
   if (!company) {
@@ -62,11 +61,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: errors[0].message }, { status: 500 });
     }
 
-    let records = data ?? [];
-    if (typeParam !== "both") {
-      records = records.filter((r) => r.fileType === typeParam);
-    }
-
+    const records = data ?? [];
     if (records.length === 0) {
       return NextResponse.json({ error: "No transcripts found for this range" }, { status: 404 });
     }

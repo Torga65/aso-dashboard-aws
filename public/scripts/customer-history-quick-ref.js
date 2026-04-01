@@ -687,7 +687,6 @@ async function loadCustomerTranscripts(container, customerName) {
   const statusEl = container.querySelector('.qr-transcript-upload-status');
   const fileInput = container.querySelector('.qr-transcript-file');
   const dateInput = container.querySelector('.qr-transcript-date');
-  const typeSelect = container.querySelector('.qr-transcript-type');
   const downloadBtns = container.querySelectorAll('.qr-transcript-download-btn');
 
   if (!listEl) return;
@@ -719,13 +718,11 @@ async function loadCustomerTranscripts(container, customerName) {
       }
 
       listEl.innerHTML = items.map((item) => {
-        const typeClass = item.fileType === 'attendance' ? 'attendance' : '';
         const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
         const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
         return `
           <div class="qr-transcript-item">
             <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
-            <span class="qr-transcript-item-type ${typeClass}">${escapeHtml(item.fileType)}</span>
             <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
             <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
           </div>`;
@@ -743,9 +740,8 @@ async function loadCustomerTranscripts(container, customerName) {
   // Wire download buttons
   downloadBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const type = btn.dataset.type || 'both';
       const days = rangeSelect?.value ?? '30';
-      const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&type=${type}`;
+      const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}`;
       const a = document.createElement('a');
       a.href = url;
       a.click();
@@ -753,11 +749,10 @@ async function loadCustomerTranscripts(container, customerName) {
   });
 
   // Wire upload button
-  if (uploadBtn && fileInput && dateInput && typeSelect) {
+  if (uploadBtn && fileInput && dateInput) {
     uploadBtn.addEventListener('click', async () => {
       const file = fileInput.files?.[0];
       const date = dateInput.value;
-      const ftype = typeSelect.value;
 
       if (!file) { if (statusEl) { statusEl.textContent = 'Select a VTT file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
       if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
@@ -773,7 +768,6 @@ async function loadCustomerTranscripts(container, customerName) {
         const form = new FormData();
         form.append('company', customerName);
         form.append('meetingDate', date);
-        form.append('fileType', ftype);
         form.append('uploadedBy', uploadedBy);
         form.append('file', file);
 

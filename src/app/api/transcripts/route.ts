@@ -17,11 +17,8 @@ export async function POST(req: NextRequest) {
     const uploadedBy = (form.get("uploadedBy") as string | null)?.trim() ?? "";
     const file      = form.get("file") as File | null;
 
-    if (!company || !meetingDate || !fileType || !file) {
-      return NextResponse.json({ error: "company, meetingDate, fileType, and file are required" }, { status: 400 });
-    }
-    if (!["transcript", "attendance"].includes(fileType)) {
-      return NextResponse.json({ error: "fileType must be 'transcript' or 'attendance'" }, { status: 400 });
+    if (!company || !meetingDate || !file) {
+      return NextResponse.json({ error: "company, meetingDate, and file are required" }, { status: 400 });
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(meetingDate)) {
       return NextResponse.json({ error: "meetingDate must be YYYY-MM-DD" }, { status: 400 });
@@ -40,7 +37,7 @@ export async function POST(req: NextRequest) {
     const { data, errors } = await client.models.MeetingTranscript.create({
       companyName: company,
       meetingDate,
-      fileType,
+      fileType: "transcript",
       fileName: file.name,
       content,
       uploadedBy,
