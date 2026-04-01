@@ -630,6 +630,49 @@
       color: #92400e;
       font-size: 13px;
     }
+    .org-picker-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fff8e1;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: #555;
+    }
+    .org-picker-search-wrap { position: relative; display: inline-block; }
+    .org-picker-input {
+      width: 320px;
+      max-width: 100%;
+      padding: 5px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .org-picker-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 320px;
+      max-width: 520px;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 300;
+      list-style: none;
+      margin: 2px 0 0;
+      padding: 0;
+    }
+    .org-picker-list.show { display: block; }
+    .org-picker-list li { padding: 7px 10px; cursor: pointer; font-size: 13px; color: #222; }
+    .org-picker-list li:hover { background: #f0f4ff; }
+    .org-picker-list li[data-empty] { color: #999; cursor: default; }
 
     /* Section label */
     .section-label {
@@ -1264,6 +1307,13 @@
       <div id="aso-selector-message" class="aso-selector-message" style="display: none;" role="status">
         This customer does not have Sites Optimizer (ASO). Select an ASO customer to choose a site.
       </div>
+      <div id="org-picker-row" class="org-picker-row" style="display:none;" role="region" aria-label="Organization picker">
+        <div>No SpaceCat organization found for <strong id="org-picker-cname"></strong>. Select the correct organization to continue:</div>
+        <div class="org-picker-search-wrap">
+          <input type="text" id="org-picker-input" class="org-picker-input" placeholder="Type to search organizations…" autocomplete="off" aria-label="Search SpaceCat organizations"/>
+          <ul id="org-picker-list" class="org-picker-list" role="listbox" aria-label="Organization results"></ul>
+        </div>
+      </div>
 
       <!-- Fallback: manual site ID (collapsed by default) -->
       <div id="dev-manual-site" class="controls-row dev-manual-toggle">
@@ -1303,7 +1353,7 @@
             <div class="pf-field pf-field--scope">
               <label class="pf-label" for="portfolio-scope">Scope</label>
               <select id="portfolio-scope" class="pf-select" name="portfolioScope" aria-describedby="scopeHelp">
-                <option value="global" selected>All Customers</option>
+                <option value="" disabled selected>Select a customer…</option>
               </select>
               <div id="scopeHelp" class="sr-only">Choose a customer scope</div>
             </div>
@@ -1326,6 +1376,10 @@
               </select>
             </div>
             <div class="pf-toggles">
+              <label class="pf-toggle">
+                <input type="checkbox" id="portfolio-paid-only" />
+                <span>Paid only</span>
+              </label>
               <label class="pf-toggle">
                 <input type="checkbox" id="portfolio-include-llmo" />
                 <span>Include LLMO</span>
@@ -1557,6 +1611,7 @@
     const portfolioRange = document.getElementById('portfolio-range');
     const portfolioIncludeLlmo = document.getElementById('portfolio-include-llmo');
     const portfolioIncludeGeneric = document.getElementById('portfolio-include-generic');
+    const portfolioPaidOnly = document.getElementById('portfolio-paid-only');
     const portfolioRefreshBtn = document.getElementById('portfolio-refresh-btn');
     const portfolioTitle = document.getElementById('portfolio-title');
     const portfolioScope = document.getElementById('portfolio-scope');
@@ -1572,6 +1627,7 @@
     const SAVED_SITE_KEY = 'aso_saved_site_id';
     let currentSiteId = null;
     let customerTree = []; // populated after IMS login
+    let allSpaceCatOrgs = []; // full SpaceCat org list, kept for org picker
     let isDevMode = false;
 
     // Profile key to use for "Opportunities (Paid profile)" — config may be keyed as { paid: { audits, config }, ... }
@@ -1707,6 +1763,7 @@
         ]);
 
         const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
+        allSpaceCatOrgs = scOrgs; // keep for org picker
         // Build lookup map: imsOrgId → SpaceCat org
         const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
 
@@ -1732,8 +1789,10 @@
                   const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
                     || fuzzyFindOrg(name);
                   return {
-                    orgId: scOrg?.orgId || c.imsOrgId || c.orgId || name,
+                    orgId: scOrg?.orgId || null,
                     orgName: name,
+                    unresolved: !scOrg,
+                    licenseType: c.licenseType || '',
                   };
                 })
                 .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
@@ -1752,7 +1811,10 @@
         }
         customerSelect.innerHTML = '<option value="">Select a customer</option>'
           + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-              .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`).join('');
+              .map((c) => {
+                const val = c.orgId || `__nr:${encodeURIComponent(c.orgName)}`;
+                return `<option value="${val}">${c.orgName}</option>`;
+              }).join('');
         siteSelect.innerHTML = '<option value="">Select a customer first</option>';
         // Show view tabs once customers are loaded
         viewTabs.style.display = 'flex';
@@ -1772,8 +1834,9 @@
               return cleanOrg === cleanTarget;
             });
             if (match) {
-              customerSelect.value = match.orgId;
-              await populateSites(match.orgId);
+              const matchVal = match.orgId || `__nr:${encodeURIComponent(match.orgName)}`;
+              customerSelect.value = matchVal;
+              customerSelect.dispatchEvent(new Event('change'));
             }
           }
         }
@@ -1821,6 +1884,79 @@
           const label = s.baseURL ? s.baseURL.replace(/^https?:\/\//, '').replace(/\/$/, '') : s.siteId;
           return `<option value="${s.siteId}">${label}</option>`;
         }).join('');
+    }
+
+    // ── Org picker helpers ────────────────────────────────────────────────────
+
+    async function getSavedOrgMapping(customerName) {
+      try {
+        const res = await fetch(`/api/org-mapping?company=${encodeURIComponent(customerName)}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.spacecatOrgId || null;
+      } catch { return null; }
+    }
+
+    function hideOrgPicker() {
+      const row = document.getElementById('org-picker-row');
+      if (row) row.style.display = 'none';
+      siteSelect.style.display = '';
+    }
+
+    function showOrgPicker(orgName) {
+      const row = document.getElementById('org-picker-row');
+      const cnameEl = document.getElementById('org-picker-cname');
+      const input = document.getElementById('org-picker-input');
+      const list = document.getElementById('org-picker-list');
+      if (!row || !cnameEl || !input || !list) return;
+
+      cnameEl.textContent = orgName;
+      input.value = '';
+      list.classList.remove('show');
+      siteSelect.style.display = 'none';
+      row.style.display = '';
+
+      function renderList() {
+        const q = input.value.trim().toLowerCase();
+        const filtered = q
+          ? allSpaceCatOrgs.filter((o) => (o.orgName || '').toLowerCase().includes(q))
+          : allSpaceCatOrgs;
+        list.innerHTML = filtered.length
+          ? filtered.slice(0, 100).map((o) => `<li role="option" data-org-id="${o.orgId}">${o.orgName || o.orgId}</li>`).join('')
+          : '<li data-empty>No matching organization</li>';
+        list.classList.add('show');
+        list.querySelectorAll('li:not([data-empty])').forEach((li) => {
+          li.addEventListener('click', () => {
+            const selectedOrgId = li.dataset.orgId;
+            input.value = li.textContent;
+            list.classList.remove('show');
+            // Save mapping to DB
+            fetch('/api/org-mapping', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ companyName: orgName, spacecatOrgId: selectedOrgId }),
+            }).catch(() => {});
+            // Update customerTree entry
+            const customer = customerTree.find((c) => c.orgName === orgName);
+            if (customer) {
+              customer.orgId = selectedOrgId;
+              customer.unresolved = false;
+              // Update dropdown option value to real orgId
+              const sentinelVal = `__nr:${encodeURIComponent(orgName)}`;
+              const opt = Array.from(customerSelect.options).find((o) => o.value === sentinelVal);
+              if (opt) opt.value = selectedOrgId;
+              customerSelect.value = selectedOrgId;
+            }
+            hideOrgPicker();
+            customerSelect.dispatchEvent(new Event('change'));
+          });
+        });
+      }
+
+      input.addEventListener('focus', renderList);
+      input.addEventListener('input', renderList);
+      input.addEventListener('blur', () => setTimeout(() => list.classList.remove('show'), 200));
+      input.focus();
     }
 
     async function populateSites(orgId) {
@@ -1882,17 +2018,44 @@
     });
 
     customerSelect.addEventListener('change', async () => {
-      const orgId = customerSelect.value;
+      const rawValue = customerSelect.value;
+      hideOrgPicker();
       currentOrgEntitlements = null; // refetch when loading for this org
       portfolioCache = null; // invalidate portfolio cache on customer change
       const asoMessage = document.getElementById('aso-selector-message');
 
-      if (!orgId) {
+      if (!rawValue) {
         siteSelect.innerHTML = '<option value="">Select a customer first</option>';
         siteSelect.disabled = false;
         if (asoMessage) asoMessage.style.display = 'none';
         return;
       }
+
+      // Unresolved customer — check DB then show picker if still no match
+      if (rawValue.startsWith('__nr:')) {
+        const orgName = decodeURIComponent(rawValue.replace('__nr:', ''));
+        siteSelect.innerHTML = '<option value="">Checking saved mapping…</option>';
+        selectorSpinner.style.display = 'flex';
+        const savedOrgId = await getSavedOrgMapping(orgName);
+        selectorSpinner.style.display = 'none';
+        if (savedOrgId && allSpaceCatOrgs.some((o) => o.orgId === savedOrgId)) {
+          const customer = customerTree.find((c) => c.orgName === orgName);
+          if (customer) {
+            customer.orgId = savedOrgId;
+            customer.unresolved = false;
+            const opt = Array.from(customerSelect.options).find((o) => o.value === rawValue);
+            if (opt) opt.value = savedOrgId;
+            customerSelect.value = savedOrgId;
+            customerSelect.dispatchEvent(new Event('change'));
+          }
+        } else {
+          siteSelect.innerHTML = '<option value="">Select an organization first</option>';
+          showOrgPicker(orgName);
+        }
+        return;
+      }
+
+      const orgId = rawValue;
 
       const token = tokenInput.value.trim() || getAccessToken();
       if (token) {
@@ -2126,18 +2289,22 @@
     // ---- Portfolio: populate scope dropdown with customers ----
     function updatePortfolioScopeOptions() {
       const currentVal = portfolioScope.value;
-      // Build all options as a single string to avoid O(n²) innerHTML += loop
-      let html = '<option value="global">All Customers</option>';
-      if (customerTree && customerTree.length > 0) {
-        html += [...customerTree]
-          .sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-          .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
-          .join('');
+      const paidOnly = portfolioPaidOnly?.checked;
+      let visibleOrgs = (customerTree || []).filter((c) => c.orgId);
+      if (paidOnly) {
+        visibleOrgs = visibleOrgs.filter((c) => /paid/i.test(c.licenseType || ''));
       }
+      let html = '<option value="global">All Customers' + (paidOnly ? ' (Paid)' : '') + '</option>';
+      html += visibleOrgs
+        .slice().sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+        .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
+        .join('');
       portfolioScope.innerHTML = html;
       // Restore previous selection if it still exists
       if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
         portfolioScope.value = currentVal;
+      } else {
+        portfolioScope.value = 'global';
       }
       syncPortfolioSiteVisibility();
     }
@@ -2209,6 +2376,13 @@
 
       const scopeValue = portfolioScope.value; // 'global' or an orgId
       const siteValue = (portfolioSiteSelect?.value ?? '').trim();
+      const paidOnly = portfolioPaidOnly?.checked;
+
+      if (!scopeValue) {
+        portfolioError.textContent = 'Please select a scope from the dropdown.';
+        portfolioError.style.display = 'block';
+        return;
+      }
 
       // Compute date range from the dropdown
       const rangeDays = parseInt(portfolioRange.value, 10);
@@ -2218,9 +2392,7 @@
       const fromStr = from.toISOString().slice(0, 10);
       const toStr = to.toISOString().slice(0, 10);
 
-      portfolioLoading.textContent = scopeValue === 'global'
-        ? 'Loading portfolio data across all customers... this may take a minute.'
-        : siteValue ? 'Loading portfolio data...' : 'Loading portfolio data...';
+      portfolioLoading.textContent = 'Loading portfolio data...';
       portfolioLoading.style.display = 'block';
       portfolioError.style.display = 'none';
       errorEl.style.display = 'none'; // clear global error banner when loading portfolio
@@ -2229,24 +2401,92 @@
       portfolioChartSection.style.display = 'none';
 
       // Update title
-      if (scopeValue === 'global') {
-        portfolioTitle.textContent = 'Portfolio: All Customers';
+      const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
+      if (siteValue) {
+        const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
+        const siteLabel = siteOpt?.text || siteValue;
+        portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
       } else {
-        const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
-        if (siteValue) {
-          const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
-          const siteLabel = siteOpt?.text || siteValue;
-          portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
-        } else {
-          portfolioTitle.textContent = `Portfolio: ${scopeLabel} (all sites)`;
+        portfolioTitle.textContent = scopeValue === 'global'
+          ? `Portfolio: All Customers${paidOnly ? ' (Paid)' : ''}`
+          : `Portfolio: ${scopeLabel} (all sites)`;
+      }
+
+      // ---- Global scope: fan out one request per org, aggregate client-side ----
+      if (scopeValue === 'global') {
+        let orgs = (customerTree || []).filter((c) => c.orgId);
+        if (paidOnly) orgs = orgs.filter((c) => /paid/i.test(c.licenseType || ''));
+        if (orgs.length === 0) {
+          portfolioError.textContent = paidOnly
+            ? 'No paid customers with a resolved SpaceCat org found.'
+            : 'No customers with a resolved SpaceCat org found.';
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
+        }
+        const startTime = Date.now();
+        const ticker = setInterval(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          portfolioLoading.textContent = `Loading ${orgs.length} customers... ${elapsed}s elapsed`;
+        }, 1000);
+        try {
+          const baseParams = new URLSearchParams({ from: fromStr, to: toStr });
+          if (portfolioIncludeLlmo?.checked) baseParams.set('includeLlmo', '1');
+          if (portfolioIncludeGeneric?.checked) baseParams.set('includeGeneric', '1');
+          // Batch org requests to avoid overwhelming the API
+          const BATCH = 8;
+          const results = [];
+          for (let i = 0; i < orgs.length; i += BATCH) {
+            const batch = orgs.slice(i, i + BATCH);
+            const batchResults = await Promise.all(batch.map(async (org) => {
+              try {
+                const p = new URLSearchParams(baseParams);
+                p.set('orgId', org.orgId);
+                const r = await fetch(`${PORTFOLIO_ENDPOINTS.OPPORTUNITY_METRICS()}?${p.toString()}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                  signal: AbortSignal.timeout(55_000),
+                });
+                if (!r.ok) return null;
+                return r.json();
+              } catch { return null; }
+            }));
+            results.push(...batchResults.filter(Boolean));
+          }
+          clearInterval(ticker);
+          portfolioLoading.style.display = 'none';
+          if (results.length === 0) {
+            portfolioError.textContent = 'No data returned for any customers.';
+            portfolioError.style.display = 'block';
+            return;
+          }
+          // Aggregate summaries across all orgs
+          const merged = { buckets: [], totalCounts: {}, statusChangeBuckets: [], siteCount: 0, summary: {}, source: 'live' };
+          const sumKeys = ['totalAvailable','createdInPeriod','fixedInPeriod','outdatedInPeriod',
+            'skippedByCustomer','rejectedByEse','pendingValidation','awaitingCustomerReview',
+            'suggestionsFixed','totalSuggestions','customerEngagement','movedToFixed',
+            'movedToAwaitingCustomerReview','movedToAwaitingEseReview','movedToSkipped',
+            'movedToRejected','movedToOutdated','movedToError','movedToCustomerEngagement',
+            'totalCreatedOrUpdatedInPeriod'];
+          for (const r of results) {
+            merged.siteCount += r.siteCount || 0;
+            if (r.summary) {
+              sumKeys.forEach((k) => { merged.summary[k] = (merged.summary[k] || 0) + (r.summary[k] || 0); });
+            }
+          }
+          renderPortfolioDashboard(merged, fromStr, toStr, scopeLabel);
+          return;
+        } catch (err) {
+          clearInterval(ticker);
+          portfolioError.textContent = `Load failed: ${err.message}`;
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
         }
       }
 
       try {
         const params = new URLSearchParams({ from: fromStr, to: toStr });
-        if (scopeValue === 'global') {
-          params.set('siteScope', 'global');
-        } else if (siteValue) {
+        if (siteValue) {
           params.set('siteIds', siteValue);
         } else {
           params.set('orgId', scopeValue);
@@ -2260,13 +2500,11 @@
         // Elapsed-time ticker so the user sees progress
         const ticker = setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
-          portfolioLoading.textContent = scopeValue === 'global'
-            ? `Loading portfolio data across all customers... ${elapsed}s elapsed`
-            : `Loading portfolio data... ${elapsed}s elapsed`;
+          portfolioLoading.textContent = `Loading portfolio data... ${elapsed}s elapsed`;
         }, 1000);
 
-        // 5-minute timeout for global, 2-minute for org (all sites), 1-minute for single site
-        const timeoutMs = scopeValue === 'global' ? 300_000 : (siteValue ? 60_000 : 120_000);
+        // 2-minute timeout for org (all sites), 1-minute for single site
+        const timeoutMs = siteValue ? 60_000 : 120_000;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -2643,7 +2881,10 @@
       selectorRow.classList.add('visible');
       customerSelect.innerHTML = '<option value="">Select a customer</option>'
         + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-            .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`).join('');
+            .map((c) => {
+              const val = c.orgId || `__nr:${encodeURIComponent(c.orgName)}`;
+              return `<option value="${val}">${c.orgName}</option>`;
+            }).join('');
       customerSelect.value = newOrg.orgId;
       renderSiteOptions(newOrg.sites); // sites already fetched above
       siteSelect.value = siteId;
@@ -3482,6 +3723,12 @@
     if (portfolioIncludeGeneric) {
       portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
       portfolioIncludeGeneric.addEventListener('change', () => setIncludeGenericOpportunities(portfolioIncludeGeneric.checked));
+    }
+    if (portfolioPaidOnly) {
+      portfolioPaidOnly.addEventListener('change', () => {
+        portfolioCache = null;
+        updatePortfolioScopeOptions();
+      });
     }
 
     // Event listeners

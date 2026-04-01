@@ -68,7 +68,7 @@ export function Header() {
 
           {/* Auth */}
           <div className={styles.navAuth}>
-            <AuthButton />
+            <AuthButton autoSignIn={pathname !== "/developer"} />
           </div>
         </nav>
       </div>
