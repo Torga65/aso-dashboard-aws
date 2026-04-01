@@ -605,6 +605,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     // Load ServiceNow comments (independent of SpaceCat — fetched from our own DB)
     loadCustomerComments(container, customerName);
     loadCustomerTranscripts(container, customerName);
+    loadCustomerNotes(container, customerName);
 
     wireRefreshButton(container, customerName);
   } catch (err) {
@@ -858,6 +859,192 @@ async function loadCustomerTranscripts(container, customerName) {
         uploadBtn.disabled = false;
       }
     });
+  }
+
+  await fetchAndRenderList();
+}
+
+/**
+ * Wire the Meeting Notes panel for a customer.
+ * Notes are stored via the same /api/transcripts endpoint with fileType="notes".
+ * Supports typing/pasting text directly OR uploading a .txt/.md file.
+ */
+async function loadCustomerNotes(container, customerName) {
+  const listEl      = container.querySelector('.qr-notes-list');
+  const rangeSelect = container.querySelector('.qr-notes-range');
+  const uploadBtn   = container.querySelector('.qr-notes-upload-btn');
+  const statusEl    = container.querySelector('.qr-notes-upload-status');
+  const fileInput   = container.querySelector('.qr-notes-file');
+  const dateInput   = container.querySelector('.qr-notes-date');
+  const titleInput  = container.querySelector('.qr-notes-title');
+  const textarea    = container.querySelector('.qr-notes-textarea');
+  const aiRangeBtn  = container.querySelector('.qr-notes-ai-range');
+  const countBadge  = container.querySelector('.qr-notes-count');
+  if (!listEl) return;
+
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  async function fetchAndRenderList() {
+    listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
+    try {
+      const days = rangeSelect?.value ?? 'all';
+      const params = new URLSearchParams({ company: customerName, days });
+      const res = await fetch(`/api/transcripts?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { data } = await res.json();
+      const items = (data || []).filter(i => i.fileType === 'notes');
+
+      if (countBadge) countBadge.textContent = items.length > 0 ? `(${items.length})` : '';
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<p class="quick-ref-msg">No meeting notes in this period.</p>';
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => {
+        const byLabel = item.uploadedBy ? `<span class="qr-notes-item-by">· ${escapeHtml(item.uploadedBy)}</span>` : '';
+        const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
+        return `
+          <div class="qr-notes-item" data-id="${escapeHtml(item.id)}" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">
+            <div class="qr-notes-item-header">
+              <span class="qr-notes-item-date">${escapeHtml(item.meetingDate)}</span>
+              <span class="qr-notes-item-title" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName.replace(/\.txt$|\.md$/i, ''))}</span>
+              ${byLabel}
+              <div class="qr-notes-item-actions">
+                <button class="qr-notes-ai-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Wire per-item AI buttons
+      listEl.querySelectorAll('.qr-notes-ai-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const viewUrl = btn.dataset.viewUrl;
+          const date = btn.dataset.date;
+          const orig = btn.textContent;
+          btn.textContent = 'Fetching…'; btn.disabled = true;
+          try {
+            const r = await fetch(viewUrl);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const content = await r.text();
+            const prompt = `Please analyze these meeting notes for ${customerName} (${date}) and summarize key discussion points, decisions, action items, and any customer concerns:\n\n${content}`;
+            await navigator.clipboard.writeText(prompt);
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+          } catch {
+            btn.textContent = 'Failed';
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+          }
+        });
+      });
+    } catch {
+      listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load notes.</p>';
+    }
+  }
+
+  if (rangeSelect) rangeSelect.addEventListener('change', fetchAndRenderList);
+
+  // Range AI prompt
+  if (aiRangeBtn) {
+    aiRangeBtn.addEventListener('click', async () => {
+      const days = rangeSelect?.value ?? 'all';
+      const orig = aiRangeBtn.textContent;
+      aiRangeBtn.textContent = 'Fetching…'; aiRangeBtn.disabled = true;
+      try {
+        const params = new URLSearchParams({ company: customerName, days });
+        const res = await fetch(`/api/transcripts?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { data } = await res.json();
+        const items = (data || []).filter(i => i.fileType === 'notes');
+        if (items.length === 0) throw new Error('No notes in this range.');
+
+        // Fetch content for each note
+        const contents = await Promise.all(items.map(async item => {
+          const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
+          const r = await fetch(viewUrl);
+          const text = r.ok ? await r.text() : '';
+          return `[${item.meetingDate}] ${item.fileName.replace(/\.txt$|\.md$/i, '')}\n${text}`;
+        }));
+
+        const rangeLabel = days === 'all' ? 'all available' : `last ${days} days of`;
+        const prompt = `Please analyze the following ${rangeLabel} meeting notes for ${customerName}. Provide a summary of key themes, decisions, action items, and any recurring customer concerns:\n\n${contents.join('\n\n---\n\n')}`;
+        await navigator.clipboard.writeText(prompt);
+        aiRangeBtn.textContent = 'Copied!';
+        setTimeout(() => { aiRangeBtn.textContent = orig; aiRangeBtn.disabled = false; }, 2000);
+      } catch (err) {
+        aiRangeBtn.textContent = err.message || 'Failed';
+        setTimeout(() => { aiRangeBtn.textContent = orig; aiRangeBtn.disabled = false; }, 3000);
+      }
+    });
+  }
+
+  // Upload / save
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', async () => {
+      const date  = dateInput?.value;
+      const title = titleInput?.value.trim();
+      const text  = textarea?.value.trim();
+      const file  = fileInput?.files?.[0];
+
+      if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
+      if (!text && !file) { if (statusEl) { statusEl.textContent = 'Enter notes or choose a file.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
+
+      uploadBtn.disabled = true;
+      if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'qr-notes-upload-status'; }
+
+      try {
+        const profile = typeof getProfile === 'function' ? getProfile() : null;
+        const uploadedBy = profile?.email || profile?.name || '';
+
+        let uploadFile;
+        if (file) {
+          uploadFile = file;
+        } else {
+          // Wrap typed text as a .txt file named after the title or date
+          const filename = `${(title || date).replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
+          uploadFile = new File([text], filename, { type: 'text/plain' });
+        }
+
+        const form = new FormData();
+        form.append('company', customerName);
+        form.append('meetingDate', date);
+        form.append('fileType', 'notes');
+        form.append('uploadedBy', uploadedBy);
+        // Use title as filename if provided
+        const finalFilename = title
+          ? `${title.replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`
+          : uploadFile.name;
+        form.append('file', uploadFile, finalFilename);
+
+        const res = await fetch('/api/transcripts', { method: 'POST', body: form });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+        if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-notes-upload-status ok'; }
+        if (textarea) textarea.value = '';
+        if (titleInput) titleInput.value = '';
+        if (fileInput) fileInput.value = '';
+        await fetchAndRenderList();
+      } catch (err) {
+        if (statusEl) { statusEl.textContent = `Failed: ${err.message}`; statusEl.className = 'qr-notes-upload-status err'; }
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    // Auto-populate textarea when file is selected
+    if (fileInput) {
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const text = await file.text();
+        if (textarea) textarea.value = text;
+        if (titleInput && !titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
+      });
+    }
   }
 
   await fetchAndRenderList();

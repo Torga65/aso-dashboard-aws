@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const { data, errors } = await client.models.MeetingTranscript.create({
       companyName: company,
       meetingDate,
-      fileType: "transcript",
+      fileType: fileType === "notes" ? "notes" : "transcript",
       fileName: file.name,
       content,
       uploadedBy,
