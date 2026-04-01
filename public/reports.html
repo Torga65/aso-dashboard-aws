@@ -687,10 +687,6 @@
         <input type="date" id="modal-date"/>
       </div>
       <div class="modal-field">
-        <label>Updated by *</label>
-        <input type="text" id="modal-updatedby" placeholder="Your name or email"/>
-      </div>
-      <div class="modal-field">
         <label>Notes</label>
         <textarea id="modal-notes" placeholder="Optional context about this stage…"></textarea>
       </div>
@@ -713,7 +709,15 @@
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script type="module">
+import { getProfile, onAuthStateChange } from '/scripts/auth/imslib-adapter.js';
+
+/* ── IMS user helper ─────────────────────── */
+function getCurrentUser() {
+  const p = getProfile();
+  return p?.email || p?.displayName || p?.name || 'unknown';
+}
+
 /* ─────────────────────────────────────────────
    Field definitions
 ───────────────────────────────────────────── */
@@ -1263,14 +1267,19 @@ function renderPipeline() {
         ? `<div class="pipeline-empty-stage">No customers</div>`
         : stageRows.map(r => {
             const daysIn = daysSince(r.stageEnteredAt);
-            const migInfo = r.migrationSource
-              ? `<span class="pipeline-card-tag">${escHtml(r.migrationSource)}${r.migrationTech ? ' / ' + escHtml(r.migrationTech) : ''}</span>`
-              : '';
+            // Migration path breakdown: On Prem (AEM / Not AEM) or AMS
+            let migTags = '';
+            if (stage === 'Migration' && r.migrationSource) {
+              migTags += `<span class="pipeline-card-tag" style="background:#fef3c7;color:#92400e;">${escHtml(r.migrationSource)}</span>`;
+              if (r.migrationSource === 'On Prem' && r.migrationTech) {
+                migTags += `<span class="pipeline-card-tag" style="background:#e0f2fe;color:#0369a1;">${escHtml(r.migrationTech)}</span>`;
+              }
+            }
             return `<div class="pipeline-card" data-company="${escHtml(r.companyName)}">
               <div class="pipeline-card-name">${escHtml(r.companyName)}</div>
               <div class="pipeline-card-meta">
                 <span>${daysIn}d in stage</span>
-                ${migInfo}
+                ${migTags}
                 ${r.updatedBy ? `<span class="pipeline-card-tag">${escHtml(r.updatedBy)}</span>` : ''}
               </div>
             </div>`;
@@ -1322,7 +1331,6 @@ function openAddModal() {
   document.getElementById('modal-source-row').style.display = 'none';
   document.getElementById('modal-tech-row').style.display = 'none';
   document.getElementById('modal-date').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('modal-updatedby').value = '';
   document.getElementById('modal-notes').value = '';
   document.getElementById('modal-delete-btn').style.display = 'none';
   document.getElementById('modal-history-section').style.display = 'none';
@@ -1347,7 +1355,6 @@ async function openEditModal(companyName) {
     document.getElementById('modal-source').value = row.migrationSource || '';
     document.getElementById('modal-tech').value = row.migrationTech || '';
     document.getElementById('modal-date').value = row.stageEnteredAt || new Date().toISOString().slice(0, 10);
-    document.getElementById('modal-updatedby').value = '';
     document.getElementById('modal-notes').value = row.notes || '';
   }
   document.getElementById('modal-delete-btn').style.display = 'inline-block';
@@ -1428,10 +1435,10 @@ document.getElementById('modal-save-btn').addEventListener('click', async () => 
   const source   = document.getElementById('modal-source').value || null;
   const tech     = document.getElementById('modal-tech').value || null;
   const date     = document.getElementById('modal-date').value;
-  const updatedBy = document.getElementById('modal-updatedby').value.trim();
+  const updatedBy = getCurrentUser();
   const notes    = document.getElementById('modal-notes').value.trim() || null;
 
-  if (!company || !track || !stage || !date || !updatedBy) {
+  if (!company || !track || !stage || !date) {
     showToast('Please fill in all required fields.');
     return;
   }

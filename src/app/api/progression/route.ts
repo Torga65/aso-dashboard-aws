@@ -36,12 +36,13 @@ export async function PUT(req: NextRequest) {
       updatedBy, notes,
     } = body;
 
-    if (!companyName || !progressionTrack || !progressionStage || !stageEnteredAt || !updatedBy) {
+    if (!companyName || !progressionTrack || !progressionStage || !stageEnteredAt) {
       return NextResponse.json(
-        { error: "companyName, progressionTrack, progressionStage, stageEnteredAt, updatedBy are required" },
+        { error: "companyName, progressionTrack, progressionStage, stageEnteredAt are required" },
         { status: 400 }
       );
     }
+    const resolvedUpdatedBy = updatedBy || "unknown";
 
     const now = new Date().toISOString();
     const client = getServerClient();
@@ -57,7 +58,7 @@ export async function PUT(req: NextRequest) {
       migrationSource: migrationSource ?? null,
       migrationTech:   migrationTech   ?? null,
       stageEnteredAt,
-      updatedBy,
+      updatedBy: resolvedUpdatedBy,
       updatedAt: now,
       notes:     notes ?? null,
     };
@@ -80,7 +81,7 @@ export async function PUT(req: NextRequest) {
       progressionStage,
       migrationSource:  migrationSource ?? null,
       migrationTech:    migrationTech   ?? null,
-      changedBy:        updatedBy,
+      changedBy:        resolvedUpdatedBy,
       notes:            notes ?? null,
     });
 

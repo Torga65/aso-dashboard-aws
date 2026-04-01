@@ -1596,10 +1596,6 @@
         <input type="date" id="qr-prog-date"/>
       </div>
       <div class="qr-prog-field">
-        <label>Updated by *</label>
-        <input type="text" id="qr-prog-updatedby" placeholder="Your name or email"/>
-      </div>
-      <div class="qr-prog-field">
         <label>Notes</label>
         <textarea id="qr-prog-notes" placeholder="Optional context…"></textarea>
       </div>
@@ -1737,9 +1733,8 @@
       document.getElementById('qr-prog-source').value = existing?.migrationSource || '';
       document.getElementById('qr-prog-tech').value   = existing?.migrationTech   || '';
       updateMigRows(existing?.progressionStage || '', existing?.migrationSource || '');
-      document.getElementById('qr-prog-date').value       = existing?.stageEnteredAt || new Date().toISOString().slice(0,10);
-      document.getElementById('qr-prog-updatedby').value  = '';
-      document.getElementById('qr-prog-notes').value      = existing?.notes || '';
+      document.getElementById('qr-prog-date').value  = existing?.stageEnteredAt || new Date().toISOString().slice(0,10);
+      document.getElementById('qr-prog-notes').value = existing?.notes || '';
       document.getElementById('qr-prog-modal').classList.add('open');
     }
 
@@ -1758,10 +1753,11 @@
       const source    = document.getElementById('qr-prog-source').value || null;
       const tech      = document.getElementById('qr-prog-tech').value   || null;
       const date      = document.getElementById('qr-prog-date').value;
-      const updatedBy = document.getElementById('qr-prog-updatedby').value.trim();
+      const p         = (typeof getProfile === 'function') ? getProfile() : null;
+      const updatedBy = p?.email || p?.displayName || p?.name || 'unknown';
       const notes     = document.getElementById('qr-prog-notes').value.trim() || null;
 
-      if (!company || !track || !stage || !date || !updatedBy) {
+      if (!company || !track || !stage || !date) {
         alert('Please fill in all required fields.');
         return;
       }

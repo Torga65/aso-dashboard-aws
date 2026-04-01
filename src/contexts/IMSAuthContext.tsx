@@ -75,13 +75,22 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
   const [imsToken, setImsToken] = useState<string>("");
   const [profile, setProfile] = useState<IMSProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [manualToken, setManualTokenState] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem(MANUAL_TOKEN_KEY) ?? "";
-  });
+  // Always start empty so SSR and the first client render match; hydration
+  // then reads localStorage in an effect (avoids token-in-state mismatch).
+  const [manualToken, setManualTokenState] = useState<string>("");
 
   // Keep a ref so sign-out can access the imslib instance synchronously
   const imsRef = useRef<unknown>(null);
+
+  // Restore manual developer token after mount (client-only)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(MANUAL_TOKEN_KEY) ?? "";
+      if (stored) setManualTokenState(stored);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Initialize imslib (browser only)
   useEffect(() => {
