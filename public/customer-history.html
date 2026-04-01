@@ -165,6 +165,10 @@
     .qr-transcript-item-name { color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .qr-transcript-item-dl { padding: 2px 8px; font-size: 11px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #333; text-decoration: none; white-space: nowrap; }
     .qr-transcript-item-dl:hover { background: #e9ecef; }
+    .qr-transcript-claude-btn { padding: 2px 8px; font-size: 11px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; white-space: nowrap; }
+    .qr-transcript-claude-btn:hover { background: #fde68a; }
+    .qr-transcript-claude-range { padding: 4px 12px; font-size: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; font-weight: 600; }
+    .qr-transcript-claude-range:hover { background: #fde68a; }
     .quick-ref-table { width: 100%; font-size: 12px; border-collapse: collapse; }
     .quick-ref-table th, .quick-ref-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #eee; }
     .quick-ref-table th { background: #e9ecef; font-weight: 600; }
@@ -1094,6 +1098,7 @@
                     <option value="all">All time</option>
                   </select>
                   <button type="button" class="qr-transcript-download-btn">Download all</button>
+                  <button type="button" class="qr-transcript-claude-range">Copy Claude link</button>
                 </div>
                 <div class="qr-transcript-list"></div>
               </details>

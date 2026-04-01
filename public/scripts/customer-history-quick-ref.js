@@ -688,6 +688,7 @@ async function loadCustomerTranscripts(container, customerName) {
   const fileInput = container.querySelector('.qr-transcript-file');
   const dateInput = container.querySelector('.qr-transcript-date');
   const downloadBtns = container.querySelectorAll('.qr-transcript-download-btn');
+  const claudeRangeBtn = container.querySelector('.qr-transcript-claude-range');
 
   if (!listEl) return;
 
@@ -720,13 +721,31 @@ async function loadCustomerTranscripts(container, customerName) {
       listEl.innerHTML = items.map((item) => {
         const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
         const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
+        const viewUrl = `${dlUrl}&view=1`;
         return `
           <div class="qr-transcript-item">
             <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
             <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
             <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
+            <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy Claude link</button>
           </div>`;
       }).join('');
+
+      // Wire per-item Claude link copy buttons
+      listEl.querySelectorAll('.qr-transcript-claude-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const viewUrl = btn.dataset.viewUrl;
+          const date = btn.dataset.date;
+          const origin = window.location.origin;
+          const fullUrl = viewUrl.startsWith('http') ? viewUrl : `${origin}${viewUrl}`;
+          const prompt = `Please analyze this meeting transcript for ${customerName} (${date}): ${fullUrl}`;
+          navigator.clipboard.writeText(prompt).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 2000);
+          });
+        });
+      });
     } catch (err) {
       listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load files.</p>';
     }
@@ -747,6 +766,23 @@ async function loadCustomerTranscripts(container, customerName) {
       a.click();
     });
   });
+
+  // Wire range-level Claude link button
+  if (claudeRangeBtn) {
+    claudeRangeBtn.addEventListener('click', () => {
+      const days = rangeSelect?.value ?? '30';
+      const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&view=1`;
+      const origin = window.location.origin;
+      const fullUrl = `${origin}${viewUrl}`;
+      const rangeLabel = days === 'all' ? 'all available meetings' : `the last ${days} days of meetings`;
+      const prompt = `Please analyze the meeting transcripts for ${customerName} covering ${rangeLabel}: ${fullUrl}`;
+      navigator.clipboard.writeText(prompt).then(() => {
+        const orig = claudeRangeBtn.textContent;
+        claudeRangeBtn.textContent = 'Copied!';
+        setTimeout(() => { claudeRangeBtn.textContent = orig; }, 2000);
+      });
+    });
+  }
 
   // Wire upload button
   if (uploadBtn && fileInput && dateInput) {

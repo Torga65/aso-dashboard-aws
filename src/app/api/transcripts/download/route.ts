@@ -1,9 +1,13 @@
 /**
- * GET /api/transcripts/download?company=&days=30|60|all&id=<single-id>
+ * GET /api/transcripts/download?company=&days=30|60|all&id=<single-id>&view=1
  *
  * Returns a combined VTT file for download.
  * If `id` is provided, returns just that single file.
  * Otherwise returns all transcripts for the date range combined into one VTT.
+ *
+ * ?view=1  — returns plain text/plain with no Content-Disposition header so
+ *            the content renders directly in a browser or can be fetched by
+ *            Claude for analysis (no auth required — uses server API key).
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,6 +18,7 @@ export async function GET(req: NextRequest) {
   const company   = searchParams.get("company")?.trim();
   const daysParam = searchParams.get("days") ?? "30";
   const singleId  = searchParams.get("id")?.trim();
+  const viewMode  = searchParams.get("view") === "1";
 
   if (!company) {
     return NextResponse.json({ error: "company param required" }, { status: 400 });
@@ -29,10 +34,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
       return new NextResponse(data.content, {
-        headers: {
-          "Content-Type": "text/vtt; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${data.fileName}"`,
-        },
+        headers: viewMode
+          ? { "Content-Type": "text/plain; charset=utf-8" }
+          : {
+              "Content-Type": "text/vtt; charset=utf-8",
+              "Content-Disposition": `attachment; filename="${data.fileName}"`,
+            },
       });
     }
 
@@ -82,10 +89,12 @@ export async function GET(req: NextRequest) {
     const filename = `${company.replace(/[^a-z0-9]/gi, "_")}_transcripts_${rangeLabel}.vtt`;
 
     return new NextResponse(combined, {
-      headers: {
-        "Content-Type": "text/vtt; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}"`,
-      },
+      headers: viewMode
+        ? { "Content-Type": "text/plain; charset=utf-8" }
+        : {
+            "Content-Type": "text/vtt; charset=utf-8",
+            "Content-Disposition": `attachment; filename="${filename}"`,
+          },
     });
   } catch (err) {
     console.error("[/api/transcripts/download] error:", err);
