@@ -187,6 +187,31 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.publicApiKey(),
     ]),
+
+  /**
+   * SnowComment
+   *
+   * Individual comment entries parsed from the ServiceNow u_comments field.
+   * One row per comment entry per customer. Keyed by (companyName, commentDate)
+   * so re-ingestion is idempotent.
+   *
+   * commentDate: raw "YYYY-MM-DD HH:MM:SS" string from the comment header.
+   */
+  SnowComment: a
+    .model({
+      companyName: a.string().required(),
+      commentDate: a.string().required(), // "2025-10-07 12:01:17"
+      author: a.string(),
+      body: a.string(),
+      ingestedAt: a.datetime().required(),
+    })
+    .identifier(["companyName", "commentDate"])
+    .secondaryIndexes((index) => [
+      index("companyName").sortKeys(["commentDate"]),
+    ])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

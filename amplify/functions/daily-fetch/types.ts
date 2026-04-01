@@ -100,6 +100,13 @@ export interface SyncStats {
   errors: Array<{ companyName: string; week: string; reason: string }>;
 }
 
+export interface ParsedComment {
+  companyName: string;
+  commentDate: string;
+  author: string;
+  body: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Structured logger — writes JSON to stdout (CloudWatch Logs Insights friendly)
 // ─────────────────────────────────────────────────────────────────────────────

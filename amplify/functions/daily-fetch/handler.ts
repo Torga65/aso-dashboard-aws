@@ -11,8 +11,10 @@ import {
   closeSyncJob,
   writeSnapshots,
   upsertWeeklySummary,
+  writeComments,
 } from "./persistence";
 import { Logger } from "./types";
+import { parseComments } from "./comment-parser";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Handler
@@ -131,6 +133,16 @@ export const handler: Handler<
         errors: stats.errors.slice(0, 10),
         additionalErrors: Math.max(0, stats.errors.length - 10),
       });
+    }
+
+    // ── 3b. Parse and persist ServiceNow comments ────────────────────────────
+    const allComments = normalized.flatMap((snap) =>
+      parseComments(snap.companyName, snap.comments ?? "")
+    );
+    if (allComments.length > 0) {
+      jobLogger.info("Writing ServiceNow comments", { commentCount: allComments.length });
+      const commentStats = await writeComments(client, allComments, ingestedAt, jobLogger);
+      jobLogger.info("Comment write complete", commentStats);
     }
 
     // ── 4. Persist weekly summary ────────────────────────────────────────────

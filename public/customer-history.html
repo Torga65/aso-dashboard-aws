@@ -131,6 +131,14 @@
     .quick-ref-disabled-details .quick-ref-disabled-audits { margin-top: 8px; }
     .qr-summary-count { margin-left: auto; background: #667eea; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; padding: 2px 7px; border-radius: 10px; min-width: 18px; text-align: center; }
     .quick-ref-disabled-details[open] .qr-summary-count { opacity: 0.4; }
+    .quick-ref-box--comments { grid-column: 1 / -1; }
+    .quick-ref-comments-controls { margin: 6px 0 8px; }
+    .quick-ref-comments-controls select { font-size: 12px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-comment-entry { border-bottom: 1px solid #f0f0f0; padding: 10px 0; }
+    .qr-comment-entry:last-child { border-bottom: none; }
+    .qr-comment-meta { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .qr-comment-meta strong { color: #555; }
+    .qr-comment-body { font-size: 12px; color: #333; white-space: pre-wrap; line-height: 1.5; }
     .quick-ref-table { width: 100%; font-size: 12px; border-collapse: collapse; }
     .quick-ref-table th, .quick-ref-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #eee; }
     .quick-ref-table th { background: #e9ecef; font-weight: 600; }
@@ -1028,6 +1036,20 @@
                 <div class="quick-ref-users"></div>
               </details>
             </div>
+            <div class="quick-ref-box quick-ref-box--comments">
+              <details class="quick-ref-disabled-details" open>
+                <summary>ServiceNow comments <span class="qr-summary-count"></span></summary>
+                <div class="quick-ref-comments-controls">
+                  <select class="quick-ref-comments-range">
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="60">Last 60 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                </div>
+                <div class="quick-ref-comments"></div>
+              </details>
+            </div>
           </div>
         </div>
       `;
@@ -1226,6 +1248,20 @@
                   <details class="quick-ref-disabled-details" open>
                     <summary>Users signed in</summary>
                     <div class="quick-ref-users"></div>
+                  </details>
+                </div>
+                <div class="quick-ref-box quick-ref-box--comments">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>ServiceNow comments <span class="qr-summary-count"></span></summary>
+                    <div class="quick-ref-comments-controls">
+                      <select class="quick-ref-comments-range">
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="60">Last 60 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="all">All time</option>
+                      </select>
+                    </div>
+                    <div class="quick-ref-comments"></div>
                   </details>
                 </div>
               </div>

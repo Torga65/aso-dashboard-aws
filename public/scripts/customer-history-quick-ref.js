@@ -602,6 +602,10 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     }
 
     renderSiteDropdown(container, customerName, sites, currentSiteId);
+
+    // Load ServiceNow comments (independent of SpaceCat — fetched from our own DB)
+    loadCustomerComments(container, customerName);
+
     wireRefreshButton(container, customerName);
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -611,6 +615,58 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     if (usersEl) usersEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load users.</p>';
     showAutofixEditButtons(container, false, false);
     wireRefreshButton(container, customerName);
+  }
+}
+
+/**
+ * Load and render ServiceNow comments for a customer.
+ * Wires the time-range selector to re-fetch on change.
+ */
+async function loadCustomerComments(container, customerName) {
+  const commentsEl = container.querySelector('.quick-ref-comments');
+  const rangeSelect = container.querySelector('.quick-ref-comments-range');
+  if (!commentsEl) return;
+
+  async function fetchAndRender(days) {
+    commentsEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
+    try {
+      const params = new URLSearchParams({ company: customerName, days: String(days) });
+      const res = await fetch(`/api/comments?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { data } = await res.json();
+      const comments = data || [];
+
+      // Update count badge on summary
+      const summary = commentsEl.closest('details')?.querySelector('summary');
+      const badge = summary?.querySelector('.qr-summary-count');
+      if (badge) badge.textContent = comments.length > 0 ? `(${comments.length})` : '';
+
+      if (comments.length === 0) {
+        commentsEl.innerHTML = '<p class="quick-ref-msg">No comments in this period.</p>';
+        return;
+      }
+
+      commentsEl.innerHTML = comments.map((c) => {
+        const dateLabel = c.commentDate || '';
+        const author = c.author ? escapeHtml(c.author) : '';
+        const body = c.body ? escapeHtml(c.body) : '';
+        return `
+          <div class="qr-comment-entry">
+            <div class="qr-comment-meta">
+              <strong>${dateLabel}</strong>${author ? ` &mdash; ${author}` : ''}
+            </div>
+            <div class="qr-comment-body">${body}</div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      commentsEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load comments.</p>';
+    }
+  }
+
+  await fetchAndRender(rangeSelect?.value ?? '30');
+
+  if (rangeSelect) {
+    rangeSelect.addEventListener('change', () => fetchAndRender(rangeSelect.value));
   }
 }
 

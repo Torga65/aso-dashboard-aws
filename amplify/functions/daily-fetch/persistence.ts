@@ -6,6 +6,7 @@ import type {
   SyncStats,
   Logger,
 } from "./types";
+import type { ParsedComment } from "./comment-parser";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GraphQL documents
@@ -79,6 +80,24 @@ const UPDATE_WEEKLY_SUMMARY = /* GraphQL */ `
   }
 `;
 
+const GET_SNOW_COMMENT = /* GraphQL */ `
+  query GetSnowComment($companyName: String!, $commentDate: String!) {
+    getSnowComment(companyName: $companyName, commentDate: $commentDate) {
+      companyName
+      commentDate
+    }
+  }
+`;
+
+const CREATE_SNOW_COMMENT = /* GraphQL */ `
+  mutation CreateSnowComment($input: CreateSnowCommentInput!) {
+    createSnowComment(input: $input) {
+      companyName
+      commentDate
+    }
+  }
+`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Response shapes (only the fields we select)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,6 +110,11 @@ interface SnapshotKey {
 
 interface SyncJobId {
   id: string;
+}
+
+interface CommentKey {
+  companyName: string;
+  commentDate: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -293,6 +317,67 @@ export async function upsertWeeklySummary(
       log.error("WeeklySummary.update failed", undefined, { errors: updateResult.errors });
     }
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Snow comment persistence
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function upsertComment(
+  client: AppSyncClient,
+  comment: ParsedComment & { ingestedAt: string },
+  logger: Logger
+): Promise<"created" | "skipped"> {
+  const key = { companyName: comment.companyName, commentDate: comment.commentDate };
+
+  const getResult = await client.request<{ getSnowComment: CommentKey | null }>(
+    GET_SNOW_COMMENT,
+    key
+  );
+
+  if (getResult.data?.getSnowComment) return "skipped";
+
+  const createResult = await client.request<{ createSnowComment: CommentKey }>(
+    CREATE_SNOW_COMMENT,
+    { input: comment }
+  );
+
+  if (createResult.errors?.length) {
+    const msg = createResult.errors.map((e) => e.message).join(", ");
+    if (msg.includes("conditional request failed")) return "skipped";
+    throw new Error(`SnowComment.create failed: ${msg}`);
+  }
+
+  return "created";
+}
+
+export async function writeComments(
+  client: AppSyncClient,
+  comments: ParsedComment[],
+  ingestedAt: string,
+  logger: Logger,
+  concurrency = 20
+): Promise<{ created: number; skipped: number; failed: number }> {
+  const stats = { created: 0, skipped: 0, failed: 0 };
+  if (comments.length === 0) return stats;
+
+  const withTs = comments.map((c) => ({ ...c, ingestedAt }));
+
+  const results = await batchProcess(
+    withTs,
+    (c) => upsertComment(client, c, logger),
+    concurrency
+  );
+
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      stats[r.value]++;
+    } else {
+      stats.failed++;
+    }
+  }
+
+  return stats;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
