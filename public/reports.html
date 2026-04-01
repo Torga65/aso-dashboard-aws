@@ -1100,14 +1100,14 @@ function buildCard(c) {
   return '<div class="pl-card" id="card-' + esc(c.companyName) + '">' +
     '<div class="pl-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
     '<div class="pl-card-tags">' + tags + '</div>' +
-    '<button class="pl-edit-btn" onclick="plOpenForm('' + esc(c.companyName).replace(/'/g,"\'") + '')">Edit</button>' +
+    '<button class="pl-edit-btn" onclick="plOpenForm(\'' + esc(c.companyName).replace(/'/g,"&#39;") + '\')">Edit</button>' +
     '</div>';
 }
 
 function buildUnsetCard(c) {
   return '<div class="pl-unset-card" id="card-' + esc(c.companyName) + '">' +
     '<div class="pl-unset-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
-    '<button class="pl-edit-btn" onclick="plOpenForm('' + esc(c.companyName).replace(/'/g,"\'") + '')">Set stage</button>' +
+    '<button class="pl-edit-btn" onclick="plOpenForm(\'' + esc(c.companyName).replace(/'/g,"&#39;") + '\')">Set stage</button>' +
     '</div>';
 }
 
@@ -1134,22 +1134,22 @@ window.plOpenForm = function(companyName) {
   var techVis   = (stage === 'Migration' && source === 'On Prem') ? '' : 'display:none;';
 
   var removeBtn = existing
-    ? '<button class="pl-form-remove" onclick="plRemove('' + esc(companyName).replace(/'/g,"\'") + '')">Remove from pipeline</button>'
+    ? '<button class="pl-form-remove" onclick="plRemove(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">Remove from pipeline</button>'
     : '';
 
   var formHtml = '<div class="pl-form" id="form-' + esc(companyName) + '">' +
     '<div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">' + esc(companyName) + '</div>' +
     '<div class="pl-form-row">' +
       '<div class="pl-form-field"><label>Track</label>' +
-        '<select id="pf-track-' + esc(companyName) + '" onchange="plTrackChange('' + esc(companyName).replace(/'/g,"\'") + '')">' +
+        '<select id="pf-track-' + esc(companyName) + '" onchange="plTrackChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' +
           '<option value="">-- select --</option>' +
           '<option value="Moving"'  + (track==='Moving'  ?' selected':'') + '>Moving</option>' +
           '<option value="On Hold"' + (track==='On Hold' ?' selected':'') + '>On Hold</option>' +
         '</select></div>' +
       '<div class="pl-form-field"><label>Stage</label>' +
-        '<select id="pf-stage-' + esc(companyName) + '" onchange="plStageChange('' + esc(companyName).replace(/'/g,"\'") + '')">' + stageOpts + '</select></div>' +
+        '<select id="pf-stage-' + esc(companyName) + '" onchange="plStageChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' + stageOpts + '</select></div>' +
       '<div class="pl-form-field" id="pf-source-wrap-' + esc(companyName) + '" style="' + sourceVis + '"><label>Migration source</label>' +
-        '<select id="pf-source-' + esc(companyName) + '" onchange="plSourceChange('' + esc(companyName).replace(/'/g,"\'") + '')">' +
+        '<select id="pf-source-' + esc(companyName) + '" onchange="plSourceChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' +
           '<option value="">-- select --</option>' +
           '<option value="On Prem"' + (source==='On Prem'?' selected':'') + '>On Prem</option>' +
           '<option value="AMS"'     + (source==='AMS'    ?' selected':'') + '>AMS</option>' +
@@ -1165,8 +1165,8 @@ window.plOpenForm = function(companyName) {
     '</div>' +
     '<div class="pl-form-actions">' +
       removeBtn +
-      '<button class="pl-form-cancel" onclick="plCloseForm('' + esc(companyName).replace(/'/g,"\'") + '')">Cancel</button>' +
-      '<button class="pl-form-save" id="pf-save-' + esc(companyName) + '" onclick="plSave('' + esc(companyName).replace(/'/g,"\'") + '')">Save</button>' +
+      '<button class="pl-form-cancel" onclick="plCloseForm(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">Cancel</button>' +
+      '<button class="pl-form-save" id="pf-save-' + esc(companyName) + '" onclick="plSave(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">Save</button>' +
     '</div>' +
     '</div>';
 
