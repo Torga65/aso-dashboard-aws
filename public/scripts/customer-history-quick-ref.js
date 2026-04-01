@@ -500,16 +500,10 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     }
 
     if (disabledAuditsEl) {
-      // disabledAudits entries are objects { auditType, status, autoFix, opportunityId }
-      const filteredDisabled = disabledAudits.filter((t) => {
-        const type = (typeof t === 'string' ? t : t?.auditType) || '';
-        const lc = type.toLowerCase();
-        return !lc.includes('llmo') && !lc.startsWith('geo-brand-presence-free');
-      });
-      if (filteredDisabled.length === 0) {
+      if (disabledAudits.length === 0) {
         disabledAuditsEl.innerHTML = '<p class="quick-ref-msg">No disabled audits for this site.</p>';
       } else {
-        const items = filteredDisabled
+        const items = disabledAudits
           .map((t) => {
             const type = (typeof t === 'string' ? t : t?.auditType) || '';
             return `<li>${escapeHtml(type.replace(/-/g, ' '))}</li>`;
@@ -517,7 +511,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
           .join('');
         disabledAuditsEl.innerHTML = `<ul class="quick-ref-list" style="margin:0;padding-left:18px;">${items}</ul>`;
       }
-      setDetailsCount(disabledAuditsEl.closest('details'), filteredDisabled.length);
+      setDetailsCount(disabledAuditsEl.closest('details'), disabledAudits.length);
     }
 
     if (pendingEl) {

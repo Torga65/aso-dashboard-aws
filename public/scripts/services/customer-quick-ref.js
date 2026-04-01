@@ -5,7 +5,7 @@
  * quick-reference panel. Used by customer-history-quick-ref.js.
  */
 
-import { ASO_ENDPOINTS, ASO_OPPORTUNITY_TYPES } from '../constants/api.js';
+import { ASO_ENDPOINTS } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
 
@@ -139,8 +139,6 @@ async function fetchAuditStatusForSite(siteId, orgId, token) {
     const disabled = [];
 
     Object.entries(handlers).forEach(([auditType, handler]) => {
-      // Only include ASO audit types in the enabled/disabled panel
-      if (!ASO_OPPORTUNITY_TYPES.includes(auditType)) return;
       if (!handler || typeof handler !== 'object') return;
 
       // Use Array.isArray guards — the API may return non-array values (e.g. false)
@@ -197,8 +195,6 @@ async function fetchAudits(siteId, orgId, token) {
 
   await Promise.all(opportunities.map(async (opp) => {
     const auditType = opp.type || opp.opportunityType || 'unknown';
-    // Only show ASO audit types in the panel
-    if (!ASO_OPPORTUNITY_TYPES.includes(auditType)) return;
     const status = (opp.status || '').toUpperCase();
     const autoFix = opp.autoFix === true || opp.autoFix === 'Yes' ? 'Yes' : 'No';
 
