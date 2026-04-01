@@ -654,7 +654,7 @@
       </div>
       <div class="modal-field">
         <label>Track *</label>
-        <select id="modal-track">
+        <select id="modal-track" onchange="onModalTrackChange(this.value)">
           <option value="">-- select --</option>
           <option value="Moving">Moving</option>
           <option value="On Hold">On Hold</option>
@@ -662,20 +662,20 @@
       </div>
       <div class="modal-field">
         <label>Stage *</label>
-        <select id="modal-stage">
+        <select id="modal-stage" onchange="onModalStageChange(this.value)">
           <option value="">-- select track first --</option>
         </select>
       </div>
       <div class="modal-field" id="modal-source-row" style="display:none;">
         <label>Migration Source *</label>
-        <select id="modal-source">
+        <select id="modal-source" onchange="onModalSourceChange(this.value)">
           <option value="">-- select --</option>
           <option value="On Prem">On Prem</option>
           <option value="AMS">AMS</option>
         </select>
       </div>
       <div class="modal-field" id="modal-tech-row" style="display:none;">
-        <label>Migration Tech *</label>
+        <label>Migration Tech (On Prem only) *</label>
         <select id="modal-tech">
           <option value="">-- select --</option>
           <option value="AEM">AEM</option>
@@ -1182,26 +1182,33 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 async function loadPipelineData(force = false) {
   if (pipelineRows !== null && !force) return;
   const statusEl = document.getElementById('pipeline-load-status');
+  const boardEl  = document.getElementById('pipeline-board');
   statusEl.textContent = 'Loading…';
+  boardEl.innerHTML = '<div style="padding:20px;text-align:center;color:#888;font-size:13px;">Fetching pipeline data…</div>';
+
+  let rawText = '';
   try {
     const res = await fetch('/api/progression/all');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
+    rawText = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 200)}`);
+    const json = JSON.parse(rawText);
     if (json.error) throw new Error(json.error);
     pipelineRows = json.data || [];
 
-    // Build customer name list for autocomplete (merge pipeline names + snapshot names)
-    const custData = allData || [];
-    const custNames = custData.map(c => c.companyName);
+    const custNames = (allData || []).map(c => c.companyName);
     const progNames = pipelineRows.map(p => p.companyName);
     allCustomerNames = [...new Set([...custNames, ...progNames])].sort((a, b) => a.localeCompare(b));
 
     statusEl.textContent = `${pipelineRows.length} customer${pipelineRows.length !== 1 ? 's' : ''} tracked`;
     renderPipeline();
   } catch (err) {
-    document.getElementById('pipeline-board').innerHTML =
-      `<div style="padding:30px;text-align:center;color:#c00;">Failed to load pipeline: ${escHtml(err.message)}</div>`;
-    document.getElementById('pipeline-load-status').textContent = 'Load failed — click Refresh to retry';
+    boardEl.innerHTML = `<div style="padding:20px;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;font-size:12px;color:#991b1b;">
+      <strong>Pipeline load error:</strong> ${escHtml(err.message)}<br>
+      <em style="color:#999;">Raw response: ${escHtml(rawText.slice(0, 300))}</em><br>
+      <button onclick="loadPipelineData(true)" style="margin-top:8px;padding:4px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Retry</button>
+    </div>`;
+    statusEl.textContent = '';
+    console.error('[pipeline]', err.message, rawText);
   }
 }
 
@@ -1301,28 +1308,49 @@ function renderPipeline() {
    MODAL
 ═══════════════════════════════════════════════════════════ */
 
-function syncModalMigrationFields() {
+function applyMigrationVisibility() {
   const stage  = document.getElementById('modal-stage').value;
   const source = document.getElementById('modal-source').value;
-  const showSource = stage === 'Migration';
-  const showTech   = showSource && source === 'On Prem';
+  const showSource = (stage === 'Migration');
+  const showTech   = showSource && (source === 'On Prem');
   document.getElementById('modal-source-row').style.display = showSource ? 'block' : 'none';
   document.getElementById('modal-tech-row').style.display   = showTech   ? 'block' : 'none';
-  if (!showSource) {
+}
+
+// Called by onchange attributes in HTML (must be on window for module scope)
+window.onModalTrackChange = function(track) {
+  const stages = TRACK_STAGES[track] || [];
+  const sel = document.getElementById('modal-stage');
+  sel.innerHTML = stages.length
+    ? `<option value="">-- select stage --</option>` +
+      stages.map(s => `<option value="${s}">${s}</option>`).join('')
+    : `<option value="">-- select track first --</option>`;
+  document.getElementById('modal-source').value = '';
+  document.getElementById('modal-tech').value   = '';
+  applyMigrationVisibility();
+};
+
+window.onModalStageChange = function(stage) {
+  if (stage !== 'Migration') {
     document.getElementById('modal-source').value = '';
     document.getElementById('modal-tech').value   = '';
   }
-  if (!showTech) {
+  applyMigrationVisibility();
+};
+
+window.onModalSourceChange = function(source) {
+  if (source !== 'On Prem') {
     document.getElementById('modal-tech').value = '';
   }
-}
+  applyMigrationVisibility();
+};
 
 function setStageOptions(track, selectedStage) {
   const stages = TRACK_STAGES[track] || [];
   const sel = document.getElementById('modal-stage');
   sel.innerHTML = stages.length
     ? `<option value="">-- select stage --</option>` +
-      stages.map(s => `<option value="${escHtml(s)}"${s === selectedStage ? ' selected' : ''}>${escHtml(s)}</option>`).join('')
+      stages.map(s => `<option value="${s}"${s === selectedStage ? ' selected' : ''}>${s}</option>`).join('')
     : `<option value="">-- select track first --</option>`;
 }
 
@@ -1341,7 +1369,7 @@ function openAddModal() {
   document.getElementById('modal-delete-btn').style.display   = 'none';
   document.getElementById('modal-history-section').style.display = 'none';
   document.getElementById('modal-history-list').innerHTML = '';
-  syncModalMigrationFields();
+  applyMigrationVisibility();
   openModal();
 }
 
@@ -1362,7 +1390,7 @@ async function openEditModal(companyName) {
   document.getElementById('modal-delete-btn').style.display   = 'inline-block';
   document.getElementById('modal-history-section').style.display = 'block';
   document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">Loading history…</em>';
-  syncModalMigrationFields();
+  applyMigrationVisibility();
   openModal();
 
   try {
@@ -1396,19 +1424,8 @@ document.getElementById('progression-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('progression-modal')) closeModal();
 });
 
-// Track change → rebuild stage options + hide migration fields
-document.getElementById('modal-track').addEventListener('change', e => {
-  setStageOptions(e.target.value, '');
-  document.getElementById('modal-source').value = '';
-  document.getElementById('modal-tech').value   = '';
-  syncModalMigrationFields();
-});
-
-// Stage change → show/hide migration fields
-document.getElementById('modal-stage').addEventListener('change', () => syncModalMigrationFields());
-
-// Source change → show/hide tech field
-document.getElementById('modal-source').addEventListener('change', () => syncModalMigrationFields());
+// Migration field visibility is handled by onchange= attributes directly in HTML
+// (window.onModalTrackChange / onModalStageChange / onModalSourceChange above)
 
 /* Save */
 document.getElementById('modal-save-btn').addEventListener('click', async () => {
