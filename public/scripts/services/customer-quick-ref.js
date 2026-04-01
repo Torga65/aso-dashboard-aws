@@ -5,7 +5,7 @@
  * quick-reference panel. Used by customer-history-quick-ref.js.
  */
 
-import { ASO_ENDPOINTS } from '../constants/api.js';
+import { ASO_ENDPOINTS, ASO_OPPORTUNITY_TYPES } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
 
@@ -139,9 +139,8 @@ async function fetchAuditStatusForSite(siteId, orgId, token) {
     const disabled = [];
 
     Object.entries(handlers).forEach(([auditType, handler]) => {
-      const lc = auditType.toLowerCase();
-      // Skip LLMO and free geo-brand-presence audits — not shown in ASO panel
-      if (lc.includes('llmo') || lc.startsWith('geo-brand-presence-free')) return;
+      // Only include ASO audit types in the enabled/disabled panel
+      if (!ASO_OPPORTUNITY_TYPES.includes(auditType)) return;
       if (!handler || typeof handler !== 'object') return;
 
       // Use Array.isArray guards — the API may return non-array values (e.g. false)

@@ -727,23 +727,30 @@ async function loadCustomerTranscripts(container, customerName) {
             <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
             <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
             <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
-            <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy Claude link</button>
+            <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
           </div>`;
       }).join('');
 
       // Wire per-item Claude link copy buttons
       listEl.querySelectorAll('.qr-transcript-claude-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const viewUrl = btn.dataset.viewUrl;
           const date = btn.dataset.date;
-          const origin = window.location.origin;
-          const fullUrl = viewUrl.startsWith('http') ? viewUrl : `${origin}${viewUrl}`;
-          const prompt = `Please analyze this meeting transcript for ${customerName} (${date}): ${fullUrl}`;
-          navigator.clipboard.writeText(prompt).then(() => {
-            const orig = btn.textContent;
+          const orig = btn.textContent;
+          btn.textContent = 'Fetching…';
+          btn.disabled = true;
+          try {
+            const res = await fetch(viewUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const content = await res.text();
+            const prompt = `Please analyze this meeting transcript for ${customerName} (${date}):\n\n${content}`;
+            await navigator.clipboard.writeText(prompt);
             btn.textContent = 'Copied!';
-            setTimeout(() => { btn.textContent = orig; }, 2000);
-          });
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+          } catch (err) {
+            btn.textContent = 'Failed';
+            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+          }
         });
       });
     } catch (err) {
@@ -767,20 +774,27 @@ async function loadCustomerTranscripts(container, customerName) {
     });
   });
 
-  // Wire range-level Claude link button
+  // Wire range-level AI prompt button — fetches all transcripts in range and embeds inline
   if (claudeRangeBtn) {
-    claudeRangeBtn.addEventListener('click', () => {
-      const days = rangeSelect?.value ?? '30';
+    claudeRangeBtn.addEventListener('click', async () => {
+      const days = rangeSelect?.value ?? 'all';
       const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&view=1`;
-      const origin = window.location.origin;
-      const fullUrl = `${origin}${viewUrl}`;
-      const rangeLabel = days === 'all' ? 'all available meetings' : `the last ${days} days of meetings`;
-      const prompt = `Please analyze the meeting transcripts for ${customerName} covering ${rangeLabel}: ${fullUrl}`;
-      navigator.clipboard.writeText(prompt).then(() => {
-        const orig = claudeRangeBtn.textContent;
+      const orig = claudeRangeBtn.textContent;
+      claudeRangeBtn.textContent = 'Fetching…';
+      claudeRangeBtn.disabled = true;
+      try {
+        const res = await fetch(viewUrl);
+        if (!res.ok) throw new Error(res.status === 404 ? 'No transcripts in this range.' : `HTTP ${res.status}`);
+        const content = await res.text();
+        const rangeLabel = days === 'all' ? 'all available meetings' : `the last ${days} days of meetings`;
+        const prompt = `Please analyze the meeting transcripts for ${customerName} covering ${rangeLabel}. Provide a summary of key topics discussed, action items, attendees, and any customer concerns or feedback.\n\n${content}`;
+        await navigator.clipboard.writeText(prompt);
         claudeRangeBtn.textContent = 'Copied!';
-        setTimeout(() => { claudeRangeBtn.textContent = orig; }, 2000);
-      });
+        setTimeout(() => { claudeRangeBtn.textContent = orig; claudeRangeBtn.disabled = false; }, 2000);
+      } catch (err) {
+        claudeRangeBtn.textContent = err.message || 'Failed';
+        setTimeout(() => { claudeRangeBtn.textContent = orig; claudeRangeBtn.disabled = false; }, 3000);
+      }
     });
   }
 
