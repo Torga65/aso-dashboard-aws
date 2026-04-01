@@ -1144,17 +1144,27 @@ function showToast(msg) {
 }
 
 /* ─────────────────────────────────────────────
-   Init
+   Init (customer data only — pipeline init is at
+   the bottom AFTER all pipeline vars are declared)
 ───────────────────────────────────────────── */
 buildFieldSelector();
-
-// Pre-load both datasets in background
 loadData().catch(() => {});
-loadPipelineData().catch(() => {});
 
 /* ═══════════════════════════════════════════════════════════
-   TAB SWITCHING
+   PIPELINE — variables declared first so init call at the
+   bottom of the script can reference them without TDZ errors
 ═══════════════════════════════════════════════════════════ */
+
+const MOVING_STAGES = ['Prod', 'POC', 'Preprod'];
+const ONHOLD_STAGES = ['Future Date', 'Migration'];
+const TRACK_STAGES  = { 'Moving': MOVING_STAGES, 'On Hold': ONHOLD_STAGES };
+
+let pipelineRows     = null;  // CustomerProgression[] from API
+let allCustomerNames = [];    // string[] for company autocomplete
+let modalMode        = 'add'; // 'add' | 'edit'
+let modalOrigCompany = null;
+
+/* ── Tab switching ── */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1162,23 +1172,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'pipeline') {
-      // Re-render if already loaded; fetch if not yet (e.g. error on init)
       if (pipelineRows !== null) renderPipeline();
       else loadPipelineData();
     }
   });
 });
-
-/* ═══════════════════════════════════════════════════════════
-   PIPELINE VIEW
-═══════════════════════════════════════════════════════════ */
-
-const MOVING_STAGES  = ['Prod', 'POC', 'Preprod'];
-const ONHOLD_STAGES  = ['Future Date', 'Migration'];
-const TRACK_STAGES   = { 'Moving': MOVING_STAGES, 'On Hold': ONHOLD_STAGES };
-
-let pipelineRows   = null;   // CustomerProgression[] from API
-let allCustomerNames = [];   // string[] for company autocomplete
 
 /* ── Fetch ── */
 async function loadPipelineData(force = false) {
@@ -1186,25 +1184,24 @@ async function loadPipelineData(force = false) {
   const statusEl = document.getElementById('pipeline-load-status');
   statusEl.textContent = 'Loading…';
   try {
-    const [progRes, custRes] = await Promise.all([
-      fetch('/api/progression/all'),
-      loadData().catch(() => []),
-    ]);
-    if (!progRes.ok) throw new Error(`HTTP ${progRes.status}`);
-    const progJson = await progRes.json();
-    pipelineRows = progJson.data || [];
+    const res = await fetch('/api/progression/all');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    pipelineRows = json.data || [];
 
-    // Build customer name list for autocomplete
-    const custNames = (Array.isArray(custRes) ? custRes : []).map(c => c.companyName);
+    // Build customer name list for autocomplete (merge pipeline names + snapshot names)
+    const custData = allData || [];
+    const custNames = custData.map(c => c.companyName);
     const progNames = pipelineRows.map(p => p.companyName);
-    allCustomerNames = [...new Set([...custNames, ...progNames])].sort();
+    allCustomerNames = [...new Set([...custNames, ...progNames])].sort((a, b) => a.localeCompare(b));
 
     statusEl.textContent = `${pipelineRows.length} customer${pipelineRows.length !== 1 ? 's' : ''} tracked`;
     renderPipeline();
   } catch (err) {
     document.getElementById('pipeline-board').innerHTML =
-      `<div style="padding:30px;text-align:center;color:#c00;">Error: ${escHtml(err.message)}</div>`;
-    statusEl.textContent = '';
+      `<div style="padding:30px;text-align:center;color:#c00;">Failed to load pipeline: ${escHtml(err.message)}</div>`;
+    document.getElementById('pipeline-load-status').textContent = 'Load failed — click Refresh to retry';
   }
 }
 
@@ -1212,32 +1209,32 @@ document.getElementById('pipeline-refresh-btn').addEventListener('click', () => 
   pipelineRows = null;
   loadPipelineData(true);
 });
-
-/* ── Search filter ── */
 document.getElementById('pipeline-search').addEventListener('input', () => {
   if (pipelineRows !== null) renderPipeline();
 });
 
 /* ── Render board ── */
+function daysSince(dateStr) {
+  if (!dateStr) return '?';
+  return Math.floor((Date.now() - new Date(dateStr)) / 864e5);
+}
+
 function renderPipeline() {
   const searchVal = document.getElementById('pipeline-search').value.trim().toLowerCase();
-  const rows = searchVal
+  const rows = (searchVal
     ? pipelineRows.filter(r => r.companyName.toLowerCase().includes(searchVal))
-    : pipelineRows;
+    : pipelineRows).filter(Boolean);
 
   // Summary bar
   const summaryEl = document.getElementById('pipeline-summary');
-  const movingCount = rows.filter(r => r.progressionTrack === 'Moving').length;
-  const onholdCount = rows.filter(r => r.progressionTrack === 'On Hold').length;
   summaryEl.style.display = 'flex';
   summaryEl.innerHTML = [
-    { num: rows.length, lbl: 'Total in pipeline' },
-    { num: movingCount, lbl: 'Moving' },
-    { num: onholdCount, lbl: 'On Hold' },
+    { num: rows.length,                                              lbl: 'Total' },
+    { num: rows.filter(r => r.progressionTrack === 'Moving').length, lbl: 'Moving' },
+    { num: rows.filter(r => r.progressionTrack === 'On Hold').length,lbl: 'On Hold' },
     ...MOVING_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
     ...ONHOLD_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
-  ].map(item => `
-    <div class="pipeline-summary-item">
+  ].map(item => `<div class="pipeline-summary-item">
       <span class="ps-num">${item.num}</span>
       <span class="ps-lbl">${escHtml(item.lbl)}</span>
     </div>`).join('');
@@ -1250,30 +1247,26 @@ function renderPipeline() {
     { track: 'On Hold', cssClass: 'track-onhold', stages: ONHOLD_STAGES },
   ].forEach(({ track, cssClass, stages }) => {
     const trackRows = rows.filter(r => r.progressionTrack === track);
-    const trackEl = document.createElement('div');
+    const trackEl   = document.createElement('div');
     trackEl.className = `pipeline-track ${cssClass}`;
-    const headerCount = trackRows.length;
-    trackEl.innerHTML = `
-      <div class="pipeline-track-header">
-        ${escHtml(track)}
-        <span style="font-size:13px;font-weight:400;opacity:0.7;">${headerCount} customer${headerCount !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="pipeline-stages" id="stages-${cssClass}"></div>
-    `;
 
-    const stagesContainer = trackEl.querySelector(`#stages-${cssClass}`);
+    const stagesWrap = document.createElement('div');
+    stagesWrap.className = 'pipeline-stages';
+
     stages.forEach(stage => {
       const stageRows = trackRows.filter(r => r.progressionStage === stage);
-      const stageEl = document.createElement('div');
+      const stageEl   = document.createElement('div');
       stageEl.className = 'pipeline-stage';
-      const cards = stageRows.length === 0
+
+      const cardHtml = stageRows.length === 0
         ? `<div class="pipeline-empty-stage">No customers</div>`
         : stageRows.map(r => {
             const daysIn = daysSince(r.stageEnteredAt);
-            // Migration path breakdown: On Prem (AEM / Not AEM) or AMS
             let migTags = '';
-            if (stage === 'Migration' && r.migrationSource) {
-              migTags += `<span class="pipeline-card-tag" style="background:#fef3c7;color:#92400e;">${escHtml(r.migrationSource)}</span>`;
+            if (r.progressionStage === 'Migration') {
+              if (r.migrationSource) {
+                migTags += `<span class="pipeline-card-tag" style="background:#fef3c7;color:#92400e;">${escHtml(r.migrationSource)}</span>`;
+              }
               if (r.migrationSource === 'On Prem' && r.migrationTech) {
                 migTags += `<span class="pipeline-card-tag" style="background:#e0f2fe;color:#0369a1;">${escHtml(r.migrationTech)}</span>`;
               }
@@ -1283,115 +1276,115 @@ function renderPipeline() {
               <div class="pipeline-card-meta">
                 <span>${daysIn}d in stage</span>
                 ${migTags}
-                ${r.updatedBy ? `<span class="pipeline-card-tag">${escHtml(r.updatedBy)}</span>` : ''}
+                ${r.updatedBy && r.updatedBy !== 'unknown' ? `<span class="pipeline-card-tag">${escHtml(r.updatedBy)}</span>` : ''}
               </div>
             </div>`;
           }).join('');
 
-      stageEl.innerHTML = `
-        <div class="pipeline-stage-title">
-          ${escHtml(stage)}
-          <span class="stage-count">${stageRows.length}</span>
-        </div>
-        ${cards}
-      `;
-      stagesContainer.appendChild(stageEl);
+      stageEl.innerHTML = `<div class="pipeline-stage-title">${escHtml(stage)}<span class="stage-count">${stageRows.length}</span></div>${cardHtml}`;
+      stagesWrap.appendChild(stageEl);
     });
 
+    trackEl.innerHTML = `<div class="pipeline-track-header">${escHtml(track)}
+      <span style="font-size:13px;font-weight:400;opacity:0.7;">${trackRows.length} customer${trackRows.length !== 1 ? 's' : ''}</span>
+    </div>`;
+    trackEl.appendChild(stagesWrap);
     board.appendChild(trackEl);
   });
 
-  // Click card → edit modal
   board.querySelectorAll('.pipeline-card').forEach(card => {
     card.addEventListener('click', () => openEditModal(card.dataset.company));
   });
 }
 
-function daysSince(dateStr) {
-  if (!dateStr) return '?';
-  const d = new Date(dateStr);
-  const now = new Date();
-  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
-}
-
 /* ═══════════════════════════════════════════════════════════
-   PROGRESSION MODAL
+   MODAL
 ═══════════════════════════════════════════════════════════ */
 
-let modalMode = 'add'; // 'add' | 'edit'
-let modalOrigCompany = null;
+function syncModalMigrationFields() {
+  const stage  = document.getElementById('modal-stage').value;
+  const source = document.getElementById('modal-source').value;
+  const showSource = stage === 'Migration';
+  const showTech   = showSource && source === 'On Prem';
+  document.getElementById('modal-source-row').style.display = showSource ? 'block' : 'none';
+  document.getElementById('modal-tech-row').style.display   = showTech   ? 'block' : 'none';
+  if (!showSource) {
+    document.getElementById('modal-source').value = '';
+    document.getElementById('modal-tech').value   = '';
+  }
+  if (!showTech) {
+    document.getElementById('modal-tech').value = '';
+  }
+}
+
+function setStageOptions(track, selectedStage) {
+  const stages = TRACK_STAGES[track] || [];
+  const sel = document.getElementById('modal-stage');
+  sel.innerHTML = stages.length
+    ? `<option value="">-- select stage --</option>` +
+      stages.map(s => `<option value="${escHtml(s)}"${s === selectedStage ? ' selected' : ''}>${escHtml(s)}</option>`).join('')
+    : `<option value="">-- select track first --</option>`;
+}
 
 function openAddModal() {
   modalMode = 'add';
   modalOrigCompany = null;
   document.getElementById('modal-title').textContent = 'Set Customer Stage';
-  document.getElementById('modal-company').value = '';
+  document.getElementById('modal-company').value    = '';
   document.getElementById('modal-company').disabled = false;
-  document.getElementById('modal-track').value = '';
-  document.getElementById('modal-stage').innerHTML = '<option value="">-- select track first --</option>';
+  document.getElementById('modal-track').value  = '';
   document.getElementById('modal-source').value = '';
-  document.getElementById('modal-tech').value = '';
-  document.getElementById('modal-source-row').style.display = 'none';
-  document.getElementById('modal-tech-row').style.display = 'none';
-  document.getElementById('modal-date').value = new Date().toISOString().slice(0, 10);
-  document.getElementById('modal-notes').value = '';
-  document.getElementById('modal-delete-btn').style.display = 'none';
+  document.getElementById('modal-tech').value   = '';
+  setStageOptions('', '');
+  document.getElementById('modal-date').value   = new Date().toISOString().slice(0, 10);
+  document.getElementById('modal-notes').value  = '';
+  document.getElementById('modal-delete-btn').style.display   = 'none';
   document.getElementById('modal-history-section').style.display = 'none';
   document.getElementById('modal-history-list').innerHTML = '';
+  syncModalMigrationFields();
   openModal();
 }
 
 async function openEditModal(companyName) {
   modalMode = 'edit';
   modalOrigCompany = companyName;
-  document.getElementById('modal-title').textContent = 'Edit Stage — ' + companyName;
-  document.getElementById('modal-company').value = companyName;
-  document.getElementById('modal-company').disabled = true;
-
-  // Fill from cached data
   const row = pipelineRows?.find(r => r.companyName === companyName);
-  if (row) {
-    document.getElementById('modal-track').value = row.progressionTrack || '';
-    updateStageOptions(row.progressionTrack);
-    document.getElementById('modal-stage').value = row.progressionStage || '';
-    updateMigrationRows(row.progressionStage, row.migrationSource);
-    document.getElementById('modal-source').value = row.migrationSource || '';
-    document.getElementById('modal-tech').value = row.migrationTech || '';
-    document.getElementById('modal-date').value = row.stageEnteredAt || new Date().toISOString().slice(0, 10);
-    document.getElementById('modal-notes').value = row.notes || '';
-  }
-  document.getElementById('modal-delete-btn').style.display = 'inline-block';
 
-  // Load history
+  document.getElementById('modal-title').textContent    = `Edit Stage — ${companyName}`;
+  document.getElementById('modal-company').value        = companyName;
+  document.getElementById('modal-company').disabled     = true;
+  document.getElementById('modal-track').value          = row?.progressionTrack || '';
+  setStageOptions(row?.progressionTrack || '', row?.progressionStage || '');
+  document.getElementById('modal-source').value         = row?.migrationSource || '';
+  document.getElementById('modal-tech').value           = row?.migrationTech   || '';
+  document.getElementById('modal-date').value           = row?.stageEnteredAt  || new Date().toISOString().slice(0, 10);
+  document.getElementById('modal-notes').value          = row?.notes           || '';
+  document.getElementById('modal-delete-btn').style.display   = 'inline-block';
   document.getElementById('modal-history-section').style.display = 'block';
   document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">Loading history…</em>';
-
+  syncModalMigrationFields();
   openModal();
 
   try {
-    const res = await fetch(`/api/progression/history?company=${encodeURIComponent(companyName)}`);
+    const res  = await fetch(`/api/progression/history?company=${encodeURIComponent(companyName)}`);
     const json = await res.json();
     const entries = json.data || [];
-    if (entries.length === 0) {
-      document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">No history yet.</em>';
-    } else {
-      document.getElementById('modal-history-list').innerHTML = entries.map(e => `
-        <div class="history-entry">
+    document.getElementById('modal-history-list').innerHTML = entries.length === 0
+      ? '<em style="font-size:11px;color:#aaa;">No history yet.</em>'
+      : entries.map(e => `<div class="history-entry">
           <span class="history-date">${e.changedAt.slice(0, 10)}</span>
           <span class="history-badge">${escHtml(e.progressionTrack)}</span>
           <span class="history-badge">${escHtml(e.progressionStage)}</span>
           ${e.migrationSource ? `<span class="history-badge">${escHtml(e.migrationSource)}</span>` : ''}
+          ${e.migrationTech   ? `<span class="history-badge">${escHtml(e.migrationTech)}</span>`   : ''}
           <span style="color:#888;">${escHtml(e.changedBy)}</span>
         </div>`).join('');
-    }
   } catch {
     document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#c00;">Failed to load history.</em>';
   }
 }
 
-function openModal() {
-  document.getElementById('progression-modal').classList.add('open');
-}
+function openModal()  { document.getElementById('progression-modal').classList.add('open'); }
 function closeModal() {
   document.getElementById('progression-modal').classList.remove('open');
   modalMode = 'add';
@@ -1399,94 +1392,69 @@ function closeModal() {
 }
 
 document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
-document.getElementById('progression-modal').addEventListener('click', (e) => {
+document.getElementById('progression-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('progression-modal')) closeModal();
 });
 
-/* Stage options driven by track */
-function updateStageOptions(track) {
-  const stages = TRACK_STAGES[track] || [];
-  const sel = document.getElementById('modal-stage');
-  sel.innerHTML = stages.length
-    ? `<option value="">-- select stage --</option>` + stages.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')
-    : '<option value="">-- select track first --</option>';
-  sel.value = '';
+// Track change → rebuild stage options + hide migration fields
+document.getElementById('modal-track').addEventListener('change', e => {
+  setStageOptions(e.target.value, '');
   document.getElementById('modal-source').value = '';
-  document.getElementById('modal-tech').value = '';
-  updateMigrationRows('', null);
-}
+  document.getElementById('modal-tech').value   = '';
+  syncModalMigrationFields();
+});
 
-function updateMigrationRows(stage, source) {
-  const showSource = stage === 'Migration';
-  const showTech   = showSource && source === 'On Prem';
-  document.getElementById('modal-source-row').style.display = showSource ? 'block' : 'none';
-  document.getElementById('modal-tech-row').style.display   = showTech   ? 'block' : 'none';
-}
+// Stage change → show/hide migration fields
+document.getElementById('modal-stage').addEventListener('change', () => syncModalMigrationFields());
 
-document.getElementById('modal-track').addEventListener('change', (e) => {
-  updateStageOptions(e.target.value);
-});
-document.getElementById('modal-stage').addEventListener('change', (e) => {
-  updateMigrationRows(e.target.value, document.getElementById('modal-source').value);
-});
-document.getElementById('modal-source').addEventListener('change', (e) => {
-  updateMigrationRows('Migration', e.target.value);
-});
+// Source change → show/hide tech field
+document.getElementById('modal-source').addEventListener('change', () => syncModalMigrationFields());
 
 /* Save */
 document.getElementById('modal-save-btn').addEventListener('click', async () => {
-  const company  = document.getElementById('modal-company').value.trim();
-  const track    = document.getElementById('modal-track').value;
-  const stage    = document.getElementById('modal-stage').value;
-  const source   = document.getElementById('modal-source').value || null;
-  const tech     = document.getElementById('modal-tech').value || null;
-  const date     = document.getElementById('modal-date').value;
+  const company   = document.getElementById('modal-company').value.trim();
+  const track     = document.getElementById('modal-track').value;
+  const stage     = document.getElementById('modal-stage').value;
+  const source    = document.getElementById('modal-source').value || null;
+  const tech      = document.getElementById('modal-tech').value   || null;
+  const date      = document.getElementById('modal-date').value;
   const updatedBy = getCurrentUser();
-  const notes    = document.getElementById('modal-notes').value.trim() || null;
+  const notes     = document.getElementById('modal-notes').value.trim() || null;
 
   if (!company || !track || !stage || !date) {
-    showToast('Please fill in all required fields.');
+    showToast('Please fill in all required fields (Company, Track, Stage, Date).');
     return;
   }
   if (stage === 'Migration' && !source) {
-    showToast('Please select a Migration Source.');
+    showToast('Please select a Migration Source (On Prem or AMS).');
     return;
   }
   if (stage === 'Migration' && source === 'On Prem' && !tech) {
-    showToast('Please select Migration Tech for On Prem source.');
+    showToast('Please select Migration Tech (AEM or Not AEM).');
     return;
   }
 
   const saveBtn = document.getElementById('modal-save-btn');
-  saveBtn.disabled = true;
+  saveBtn.disabled   = true;
   saveBtn.textContent = 'Saving…';
 
   try {
-    const res = await fetch('/api/progression', {
-      method: 'PUT',
+    const res  = await fetch('/api/progression', {
+      method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        companyName: company,
-        progressionTrack: track,
-        progressionStage: stage,
-        migrationSource: source,
-        migrationTech: tech,
-        stageEnteredAt: date,
-        updatedBy,
-        notes,
-      }),
+      body:    JSON.stringify({ companyName: company, progressionTrack: track, progressionStage: stage,
+                                migrationSource: source, migrationTech: tech, stageEnteredAt: date,
+                                updatedBy, notes }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
-    // Update local cache
-    if (pipelineRows !== null) {
+    // Merge into local cache (null-safe)
+    const saved = json.data;
+    if (pipelineRows !== null && saved) {
       const idx = pipelineRows.findIndex(r => r.companyName === company);
-      if (idx >= 0) {
-        pipelineRows[idx] = json.data;
-      } else {
-        pipelineRows.push(json.data);
-      }
+      if (idx >= 0) pipelineRows[idx] = saved;
+      else          pipelineRows.push(saved);
     }
 
     closeModal();
@@ -1495,26 +1463,19 @@ document.getElementById('modal-save-btn').addEventListener('click', async () => 
   } catch (err) {
     showToast('Error: ' + err.message);
   } finally {
-    saveBtn.disabled = false;
+    saveBtn.disabled   = false;
     saveBtn.textContent = 'Save';
   }
 });
 
-/* Delete (remove from pipeline) */
+/* Delete */
 document.getElementById('modal-delete-btn').addEventListener('click', async () => {
   const company = modalOrigCompany;
-  if (!company) return;
-  if (!confirm(`Remove "${company}" from the pipeline?`)) return;
-
+  if (!company || !confirm(`Remove "${company}" from the pipeline?`)) return;
   try {
     const res = await fetch(`/api/progression?company=${encodeURIComponent(company)}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      throw new Error(j.error || `HTTP ${res.status}`);
-    }
-    if (pipelineRows !== null) {
-      pipelineRows = pipelineRows.filter(r => r.companyName !== company);
-    }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `HTTP ${res.status}`); }
+    if (pipelineRows !== null) pipelineRows = pipelineRows.filter(r => r.companyName !== company);
     closeModal();
     renderPipeline();
     showToast(`${company} removed from pipeline.`);
@@ -1523,19 +1484,17 @@ document.getElementById('modal-delete-btn').addEventListener('click', async () =
   }
 });
 
-/* Add button */
 document.getElementById('pipeline-add-btn').addEventListener('click', openAddModal);
 
-/* Company autocomplete in modal */
-const companyInput = document.getElementById('modal-company');
+/* Company autocomplete */
+const companyInput    = document.getElementById('modal-company');
 const companyDropdown = document.getElementById('modal-company-dropdown');
-
 companyInput.addEventListener('input', () => {
-  const val = companyInput.value.trim().toLowerCase();
   companyDropdown.innerHTML = '';
+  const val = companyInput.value.trim().toLowerCase();
   if (!val || modalMode === 'edit') return;
   const matches = allCustomerNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
-  if (matches.length === 0) return;
+  if (!matches.length) return;
   const ul = document.createElement('ul');
   ul.style.cssText = 'position:absolute;z-index:200;background:white;border:1px solid #ddd;border-radius:4px;list-style:none;margin:0;padding:0;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:180px;overflow-y:auto;';
   matches.forEach(name => {
@@ -1544,17 +1503,18 @@ companyInput.addEventListener('input', () => {
     li.style.cssText = 'padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
     li.addEventListener('mouseenter', () => li.style.background = '#f0f4ff');
     li.addEventListener('mouseleave', () => li.style.background = '');
-    li.addEventListener('click', () => {
-      companyInput.value = name;
-      companyDropdown.innerHTML = '';
-    });
+    li.addEventListener('click', () => { companyInput.value = name; companyDropdown.innerHTML = ''; });
     ul.appendChild(li);
   });
   companyDropdown.appendChild(ul);
 });
-document.addEventListener('click', (e) => {
-  if (!companyInput.contains(e.target)) companyDropdown.innerHTML = '';
-});
+document.addEventListener('click', e => { if (!companyInput.contains(e.target)) companyDropdown.innerHTML = ''; });
+
+/* ═══════════════════════════════════════════════════════════
+   INIT — pipeline load is here, AFTER all variables above
+   are declared, so there is no temporal dead zone error
+═══════════════════════════════════════════════════════════ */
+loadPipelineData().catch(err => console.error('[pipeline init]', err));
 </script>
 </body>
 </html>
