@@ -7,11 +7,9 @@ import styles from "./Header.module.css";
 import { AuthButton } from "@/components/auth/AuthButton";
 
 const NAV_LINKS = [
-  { href: "/", label: "Customer Overview" },
-  { href: "/engagement", label: "Engagement" },
-  { href: "/customer-history", label: "History" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/suggestion-lifecycle", label: "Suggestions" },
+  { href: "/customer-history", label: "Customer 360" },
+  { href: "/suggestion-lifecycle", label: "Suggestions Lifecycle" },
+  { href: "/reports", label: "Reports" },
 ];
 
 export function Header() {

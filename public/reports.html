@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Customer Reports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <script>document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('appear'); });</script>
+  <link rel="stylesheet" href="/styles/styles.css"/>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; }
+    main { padding: 12px; max-width: 100vw; overflow-x: hidden; }
+
+    .page-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .page-header h1 { color: white; margin: 0 0 4px 0; font-size: 1.4rem; }
+    .page-header p { color: rgb(255 255 255 / 90%); margin: 0; font-size: 13px; }
+
+    /* Config panel */
+    .config-panel {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .config-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .config-row:last-child { margin-bottom: 0; }
+    .config-group { display: flex; flex-direction: column; gap: 4px; }
+    .config-group label { font-size: 12px; font-weight: 600; color: #555; }
+    .config-group select,
+    .config-group input[type="text"],
+    .config-group input[type="date"] {
+      font-size: 13px;
+      padding: 5px 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+      min-width: 140px;
+    }
+
+    /* Field selector */
+    .field-selector-toggle {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .field-selector-toggle:hover { background: #eee; }
+    .field-selector-panel {
+      display: none;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 10px;
+    }
+    .field-selector-panel.open { display: block; }
+    .field-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .field-category h4 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field-category label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 2px 0;
+      color: #333;
+    }
+    .field-category label:has(input:disabled) { color: #999; cursor: default; }
+    .field-selector-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+    .field-selector-actions button {
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+    .field-selector-actions button:hover { background: #f0f0f0; }
+
+    /* Run button */
+    .run-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .run-btn:hover { background: #5568d3; }
+    .run-btn:disabled { background: #aaa; cursor: default; }
+
+    /* Results */
+    .results-panel {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .results-meta { font-size: 13px; color: #555; }
+    .results-meta strong { color: #333; }
+    .export-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .export-btn {
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .export-btn-csv {
+      background: #e8f5e9;
+      border-color: #a5d6a7;
+      color: #2e7d32;
+    }
+    .export-btn-csv:hover { background: #c8e6c9; }
+    .export-btn-ai {
+      background: #fef3c7;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+    .export-btn-ai:hover { background: #fde68a; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; max-height: 60vh; overflow-y: auto; }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .report-table thead th {
+      position: sticky;
+      top: 0;
+      background: #f0f1ff;
+      border-bottom: 2px solid #d0d3ff;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: 700;
+      white-space: nowrap;
+      color: #3c3f8f;
+      cursor: pointer;
+      user-select: none;
+    }
+    .report-table thead th:hover { background: #e0e3ff; }
+    .report-table thead th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 10px; }
+    .report-table thead th.sort-asc .sort-icon,
+    .report-table thead th.sort-desc .sort-icon { opacity: 1; }
+    .report-table tbody tr:hover { background: #f7f8ff; }
+    .report-table tbody tr:nth-child(even) { background: #fafafa; }
+    .report-table tbody tr:nth-child(even):hover { background: #f0f1ff; }
+    .report-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+      max-width: 260px;
+    }
+    .report-table td.cell-truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-active      { background: #d4edda; color: #155724; }
+    .badge-at-risk     { background: #fff3cd; color: #856404; }
+    .badge-onboarding  { background: #cce5ff; color: #004085; }
+    .badge-pre-production { background: #e2d9f3; color: #4a235a; }
+    .badge-churned     { background: #f8d7da; color: #721c24; }
+    .badge-on-hold     { background: #e2e3e5; color: #383d41; }
+    .badge-high        { background: #d4edda; color: #155724; }
+    .badge-medium      { background: #fff3cd; color: #856404; }
+    .badge-low         { background: #f8d7da; color: #721c24; }
+    .badge-unknown     { background: #e2e3e5; color: #383d41; }
+
+    .health-bar-cell { min-width: 80px; }
+    .health-bar { height: 8px; border-radius: 4px; background: #e0e0e0; overflow: hidden; margin-top: 3px; }
+    .health-bar-fill { height: 100%; border-radius: 4px; }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-top: 1px solid #eee;
+      font-size: 12px;
+      color: #555;
+    }
+    .pagination button {
+      padding: 3px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination button:not(:disabled):hover { background: #f0f0f0; }
+
+    /* Empty / loading states */
+    .results-empty {
+      padding: 40px;
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+    }
+    .results-loading {
+      padding: 30px;
+      text-align: center;
+      color: #667eea;
+      font-size: 14px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ccc;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="page-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h1>Customer Reports</h1>
+        <p>Build custom reports from all customer snapshot data. Filter by time range, status, and select which fields to include.</p>
+      </div>
+      <a href="/customer-history.html" style="color:rgba(255,255,255,0.85);font-size:13px;text-decoration:none;border:1px solid rgba(255,255,255,0.4);padding:5px 12px;border-radius:5px;white-space:nowrap;">← Customer 360</a>
+    </div>
+  </div>
+
+  <!-- Config Panel -->
+  <div class="config-panel">
+    <div class="config-row">
+      <div class="config-group">
+        <label>Time range</label>
+        <select id="time-range">
+          <option value="4">Last 4 weeks</option>
+          <option value="8">Last 8 weeks</option>
+          <option value="12" selected>Last 12 weeks</option>
+          <option value="26">Last 26 weeks</option>
+          <option value="52">Last 52 weeks</option>
+          <option value="all">All time</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>View</label>
+        <select id="view-mode">
+          <option value="latest">Latest snapshot per customer</option>
+          <option value="all">All weekly snapshots</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>Status</label>
+        <select id="filter-status">
+          <option value="">All statuses</option>
+          <option value="Active">Active</option>
+          <option value="At-Risk">At-Risk</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Pre-Production">Pre-Production</option>
+          <option value="Churned">Churned</option>
+          <option value="On-Hold">On-Hold</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>Engagement</label>
+        <select id="filter-engagement">
+          <option value="">All</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+          <option value="Unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label>Company search</label>
+        <input type="text" id="filter-company" placeholder="Filter by name…" style="min-width:180px;"/>
+      </div>
+      <div class="config-group">
+        <label>&nbsp;</label>
+        <button class="run-btn" id="run-btn">Run Report</button>
+      </div>
+    </div>
+
+    <!-- Field selector -->
+    <div>
+      <button class="field-selector-toggle" id="field-toggle">
+        <span>&#9881;</span> Select fields <span id="field-count-label" style="color:#667eea;font-weight:700;"></span>
+      </button>
+      <div class="field-selector-panel" id="field-panel">
+        <div class="field-categories" id="field-categories"></div>
+        <div class="field-selector-actions">
+          <button id="fields-all">Select all</button>
+          <button id="fields-none">Deselect all</button>
+          <button id="fields-default">Reset to default</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-panel" id="results-panel">
+    <div class="results-empty">Configure a report above and click <strong>Run Report</strong>.</div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─────────────────────────────────────────────
+   Field definitions
+───────────────────────────────────────────── */
+const FIELDS = [
+  { key: 'companyName',              label: 'Company Name',         category: 'Identity',  required: true,  defaultOn: true },
+  { key: 'week',                     label: 'Week',                 category: 'Identity',  defaultOn: true },
+  { key: 'licenseType',              label: 'License Type',         category: 'Identity',  defaultOn: true },
+  { key: 'industry',                 label: 'Industry',             category: 'Identity',  defaultOn: true },
+  { key: 'eseLead',                  label: 'ESE Lead',             category: 'Identity',  defaultOn: true },
+  { key: 'imsOrgId',                 label: 'IMS Org ID',           category: 'Identity',  defaultOn: false },
+  { key: 'status',                   label: 'Status',               category: 'Status',    defaultOn: true },
+  { key: 'engagement',               label: 'Engagement',           category: 'Status',    defaultOn: true },
+  { key: 'healthScore',              label: 'Health Score',         category: 'Status',    defaultOn: true },
+  { key: 'deploymentType',           label: 'Deployment Type',      category: 'Status',    defaultOn: false },
+  { key: 'mau',                      label: 'Monthly Active Users', category: 'Activity',  defaultOn: false },
+  { key: 'ttiv',                     label: 'TTIV',                 category: 'Activity',  defaultOn: false },
+  { key: 'autoOptimizeButtonPressed',label: 'Auto Optimize',        category: 'Activity',  defaultOn: false },
+  { key: 'blockersStatus',           label: 'Blockers Status',      category: 'Issues',    defaultOn: false },
+  { key: 'blockers',                 label: 'Blockers',             category: 'Issues',    defaultOn: true },
+  { key: 'feedbackStatus',           label: 'Feedback Status',      category: 'Issues',    defaultOn: false },
+  { key: 'feedback',                 label: 'Feedback',             category: 'Issues',    defaultOn: true },
+  { key: 'summary',                  label: 'Summary',              category: 'Other',     defaultOn: false },
+  { key: 'lastUpdated',              label: 'Last Updated',         category: 'Other',     defaultOn: false },
+];
+
+const LONG_TEXT_FIELDS = new Set(['blockers', 'feedback', 'summary']);
+const DEFAULT_PAGE_SIZE = 50;
+
+/* ─────────────────────────────────────────────
+   State
+───────────────────────────────────────────── */
+let allData = null;        // raw data from API (all records)
+let reportRows = [];       // filtered + shaped rows for current report
+let sortKey = null;
+let sortDir = 'asc';
+let currentPage = 1;
+
+/* ─────────────────────────────────────────────
+   Field selector UI
+───────────────────────────────────────────── */
+function buildFieldSelector() {
+  const container = document.getElementById('field-categories');
+  const categories = [...new Set(FIELDS.map(f => f.category))];
+  container.innerHTML = categories.map(cat => {
+    const fields = FIELDS.filter(f => f.category === cat);
+    return `<div class="field-category">
+      <h4>${cat}</h4>
+      ${fields.map(f => `
+        <label>
+          <input type="checkbox" class="field-cb" data-key="${f.key}"
+            ${f.defaultOn ? 'checked' : ''}
+            ${f.required ? 'disabled checked' : ''}>
+          ${f.label}${f.required ? ' <span style="color:#999;font-size:11px;">(required)</span>' : ''}
+        </label>`).join('')}
+    </div>`;
+  }).join('');
+  updateFieldCountLabel();
+  document.querySelectorAll('.field-cb').forEach(cb => cb.addEventListener('change', updateFieldCountLabel));
+}
+
+function updateFieldCountLabel() {
+  const checked = document.querySelectorAll('.field-cb:checked').length;
+  document.getElementById('field-count-label').textContent = `(${checked} fields)`;
+}
+
+function getSelectedFields() {
+  return FIELDS.filter(f => {
+    const cb = document.querySelector(`.field-cb[data-key="${f.key}"]`);
+    return cb && cb.checked;
+  });
+}
+
+document.getElementById('field-toggle').addEventListener('click', () => {
+  document.getElementById('field-panel').classList.toggle('open');
+});
+document.getElementById('fields-all').addEventListener('click', () => {
+  document.querySelectorAll('.field-cb:not(:disabled)').forEach(cb => { cb.checked = true; });
+  updateFieldCountLabel();
+});
+document.getElementById('fields-none').addEventListener('click', () => {
+  document.querySelectorAll('.field-cb:not(:disabled)').forEach(cb => { cb.checked = false; });
+  updateFieldCountLabel();
+});
+document.getElementById('fields-default').addEventListener('click', () => {
+  FIELDS.forEach(f => {
+    const cb = document.querySelector(`.field-cb[data-key="${f.key}"]`);
+    if (cb && !f.required) cb.checked = !!f.defaultOn;
+  });
+  updateFieldCountLabel();
+});
+
+/* ─────────────────────────────────────────────
+   Date helpers
+───────────────────────────────────────────── */
+function weeksAgoDate(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n * 7);
+  return d.toISOString().slice(0, 10);
+}
+
+/* ─────────────────────────────────────────────
+   Data fetch + filter
+───────────────────────────────────────────── */
+async function loadData() {
+  if (allData) return allData;
+  const res = await fetch('/api/customers');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  allData = json.data || [];
+  return allData;
+}
+
+function applyFilters(data) {
+  const timeRange = document.getElementById('time-range').value;
+  const viewMode  = document.getElementById('view-mode').value;
+  const filterStatus = document.getElementById('filter-status').value;
+  const filterEngagement = document.getElementById('filter-engagement').value;
+  const filterCompany = document.getElementById('filter-company').value.trim().toLowerCase();
+
+  let rows = data.slice();
+
+  // Time range
+  if (timeRange !== 'all') {
+    const cutoff = weeksAgoDate(parseInt(timeRange, 10));
+    rows = rows.filter(r => r.week >= cutoff);
+  }
+
+  // Status filter
+  if (filterStatus) rows = rows.filter(r => r.status === filterStatus);
+
+  // Engagement filter
+  if (filterEngagement) rows = rows.filter(r => r.engagement === filterEngagement);
+
+  // Company search
+  if (filterCompany) rows = rows.filter(r => (r.companyName || '').toLowerCase().includes(filterCompany));
+
+  // Latest-per-customer: keep only the most recent week per company
+  if (viewMode === 'latest') {
+    const map = new Map();
+    rows.forEach(r => {
+      const existing = map.get(r.companyName);
+      if (!existing || r.week > existing.week) map.set(r.companyName, r);
+    });
+    rows = [...map.values()];
+  }
+
+  // Sort by company name then week by default
+  rows.sort((a, b) => {
+    const aComp = (a.companyName || '').localeCompare(b.companyName || '');
+    if (aComp !== 0) return aComp;
+    return (a.week || '').localeCompare(b.week || '');
+  });
+
+  return rows;
+}
+
+/* ─────────────────────────────────────────────
+   Sort
+───────────────────────────────────────────── */
+function sortRows(rows) {
+  if (!sortKey) return rows;
+  return [...rows].sort((a, b) => {
+    const av = a[sortKey] ?? '';
+    const bv = b[sortKey] ?? '';
+    let cmp;
+    if (sortKey === 'healthScore') {
+      cmp = Number(av) - Number(bv);
+    } else {
+      cmp = String(av).localeCompare(String(bv));
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+}
+
+/* ─────────────────────────────────────────────
+   Render
+───────────────────────────────────────────── */
+function statusBadge(val) {
+  const cls = {
+    'Active': 'badge-active', 'At-Risk': 'badge-at-risk',
+    'Onboarding': 'badge-onboarding', 'Pre-Production': 'badge-pre-production',
+    'Churned': 'badge-churned', 'On-Hold': 'badge-on-hold',
+  }[val] || 'badge-unknown';
+  return `<span class="badge ${cls}">${escHtml(val)}</span>`;
+}
+
+function engagementBadge(val) {
+  const cls = { 'High': 'badge-high', 'Medium': 'badge-medium', 'Low': 'badge-low' }[val] || 'badge-unknown';
+  return `<span class="badge ${cls}">${escHtml(val)}</span>`;
+}
+
+function healthCell(val) {
+  const score = Number(val) || 0;
+  const color = score >= 70 ? '#4caf50' : score >= 40 ? '#ff9800' : '#f44336';
+  return `<div class="health-bar-cell">
+    <span style="font-weight:600;">${score}</span>
+    <div class="health-bar"><div class="health-bar-fill" style="width:${score}%;background:${color};"></div></div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderCell(field, value) {
+  if (field.key === 'status') return statusBadge(value);
+  if (field.key === 'engagement') return engagementBadge(value);
+  if (field.key === 'healthScore') return healthCell(value);
+  const escaped = escHtml(value);
+  if (LONG_TEXT_FIELDS.has(field.key) && value && value.length > 80) {
+    return `<span title="${escHtml(value)}">${escaped.slice(0, 80)}…</span>`;
+  }
+  return escaped;
+}
+
+function renderResults() {
+  const panel = document.getElementById('results-panel');
+  const fields = getSelectedFields();
+  const sorted = sortRows(reportRows);
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
+  currentPage = Math.min(currentPage, totalPages);
+  const start = (currentPage - 1) * DEFAULT_PAGE_SIZE;
+  const pageRows = sorted.slice(start, start + DEFAULT_PAGE_SIZE);
+  const uniqueCompanies = new Set(reportRows.map(r => r.companyName)).size;
+
+  const sortIcon = (key) => {
+    if (sortKey !== key) return '<span class="sort-icon">⇅</span>';
+    return sortDir === 'asc' ? '<span class="sort-icon">↑</span>' : '<span class="sort-icon">↓</span>';
+  };
+
+  const sortClass = (key) => sortKey === key ? `sort-${sortDir}` : '';
+
+  panel.innerHTML = `
+    <div class="results-header">
+      <div class="results-meta">
+        <strong>${uniqueCompanies}</strong> customer${uniqueCompanies !== 1 ? 's' : ''} &nbsp;·&nbsp;
+        <strong>${total}</strong> row${total !== 1 ? 's' : ''} &nbsp;·&nbsp;
+        <strong>${fields.length}</strong> field${fields.length !== 1 ? 's' : ''}
+      </div>
+      <div class="export-bar">
+        <button class="export-btn export-btn-csv" id="export-csv">⬇ Download CSV</button>
+        <button class="export-btn export-btn-ai" id="export-ai">Copy AI prompt</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="report-table">
+        <thead>
+          <tr>
+            ${fields.map(f => `
+              <th class="${sortClass(f.key)}" data-sort="${f.key}">
+                ${escHtml(f.label)}${sortIcon(f.key)}
+              </th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${pageRows.map(row => `
+            <tr>
+              ${fields.map(f => `
+                <td class="${LONG_TEXT_FIELDS.has(f.key) ? 'cell-truncate' : ''}">
+                  ${renderCell(f, row[f.key])}
+                </td>`).join('')}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button id="page-prev" ${currentPage <= 1 ? 'disabled' : ''}>← Prev</button>
+      <span>Page ${currentPage} of ${totalPages}</span>
+      <button id="page-next" ${currentPage >= totalPages ? 'disabled' : ''}>Next →</button>
+      <span style="margin-left:8px;color:#aaa;">Showing ${start + 1}–${Math.min(start + DEFAULT_PAGE_SIZE, total)} of ${total}</span>
+    </div>
+  `;
+
+  // Sort headers
+  panel.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortKey = key; sortDir = 'asc'; }
+      renderResults();
+    });
+  });
+
+  // Pagination
+  const prevBtn = panel.querySelector('#page-prev');
+  const nextBtn = panel.querySelector('#page-next');
+  if (prevBtn) prevBtn.addEventListener('click', () => { currentPage--; renderResults(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { currentPage++; renderResults(); });
+
+  // Export buttons
+  panel.querySelector('#export-csv')?.addEventListener('click', exportCSV);
+  panel.querySelector('#export-ai')?.addEventListener('click', exportAI);
+}
+
+/* ─────────────────────────────────────────────
+   Run report
+───────────────────────────────────────────── */
+document.getElementById('run-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('run-btn');
+  const panel = document.getElementById('results-panel');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  panel.innerHTML = '<div class="results-loading"><span class="spinner"></span>Fetching data…</div>';
+  sortKey = null;
+  sortDir = 'asc';
+  currentPage = 1;
+
+  try {
+    const data = await loadData();
+    reportRows = applyFilters(data);
+    if (reportRows.length === 0) {
+      panel.innerHTML = '<div class="results-empty">No records match the current filters.</div>';
+    } else {
+      renderResults();
+    }
+  } catch (err) {
+    panel.innerHTML = `<div class="results-empty" style="color:#c00;">Error: ${escHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Report';
+  }
+});
+
+/* ─────────────────────────────────────────────
+   CSV Export
+───────────────────────────────────────────── */
+function exportCSV() {
+  const fields = getSelectedFields();
+  const sorted = sortRows(reportRows);
+
+  const escape = (v) => {
+    const s = String(v || '').replace(/"/g, '""');
+    return /[,"\n\r]/.test(s) ? `"${s}"` : s;
+  };
+
+  const header = fields.map(f => escape(f.label)).join(',');
+  const rows = sorted.map(row => fields.map(f => escape(row[f.key])).join(','));
+  const csv = [header, ...rows].join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const timeRange = document.getElementById('time-range').value;
+  const rangeLabel = timeRange === 'all' ? 'all-time' : `last-${timeRange}wk`;
+  const viewMode = document.getElementById('view-mode').value;
+  a.href = url;
+  a.download = `customer-report_${rangeLabel}_${viewMode}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV downloaded');
+}
+
+/* ─────────────────────────────────────────────
+   AI Prompt Export
+───────────────────────────────────────────── */
+async function exportAI() {
+  const btn = document.getElementById('export-ai');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Building…';
+  btn.disabled = true;
+
+  try {
+    const fields = getSelectedFields();
+    const sorted = sortRows(reportRows);
+    const timeRange = document.getElementById('time-range').value;
+    const viewMode = document.getElementById('view-mode').value;
+    const filterStatus = document.getElementById('filter-status').value;
+    const filterEngagement = document.getElementById('filter-engagement').value;
+    const uniqueCompanies = new Set(reportRows.map(r => r.companyName)).size;
+
+    const rangeLabel = timeRange === 'all' ? 'all available data' : `the last ${timeRange} weeks`;
+    const viewLabel = viewMode === 'latest' ? 'latest snapshot per customer' : 'all weekly snapshots';
+    const filterDesc = [
+      filterStatus ? `status = ${filterStatus}` : null,
+      filterEngagement ? `engagement = ${filterEngagement}` : null,
+    ].filter(Boolean).join(', ') || 'no additional filters';
+
+    // Header row
+    const header = fields.map(f => f.label).join(' | ');
+    const separator = fields.map(() => '---').join(' | ');
+
+    // Data rows — cap at 500 to keep prompt manageable
+    const capped = sorted.slice(0, 500);
+    const dataRows = capped.map(row =>
+      fields.map(f => String(row[f.key] || '').replace(/\|/g, '/')).join(' | ')
+    ).join('\n');
+
+    const cappedNote = sorted.length > 500
+      ? `\n\n[Note: Report contains ${sorted.length} rows; showing first 500 in this prompt.]`
+      : '';
+
+    const prompt =
+`You are analyzing customer success data for ${uniqueCompanies} Adobe Edge Delivery Services customers.
+
+Report parameters:
+- Time range: ${rangeLabel}
+- View: ${viewLabel}
+- Filters: ${filterDesc}
+- Fields: ${fields.map(f => f.label).join(', ')}
+- Total rows: ${sorted.length}
+
+Please analyze the data below and provide:
+1. An executive summary of the overall customer health
+2. Customers that need immediate attention (at-risk, low engagement, low health scores)
+3. Trends or patterns you notice across the dataset
+4. Recommended actions for the CSM team
+
+${header}
+${separator}
+${dataRows}${cappedNote}`;
+
+    await navigator.clipboard.writeText(prompt);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+  } catch (err) {
+    btn.textContent = 'Failed';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Toast
+───────────────────────────────────────────── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ─────────────────────────────────────────────
+   Init
+───────────────────────────────────────────── */
+buildFieldSelector();
+
+// Pre-load data in background so first Run Report is fast
+loadData().catch(() => {});
+</script>
+</body>
+</html>

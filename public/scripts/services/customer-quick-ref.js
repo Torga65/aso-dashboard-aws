@@ -173,13 +173,29 @@ async function fetchAuditStatusForSite(siteId, orgId, token) {
  * config), NOT from opp.enabled which is not a real SpaceCat field.
  */
 async function fetchAudits(siteId, orgId, token) {
-  const [oppsResponse, auditStatus] = await Promise.all([
+  const [oppsResponse, auditStatus, latestAuditsResponse] = await Promise.all([
     apiGet(ASO_ENDPOINTS.SITE_OPPORTUNITIES(siteId), token),
     fetchAuditStatusForSite(siteId, orgId, token),
+    apiGet(ASO_ENDPOINTS.SITE_AUDITS_LATEST(siteId), token),
   ]);
 
   if (isApiError(oppsResponse)) {
     return { audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } };
+  }
+
+  // Build a map of auditType → last run date string
+  const latestAuditRaw = Array.isArray(latestAuditsResponse)
+    ? latestAuditsResponse
+    : (latestAuditsResponse?.audits || latestAuditsResponse?.data || []);
+  const lastRunByType = {};
+  if (Array.isArray(latestAuditRaw)) {
+    latestAuditRaw.forEach((a) => {
+      const type = a.auditType || a.type;
+      const ran = a.auditedAt || a.runAt || a.createdAt;
+      if (type && ran) {
+        lastRunByType[type] = new Date(ran).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+    });
   }
 
   const raw = Array.isArray(oppsResponse)
@@ -197,11 +213,12 @@ async function fetchAudits(siteId, orgId, token) {
     const auditType = opp.type || opp.opportunityType || 'unknown';
     const status = (opp.status || '').toUpperCase();
     const autoFix = opp.autoFix === true || opp.autoFix === 'Yes' ? 'Yes' : 'No';
+    const lastRun = lastRunByType[auditType] || null;
 
     const row = {
       auditType,
       opportunity: auditType.replace(/-/g, ' '),
-      lastRun: '—',
+      lastRun: lastRun || '—',
       status,
       autoFix,
       opportunityId: opp.id,
@@ -209,7 +226,8 @@ async function fetchAudits(siteId, orgId, token) {
 
     if (disabledSet.has(auditType)) {
       disabledAudits.push(row);
-    } else {
+    } else if (lastRun) {
+      // Only show enabled audits that have actually been run
       audits.push(row);
     }
 
