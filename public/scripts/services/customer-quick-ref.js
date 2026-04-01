@@ -203,6 +203,8 @@ async function fetchAudits(siteId, orgId, token) {
 
     const row = {
       auditType,
+      opportunity: auditType.replace(/-/g, ' '),
+      lastRun: '—',
       status,
       autoFix,
       opportunityId: opp.id,
