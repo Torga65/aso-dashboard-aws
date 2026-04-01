@@ -322,214 +322,60 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* ── Pipeline ──────────────────────────────────────────── */
-    .pipeline-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-      background: #f8f9fa;
-      padding: 12px 14px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-    }
-    .pipeline-toolbar input {
-      padding: 5px 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 13px;
-      min-width: 200px;
-    }
-    .pipeline-add-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .pipeline-add-btn:hover { background: #5568d3; }
-    .pipeline-refresh-btn {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
-      cursor: pointer;
-      color: #555;
-    }
-    .pipeline-refresh-btn:hover { background: #eee; }
+    /* ── Pipeline ─────────────────────────────────────────── */
+    .pl-search-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:10px 14px; margin-bottom:14px; }
+    .pl-search-bar input { padding:5px 10px; border:1px solid #ccc; border-radius:5px; font-size:13px; min-width:200px; }
+    .pl-refresh-btn { padding:6px 12px; font-size:13px; background:white; border:1px solid #ccc; border-radius:5px; cursor:pointer; color:#555; }
+    .pl-refresh-btn:hover { background:#eee; }
+    .pl-status { font-size:12px; color:#888; }
 
-    .pipeline-board {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .pipeline-track {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .pipeline-track-header {
-      padding: 10px 16px;
-      font-weight: 700;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .track-moving .pipeline-track-header { background: #e8f5e9; color: #2e7d32; border-bottom: 1px solid #c8e6c9; }
-    .track-onhold .pipeline-track-header { background: #fff3e0; color: #e65100; border-bottom: 1px solid #ffe0b2; }
-    .pipeline-stages {
-      display: flex;
-      gap: 0;
-      overflow-x: auto;
-    }
-    .pipeline-stage {
-      min-width: 200px;
-      flex: 1;
-      border-right: 1px solid #eee;
-      padding: 10px 12px;
-    }
-    .pipeline-stage:last-child { border-right: none; }
-    .pipeline-stage-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .stage-count {
-      background: #667eea;
-      color: white;
-      border-radius: 10px;
-      font-size: 11px;
-      padding: 1px 7px;
-      font-weight: 700;
-    }
-    .pipeline-card {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      margin-bottom: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .pipeline-card:hover { border-color: #667eea; box-shadow: 0 2px 6px rgba(102,126,234,0.15); }
-    .pipeline-card-name {
-      font-weight: 700;
-      color: #222;
-      margin-bottom: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .pipeline-card-meta {
-      color: #666;
-      font-size: 11px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .pipeline-card-tag {
-      background: #eee;
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-size: 10px;
-      color: #444;
-    }
-    .pipeline-empty-stage {
-      color: #bbb;
-      font-size: 11px;
-      font-style: italic;
-      padding: 4px 0;
-    }
+    .pl-section { margin-bottom:18px; border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; }
+    .pl-section-hdr { padding:10px 16px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+    .pl-section-hdr .pl-count { margin-left:auto; background:#667eea; color:white; border-radius:10px; font-size:11px; padding:1px 8px; font-weight:700; }
+    .pl-section-hdr .pl-toggle { font-size:10px; color:#aaa; }
+    .pl-moving > .pl-section-hdr  { background:#e8f5e9; color:#2e7d32; border-bottom:1px solid #c8e6c9; }
+    .pl-onhold > .pl-section-hdr  { background:#fff3e0; color:#e65100; border-bottom:1px solid #ffe0b2; }
+    .pl-unset  > .pl-section-hdr  { background:#f3f4f6; color:#374151; border-bottom:1px solid #e5e7eb; }
 
-    /* Pipeline summary bar */
-    .pipeline-summary {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      padding: 10px 14px;
-      background: #f0f1ff;
-      border: 1px solid #d0d3ff;
-      border-radius: 8px;
-      margin-bottom: 14px;
-      font-size: 13px;
-    }
-    .pipeline-summary-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .pipeline-summary-item .ps-num { font-size: 20px; font-weight: 700; color: #667eea; line-height: 1; }
-    .pipeline-summary-item .ps-lbl { font-size: 11px; color: #666; }
+    .pl-columns { display:flex; gap:0; overflow-x:auto; min-height:80px; }
+    .pl-col { flex:1; min-width:180px; border-right:1px solid #f0f0f0; padding:10px; }
+    .pl-col:last-child { border-right:none; }
+    .pl-col-title { font-size:11px; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+    .pl-col-count { background:#e5e7eb; color:#374151; border-radius:8px; font-size:10px; padding:1px 6px; }
 
-    /* Edit / Add modal */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-backdrop.open { display: flex; }
-    .modal-box {
-      background: white;
-      border-radius: 10px;
-      padding: 24px;
-      width: 440px;
-      max-width: 95vw;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    }
-    .modal-box h3 { margin: 0 0 16px 0; font-size: 16px; color: #333; }
-    .modal-field { margin-bottom: 12px; }
-    .modal-field label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
-    .modal-field input,
-    .modal-field select,
-    .modal-field textarea {
-      width: 100%;
-      padding: 7px 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      font-size: 13px;
-      box-sizing: border-box;
-    }
-    .modal-field textarea { resize: vertical; min-height: 70px; }
-    .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
-    .modal-save-btn {
-      background: #667eea; color: white; border: none; border-radius: 6px;
-      padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
-    }
-    .modal-save-btn:hover { background: #5568d3; }
-    .modal-save-btn:disabled { background: #aaa; cursor: default; }
-    .modal-cancel-btn {
-      background: white; color: #555; border: 1px solid #ccc; border-radius: 6px;
-      padding: 8px 16px; font-size: 13px; cursor: pointer;
-    }
-    .modal-cancel-btn:hover { background: #f5f5f5; }
-    .modal-delete-btn {
-      background: white; color: #c00; border: 1px solid #f8a0a0; border-radius: 6px;
-      padding: 8px 14px; font-size: 13px; cursor: pointer; margin-right: auto;
-    }
-    .modal-delete-btn:hover { background: #fff0f0; }
+    .pl-card { background:white; border:1px solid #e0e0e0; border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:12px; }
+    .pl-card-name { font-weight:700; color:#111; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pl-card-tags { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+    .pl-card-tag { padding:1px 6px; border-radius:4px; font-size:10px; font-weight:600; }
+    .pl-card-tag-source { background:#fef3c7; color:#92400e; }
+    .pl-card-tag-tech   { background:#e0f2fe; color:#0369a1; }
+    .pl-card-tag-days   { background:#f3f4f6; color:#6b7280; }
+    .pl-card-tag-user   { background:#ede9fe; color:#6d28d9; }
+    .pl-edit-btn { padding:3px 10px; font-size:11px; font-weight:600; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; }
+    .pl-edit-btn:hover { background:#5568d3; }
 
-    /* History list in modal */
-    .history-list { margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px; max-height: 160px; overflow-y: auto; }
-    .history-entry { font-size: 11px; color: #666; padding: 4px 0; border-bottom: 1px solid #f5f5f5; display: flex; gap: 8px; }
-    .history-entry:last-child { border-bottom: none; }
-    .history-date { white-space: nowrap; color: #999; }
-    .history-badge { background: #eee; border-radius: 3px; padding: 1px 5px; color: #444; font-size: 10px; }
+    /* inline edit form */
+    .pl-form { background:#f8f9ff; border:1px solid #d0d3ff; border-radius:6px; padding:10px; margin-bottom:6px; }
+    .pl-form-row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px; }
+    .pl-form-field { display:flex; flex-direction:column; gap:3px; }
+    .pl-form-field label { font-size:11px; font-weight:600; color:#555; }
+    .pl-form-field select { padding:4px 8px; font-size:12px; border:1px solid #ccc; border-radius:4px; background:white; min-width:130px; }
+    .pl-form-field input[type=date] { padding:4px 8px; font-size:12px; border:1px solid #ccc; border-radius:4px; background:white; }
+    .pl-form-actions { display:flex; gap:6px; }
+    .pl-form-save { padding:4px 14px; font-size:12px; font-weight:600; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; }
+    .pl-form-save:hover { background:#5568d3; }
+    .pl-form-save:disabled { background:#aaa; cursor:default; }
+    .pl-form-cancel { padding:4px 10px; font-size:12px; background:white; border:1px solid #ccc; border-radius:4px; cursor:pointer; color:#555; }
+    .pl-form-cancel:hover { background:#f5f5f5; }
+    .pl-form-remove { padding:4px 10px; font-size:12px; background:white; border:1px solid #fca5a5; border-radius:4px; cursor:pointer; color:#c00; margin-right:auto; }
+    .pl-form-remove:hover { background:#fff0f0; }
+
+    .pl-unset-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
+    .pl-unset-card { background:white; border:1px solid #e5e7eb; border-radius:6px; padding:7px 10px; font-size:12px; min-width:150px; }
+    .pl-unset-card-name { font-weight:600; color:#374151; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+
+    .pl-empty { color:#bbb; font-size:11px; font-style:italic; padding:6px 2px; }
+    .pl-collapsed { display:none; }
   </style>
 </head>
 <body>
@@ -546,11 +392,11 @@
 
   <!-- Tab bar -->
   <div class="tab-bar">
-    <button class="tab-btn active" data-tab="report">Customer Data</button>
-    <button class="tab-btn" data-tab="pipeline">Pipeline View</button>
+    <button class="tab-btn active" id="tab-btn-report" onclick="switchTab('report')">Customer Data</button>
+    <button class="tab-btn" id="tab-btn-pipeline" onclick="switchTab('pipeline')">Pipeline View</button>
   </div>
 
-  <!-- ══ TAB: Customer Data ════════════════════════════════ -->
+  <!-- ══ TAB: Customer Data ═══════════════════════════════════════ -->
   <div class="tab-content active" id="tab-report">
 
   <!-- Config Panel -->
@@ -597,8 +443,6 @@
         <button class="run-btn" id="run-btn">Run Report</button>
       </div>
     </div>
-
-    <!-- Field selector -->
     <div>
       <button class="field-selector-toggle" id="field-toggle">
         <span>&#9881;</span> Select fields <span id="field-count-label" style="color:#667eea;font-weight:700;"></span>
@@ -613,111 +457,36 @@
       </div>
     </div>
   </div>
-
-  <!-- Results -->
   <div class="results-panel" id="results-panel">
     <div class="results-empty">Configure a report above and click <strong>Run Report</strong>.</div>
   </div>
 
   </div><!-- /tab-report -->
 
-  <!-- ══ TAB: Pipeline View ════════════════════════════════ -->
+  <!-- ══ TAB: Pipeline View ════════════════════════════════════════ -->
   <div class="tab-content" id="tab-pipeline">
-
-    <!-- Toolbar -->
-    <div class="pipeline-toolbar">
-      <input type="text" id="pipeline-search" placeholder="Search customer…" style="max-width:240px;"/>
-      <button class="pipeline-add-btn" id="pipeline-add-btn">+ Set / Update Stage</button>
-      <button class="pipeline-refresh-btn" id="pipeline-refresh-btn">&#8635; Refresh</button>
-      <span id="pipeline-load-status" style="font-size:12px;color:#888;"></span>
+    <div class="pl-search-bar">
+      <input type="text" id="pl-search" placeholder="Search customers…" oninput="plFilter()"/>
+      <button class="pl-refresh-btn" onclick="plRefresh()">&#8635; Refresh</button>
+      <span class="pl-status" id="pl-status"></span>
     </div>
-
-    <!-- Summary bar -->
-    <div class="pipeline-summary" id="pipeline-summary" style="display:none;"></div>
-
-    <!-- Board -->
-    <div class="pipeline-board" id="pipeline-board">
-      <div style="padding:30px;text-align:center;color:#aaa;font-size:14px;">Loading pipeline data…</div>
+    <div id="pl-board">
+      <div style="padding:30px;text-align:center;color:#aaa;font-size:14px;">Click the Pipeline View tab to load.</div>
     </div>
-
   </div><!-- /tab-pipeline -->
-
-  <!-- ══ Edit / Add Modal ══════════════════════════════════ -->
-  <div class="modal-backdrop" id="progression-modal">
-    <div class="modal-box">
-      <h3 id="modal-title">Set Customer Stage</h3>
-
-      <div class="modal-field">
-        <label>Company *</label>
-        <input type="text" id="modal-company" placeholder="Type to search…" autocomplete="off"/>
-        <div id="modal-company-dropdown" style="position:relative;"></div>
-      </div>
-      <div class="modal-field">
-        <label>Track *</label>
-        <select id="modal-track" onchange="onModalTrackChange(this.value)">
-          <option value="">-- select --</option>
-          <option value="Moving">Moving</option>
-          <option value="On Hold">On Hold</option>
-        </select>
-      </div>
-      <div class="modal-field">
-        <label>Stage *</label>
-        <select id="modal-stage" onchange="onModalStageChange(this.value)">
-          <option value="">-- select track first --</option>
-        </select>
-      </div>
-      <div class="modal-field" id="modal-source-row" style="display:none;">
-        <label>Migration Source *</label>
-        <select id="modal-source" onchange="onModalSourceChange(this.value)">
-          <option value="">-- select --</option>
-          <option value="On Prem">On Prem</option>
-          <option value="AMS">AMS</option>
-        </select>
-      </div>
-      <div class="modal-field" id="modal-tech-row" style="display:none;">
-        <label>Migration Tech (On Prem only) *</label>
-        <select id="modal-tech">
-          <option value="">-- select --</option>
-          <option value="AEM">AEM</option>
-          <option value="Not AEM">Not AEM</option>
-        </select>
-      </div>
-      <div class="modal-field">
-        <label>Stage entered date *</label>
-        <input type="date" id="modal-date"/>
-      </div>
-      <div class="modal-field">
-        <label>Notes</label>
-        <textarea id="modal-notes" placeholder="Optional context about this stage…"></textarea>
-      </div>
-
-      <!-- Stage history (populated when editing) -->
-      <div id="modal-history-section" style="display:none;">
-        <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:4px;">Stage history</div>
-        <div class="history-list" id="modal-history-list"></div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="modal-delete-btn" id="modal-delete-btn" style="display:none;">Remove from pipeline</button>
-        <button class="modal-cancel-btn" id="modal-cancel-btn">Cancel</button>
-        <button class="modal-save-btn" id="modal-save-btn">Save</button>
-      </div>
-    </div>
-  </div>
 
 </main>
 
 <div class="toast" id="toast"></div>
 
+<!-- ══ MODULE SCRIPT — customer data report tab only ══════════════ -->
 <script type="module">
-import { getProfile, onAuthStateChange } from '/scripts/auth/imslib-adapter.js';
+import { getProfile } from '/scripts/auth/imslib-adapter.js';
+window._getImsUser = () => { const p = getProfile(); return p?.email || p?.displayName || p?.name || 'unknown'; };
+</script>
 
-/* ── IMS user helper ─────────────────────── */
-function getCurrentUser() {
-  const p = getProfile();
-  return p?.email || p?.displayName || p?.name || 'unknown';
-}
-
+<!-- ══ NON-MODULE SCRIPT — report tab ════════════════════════════ -->
+<script>
 /* ─────────────────────────────────────────────
    Field definitions
 ───────────────────────────────────────────── */
@@ -1091,11 +860,9 @@ async function exportAI() {
       filterLicense ? `license = ${filterLicense}` : null,
     ].filter(Boolean).join(', ') || 'no additional filters';
 
-    // Header row
     const header = fields.map(f => f.label).join(' | ');
     const separator = fields.map(() => '---').join(' | ');
 
-    // Data rows — cap at 500 to keep prompt manageable
     const capped = sorted.slice(0, 500);
     const dataRows = capped.map(row =>
       fields.map(f => String(row[f.key] || '').replace(/\|/g, '/')).join(' | ')
@@ -1144,394 +911,393 @@ function showToast(msg) {
 }
 
 /* ─────────────────────────────────────────────
-   Init (customer data only — pipeline init is at
-   the bottom AFTER all pipeline vars are declared)
+   Init
 ───────────────────────────────────────────── */
 buildFieldSelector();
 loadData().catch(() => {});
+</script>
 
-/* ═══════════════════════════════════════════════════════════
-   PIPELINE — variables declared first so init call at the
-   bottom of the script can reference them without TDZ errors
-═══════════════════════════════════════════════════════════ */
+<!-- ══ NON-MODULE SCRIPT — pipeline tab (completely self-contained) ══ -->
+<script>
+(function() {
+'use strict';
 
+/* ── Constants ──────────────────────────────────────────── */
 const MOVING_STAGES = ['Prod', 'POC', 'Preprod'];
 const ONHOLD_STAGES = ['Future Date', 'Migration'];
-const TRACK_STAGES  = { 'Moving': MOVING_STAGES, 'On Hold': ONHOLD_STAGES };
+const ALL_STAGES    = [...MOVING_STAGES, ...ONHOLD_STAGES];
 
-let pipelineRows     = null;  // CustomerProgression[] from API
-let allCustomerNames = [];    // string[] for company autocomplete
-let modalMode        = 'add'; // 'add' | 'edit'
-let modalOrigCompany = null;
+/* ── State ──────────────────────────────────────────────── */
+var customers   = [];    // [{companyName, ...}]  from /api/customers (deduped latest)
+var progMap     = {};    // companyName → progression row
+var openFormFor = null;  // companyName whose inline form is open
 
-/* ── Tab switching ── */
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'pipeline') {
-      if (pipelineRows !== null) renderPipeline();
-      else loadPipelineData();
-    }
-  });
-});
+/* ── Tab switching (shared) ────────────────────────────── */
+window.switchTab = function(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'pipeline' && customers.length === 0) plLoad();
+};
 
-/* ── Fetch ── */
-async function loadPipelineData(force = false) {
-  if (pipelineRows !== null && !force) return;
-  const statusEl = document.getElementById('pipeline-load-status');
-  const boardEl  = document.getElementById('pipeline-board');
-  statusEl.textContent = 'Loading…';
-  boardEl.innerHTML = '<div style="padding:20px;text-align:center;color:#888;font-size:13px;">Fetching pipeline data…</div>';
-
-  let rawText = '';
-  try {
-    const res = await fetch('/api/progression/all');
-    rawText = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 200)}`);
-    const json = JSON.parse(rawText);
-    if (json.error) throw new Error(json.error);
-    pipelineRows = json.data || [];
-
-    const custNames = (allData || []).map(c => c.companyName);
-    const progNames = pipelineRows.map(p => p.companyName);
-    allCustomerNames = [...new Set([...custNames, ...progNames])].sort((a, b) => a.localeCompare(b));
-
-    statusEl.textContent = `${pipelineRows.length} customer${pipelineRows.length !== 1 ? 's' : ''} tracked`;
-    renderPipeline();
-  } catch (err) {
-    boardEl.innerHTML = `<div style="padding:20px;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;font-size:12px;color:#991b1b;">
-      <strong>Pipeline load error:</strong> ${escHtml(err.message)}<br>
-      <em style="color:#999;">Raw response: ${escHtml(rawText.slice(0, 300))}</em><br>
-      <button onclick="loadPipelineData(true)" style="margin-top:8px;padding:4px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Retry</button>
-    </div>`;
-    statusEl.textContent = '';
-    console.error('[pipeline]', err.message, rawText);
-  }
+/* ── Helpers ────────────────────────────────────────────── */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-document.getElementById('pipeline-refresh-btn').addEventListener('click', () => {
-  pipelineRows = null;
-  loadPipelineData(true);
-});
-document.getElementById('pipeline-search').addEventListener('input', () => {
-  if (pipelineRows !== null) renderPipeline();
-});
-
-/* ── Render board ── */
-function daysSince(dateStr) {
-  if (!dateStr) return '?';
+function days(dateStr) {
+  if (!dateStr) return null;
   return Math.floor((Date.now() - new Date(dateStr)) / 864e5);
 }
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+function imsUser() {
+  return (window._getImsUser && window._getImsUser()) || 'unknown';
+}
 
-function renderPipeline() {
-  const searchVal = document.getElementById('pipeline-search').value.trim().toLowerCase();
-  const rows = (searchVal
-    ? pipelineRows.filter(r => r.companyName.toLowerCase().includes(searchVal))
-    : pipelineRows).filter(Boolean);
+/* ── Load ───────────────────────────────────────────────── */
+async function plLoad() {
+  document.getElementById('pl-status').textContent = 'Loading…';
+  document.getElementById('pl-board').innerHTML = '<div style="padding:20px;text-align:center;color:#aaa;">Loading…</div>';
+  try {
+    var r1 = await fetch('/api/customers');
+    if (!r1.ok) throw new Error('customers HTTP ' + r1.status);
+    var j1 = await r1.json();
+    var raw = j1.data || [];
+    // Dedupe: latest week per customer
+    var byName = {};
+    raw.forEach(function(r) {
+      if (!byName[r.companyName] || r.week > byName[r.companyName].week) byName[r.companyName] = r;
+    });
+    customers = Object.values(byName).sort(function(a,b){ return a.companyName.localeCompare(b.companyName); });
 
-  // Summary bar
-  const summaryEl = document.getElementById('pipeline-summary');
-  summaryEl.style.display = 'flex';
-  summaryEl.innerHTML = [
-    { num: rows.length,                                              lbl: 'Total' },
-    { num: rows.filter(r => r.progressionTrack === 'Moving').length, lbl: 'Moving' },
-    { num: rows.filter(r => r.progressionTrack === 'On Hold').length,lbl: 'On Hold' },
-    ...MOVING_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
-    ...ONHOLD_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
-  ].map(item => `<div class="pipeline-summary-item">
-      <span class="ps-num">${item.num}</span>
-      <span class="ps-lbl">${escHtml(item.lbl)}</span>
-    </div>`).join('');
+    var r2 = await fetch('/api/progression/all');
+    if (!r2.ok) throw new Error('progression HTTP ' + r2.status);
+    var j2 = await r2.json();
+    progMap = {};
+    (j2.data || []).forEach(function(p) { progMap[p.companyName] = p; });
 
-  const board = document.getElementById('pipeline-board');
+    document.getElementById('pl-status').textContent = customers.length + ' customers · ' + Object.keys(progMap).length + ' tracked';
+    plRender();
+  } catch(e) {
+    document.getElementById('pl-board').innerHTML = '<div style="padding:20px;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;color:#991b1b;font-size:13px;"><strong>Error:</strong> ' + esc(e.message) + '<br><button onclick="plRefresh()" style="margin-top:8px;padding:4px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;">Retry</button></div>';
+    document.getElementById('pl-status').textContent = '';
+    console.error('[pipeline]', e);
+  }
+}
+
+window.plRefresh = function() { customers = []; progMap = {}; plLoad(); };
+window.plFilter  = function() { if (customers.length) plRender(); };
+
+/* ── Render board ───────────────────────────────────────── */
+function plRender() {
+  var search = (document.getElementById('pl-search').value || '').trim().toLowerCase();
+  var visible = customers.filter(function(c) {
+    return !search || c.companyName.toLowerCase().includes(search);
+  });
+
+  var board = document.getElementById('pl-board');
   board.innerHTML = '';
 
-  [
-    { track: 'Moving',  cssClass: 'track-moving', stages: MOVING_STAGES },
-    { track: 'On Hold', cssClass: 'track-onhold', stages: ONHOLD_STAGES },
-  ].forEach(({ track, cssClass, stages }) => {
-    const trackRows = rows.filter(r => r.progressionTrack === track);
-    const trackEl   = document.createElement('div');
-    trackEl.className = `pipeline-track ${cssClass}`;
+  // Moving section
+  board.appendChild(buildSection('Moving', 'pl-moving', MOVING_STAGES, visible));
+  // On Hold section
+  board.appendChild(buildSection('On Hold', 'pl-onhold', ONHOLD_STAGES, visible));
+  // Unassigned section
+  var unassigned = visible.filter(function(c) { return !progMap[c.companyName]; });
+  board.appendChild(buildUnassigned(unassigned));
+}
 
-    const stagesWrap = document.createElement('div');
-    stagesWrap.className = 'pipeline-stages';
+function buildSection(trackName, cssClass, stages, allVisible) {
+  var trackCustomers = allVisible.filter(function(c) {
+    var p = progMap[c.companyName];
+    return p && p.progressionTrack === trackName;
+  });
 
-    stages.forEach(stage => {
-      const stageRows = trackRows.filter(r => r.progressionStage === stage);
-      const stageEl   = document.createElement('div');
-      stageEl.className = 'pipeline-stage';
+  var section = document.createElement('div');
+  section.className = 'pl-section ' + cssClass;
 
-      const cardHtml = stageRows.length === 0
-        ? `<div class="pipeline-empty-stage">No customers</div>`
-        : stageRows.map(r => {
-            const daysIn = daysSince(r.stageEnteredAt);
-            let migTags = '';
-            if (r.progressionStage === 'Migration') {
-              if (r.migrationSource) {
-                migTags += `<span class="pipeline-card-tag" style="background:#fef3c7;color:#92400e;">${escHtml(r.migrationSource)}</span>`;
-              }
-              if (r.migrationSource === 'On Prem' && r.migrationTech) {
-                migTags += `<span class="pipeline-card-tag" style="background:#e0f2fe;color:#0369a1;">${escHtml(r.migrationTech)}</span>`;
-              }
-            }
-            return `<div class="pipeline-card" data-company="${escHtml(r.companyName)}">
-              <div class="pipeline-card-name">${escHtml(r.companyName)}</div>
-              <div class="pipeline-card-meta">
-                <span>${daysIn}d in stage</span>
-                ${migTags}
-                ${r.updatedBy && r.updatedBy !== 'unknown' ? `<span class="pipeline-card-tag">${escHtml(r.updatedBy)}</span>` : ''}
-              </div>
-            </div>`;
-          }).join('');
+  var hdr = document.createElement('div');
+  hdr.className = 'pl-section-hdr';
+  hdr.innerHTML = esc(trackName) +
+    '<span class="pl-count">' + trackCustomers.length + '</span>' +
+    '<span class="pl-toggle">▼</span>';
+  hdr.onclick = function() {
+    var body = section.querySelector('.pl-columns');
+    var toggle = hdr.querySelector('.pl-toggle');
+    body.classList.toggle('pl-collapsed');
+    toggle.textContent = body.classList.contains('pl-collapsed') ? '▶' : '▼';
+  };
+  section.appendChild(hdr);
 
-      stageEl.innerHTML = `<div class="pipeline-stage-title">${escHtml(stage)}<span class="stage-count">${stageRows.length}</span></div>${cardHtml}`;
-      stagesWrap.appendChild(stageEl);
+  var columns = document.createElement('div');
+  columns.className = 'pl-columns';
+
+  stages.forEach(function(stage) {
+    var stageCustomers = trackCustomers.filter(function(c) {
+      return progMap[c.companyName].progressionStage === stage;
     });
-
-    trackEl.innerHTML = `<div class="pipeline-track-header">${escHtml(track)}
-      <span style="font-size:13px;font-weight:400;opacity:0.7;">${trackRows.length} customer${trackRows.length !== 1 ? 's' : ''}</span>
-    </div>`;
-    trackEl.appendChild(stagesWrap);
-    board.appendChild(trackEl);
+    var col = document.createElement('div');
+    col.className = 'pl-col';
+    var colTitle = '<div class="pl-col-title">' + esc(stage) +
+      '<span class="pl-col-count">' + stageCustomers.length + '</span></div>';
+    var cardsHtml = stageCustomers.length === 0
+      ? '<div class="pl-empty">No customers</div>'
+      : stageCustomers.map(function(c) { return buildCard(c); }).join('');
+    col.innerHTML = colTitle + cardsHtml;
+    columns.appendChild(col);
   });
 
-  board.querySelectorAll('.pipeline-card').forEach(card => {
-    card.addEventListener('click', () => openEditModal(card.dataset.company));
-  });
+  section.appendChild(columns);
+  return section;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MODAL
-═══════════════════════════════════════════════════════════ */
+function buildUnassigned(list) {
+  var section = document.createElement('div');
+  section.className = 'pl-section pl-unset';
 
-function applyMigrationVisibility() {
-  const stage  = document.getElementById('modal-stage').value;
-  const source = document.getElementById('modal-source').value;
-  const showSource = (stage === 'Migration');
-  const showTech   = showSource && (source === 'On Prem');
-  document.getElementById('modal-source-row').style.display = showSource ? 'block' : 'none';
-  document.getElementById('modal-tech-row').style.display   = showTech   ? 'block' : 'none';
+  var hdr = document.createElement('div');
+  hdr.className = 'pl-section-hdr';
+  hdr.innerHTML = 'Not in pipeline' +
+    '<span class="pl-count" style="background:#9ca3af;">' + list.length + '</span>' +
+    '<span class="pl-toggle">▼</span>';
+  hdr.onclick = function() {
+    var body = section.querySelector('.pl-unset-grid');
+    var toggle = hdr.querySelector('.pl-toggle');
+    body.classList.toggle('pl-collapsed');
+    toggle.textContent = body.classList.contains('pl-collapsed') ? '▶' : '▼';
+  };
+  section.appendChild(hdr);
+
+  var grid = document.createElement('div');
+  grid.className = 'pl-unset-grid';
+  if (list.length === 0) {
+    grid.innerHTML = '<div style="padding:8px;color:#aaa;font-size:12px;font-style:italic;">All customers assigned.</div>';
+  } else {
+    list.forEach(function(c) {
+      grid.innerHTML += buildUnsetCard(c);
+    });
+  }
+  section.appendChild(grid);
+  return section;
 }
 
-// Called by onchange attributes in HTML (must be on window for module scope)
-window.onModalTrackChange = function(track) {
-  const stages = TRACK_STAGES[track] || [];
-  const sel = document.getElementById('modal-stage');
-  sel.innerHTML = stages.length
-    ? `<option value="">-- select stage --</option>` +
-      stages.map(s => `<option value="${s}">${s}</option>`).join('')
-    : `<option value="">-- select track first --</option>`;
-  document.getElementById('modal-source').value = '';
-  document.getElementById('modal-tech').value   = '';
-  applyMigrationVisibility();
+function buildCard(c) {
+  var p = progMap[c.companyName];
+  var d = p ? days(p.stageEnteredAt) : null;
+  var tags = '';
+  if (p && p.progressionStage === 'Migration') {
+    if (p.migrationSource) tags += '<span class="pl-card-tag pl-card-tag-source">' + esc(p.migrationSource) + '</span>';
+    if (p.migrationSource === 'On Prem' && p.migrationTech) tags += '<span class="pl-card-tag pl-card-tag-tech">' + esc(p.migrationTech) + '</span>';
+  }
+  if (d !== null) tags += '<span class="pl-card-tag pl-card-tag-days">' + d + 'd</span>';
+  if (p && p.updatedBy && p.updatedBy !== 'unknown') tags += '<span class="pl-card-tag pl-card-tag-user">' + esc(p.updatedBy) + '</span>';
+
+  return '<div class="pl-card" id="card-' + esc(c.companyName) + '">' +
+    '<div class="pl-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
+    '<div class="pl-card-tags">' + tags + '</div>' +
+    '<button class="pl-edit-btn" onclick="plOpenForm('' + esc(c.companyName).replace(/'/g,"\'") + '')">Edit</button>' +
+    '</div>';
+}
+
+function buildUnsetCard(c) {
+  return '<div class="pl-unset-card" id="card-' + esc(c.companyName) + '">' +
+    '<div class="pl-unset-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
+    '<button class="pl-edit-btn" onclick="plOpenForm('' + esc(c.companyName).replace(/'/g,"\'") + '')">Set stage</button>' +
+    '</div>';
+}
+
+/* ── Inline form ────────────────────────────────────────── */
+window.plOpenForm = function(companyName) {
+  // Close any previously open form
+  if (openFormFor && openFormFor !== companyName) {
+    plCloseForm(openFormFor);
+  }
+  openFormFor = companyName;
+
+  var cardEl = document.getElementById('card-' + companyName);
+  if (!cardEl) return;
+
+  var existing = progMap[companyName];
+  var track    = (existing && existing.progressionTrack)  || '';
+  var stage    = (existing && existing.progressionStage)  || '';
+  var source   = (existing && existing.migrationSource)   || '';
+  var tech     = (existing && existing.migrationTech)     || '';
+  var date     = (existing && existing.stageEnteredAt)    || new Date().toISOString().slice(0,10);
+
+  var stageOpts = buildStageOpts(track, stage);
+  var sourceVis = stage === 'Migration' ? '' : 'display:none;';
+  var techVis   = (stage === 'Migration' && source === 'On Prem') ? '' : 'display:none;';
+
+  var removeBtn = existing
+    ? '<button class="pl-form-remove" onclick="plRemove('' + esc(companyName).replace(/'/g,"\'") + '')">Remove from pipeline</button>'
+    : '';
+
+  var formHtml = '<div class="pl-form" id="form-' + esc(companyName) + '">' +
+    '<div style="font-size:12px;font-weight:700;color:#333;margin-bottom:8px;">' + esc(companyName) + '</div>' +
+    '<div class="pl-form-row">' +
+      '<div class="pl-form-field"><label>Track</label>' +
+        '<select id="pf-track-' + esc(companyName) + '" onchange="plTrackChange('' + esc(companyName).replace(/'/g,"\'") + '')">' +
+          '<option value="">-- select --</option>' +
+          '<option value="Moving"'  + (track==='Moving'  ?' selected':'') + '>Moving</option>' +
+          '<option value="On Hold"' + (track==='On Hold' ?' selected':'') + '>On Hold</option>' +
+        '</select></div>' +
+      '<div class="pl-form-field"><label>Stage</label>' +
+        '<select id="pf-stage-' + esc(companyName) + '" onchange="plStageChange('' + esc(companyName).replace(/'/g,"\'") + '')">' + stageOpts + '</select></div>' +
+      '<div class="pl-form-field" id="pf-source-wrap-' + esc(companyName) + '" style="' + sourceVis + '"><label>Migration source</label>' +
+        '<select id="pf-source-' + esc(companyName) + '" onchange="plSourceChange('' + esc(companyName).replace(/'/g,"\'") + '')">' +
+          '<option value="">-- select --</option>' +
+          '<option value="On Prem"' + (source==='On Prem'?' selected':'') + '>On Prem</option>' +
+          '<option value="AMS"'     + (source==='AMS'    ?' selected':'') + '>AMS</option>' +
+        '</select></div>' +
+      '<div class="pl-form-field" id="pf-tech-wrap-' + esc(companyName) + '" style="' + techVis + '"><label>AEM tech</label>' +
+        '<select id="pf-tech-' + esc(companyName) + '">' +
+          '<option value="">-- select --</option>' +
+          '<option value="AEM"'     + (tech==='AEM'    ?' selected':'') + '>AEM</option>' +
+          '<option value="Not AEM"' + (tech==='Not AEM'?' selected':'') + '>Not AEM</option>' +
+        '</select></div>' +
+      '<div class="pl-form-field"><label>Stage entered</label>' +
+        '<input type="date" id="pf-date-' + esc(companyName) + '" value="' + esc(date) + '"/></div>' +
+    '</div>' +
+    '<div class="pl-form-actions">' +
+      removeBtn +
+      '<button class="pl-form-cancel" onclick="plCloseForm('' + esc(companyName).replace(/'/g,"\'") + '')">Cancel</button>' +
+      '<button class="pl-form-save" id="pf-save-' + esc(companyName) + '" onclick="plSave('' + esc(companyName).replace(/'/g,"\'") + '')">Save</button>' +
+    '</div>' +
+    '</div>';
+
+  cardEl.insertAdjacentHTML('afterend', formHtml);
+  // Hide the card's edit button while form is open
+  var editBtn = cardEl.querySelector('.pl-edit-btn');
+  if (editBtn) editBtn.style.display = 'none';
 };
 
-window.onModalStageChange = function(stage) {
-  if (stage !== 'Migration') {
-    document.getElementById('modal-source').value = '';
-    document.getElementById('modal-tech').value   = '';
-  }
-  applyMigrationVisibility();
+function buildStageOpts(track, selectedStage) {
+  var stages = track === 'Moving' ? MOVING_STAGES : track === 'On Hold' ? ONHOLD_STAGES : [];
+  if (stages.length === 0) return '<option value="">-- select track first --</option>';
+  return '<option value="">-- select stage --</option>' +
+    stages.map(function(s) {
+      return '<option value="' + s + '"' + (s === selectedStage ? ' selected' : '') + '>' + s + '</option>';
+    }).join('');
+}
+
+window.plTrackChange = function(companyName) {
+  var track = document.getElementById('pf-track-' + companyName).value;
+  var stageSel = document.getElementById('pf-stage-' + companyName);
+  stageSel.innerHTML = buildStageOpts(track, '');
+  plHideMigrationFields(companyName);
 };
 
-window.onModalSourceChange = function(source) {
-  if (source !== 'On Prem') {
-    document.getElementById('modal-tech').value = '';
+window.plStageChange = function(companyName) {
+  var stage = document.getElementById('pf-stage-' + companyName).value;
+  var sourceWrap = document.getElementById('pf-source-wrap-' + companyName);
+  var techWrap   = document.getElementById('pf-tech-wrap-'   + companyName);
+  if (stage === 'Migration') {
+    sourceWrap.style.display = '';
+  } else {
+    sourceWrap.style.display = 'none';
+    document.getElementById('pf-source-' + companyName).value = '';
+    plHideMigrationFields(companyName);
   }
-  applyMigrationVisibility();
 };
 
-function setStageOptions(track, selectedStage) {
-  const stages = TRACK_STAGES[track] || [];
-  const sel = document.getElementById('modal-stage');
-  sel.innerHTML = stages.length
-    ? `<option value="">-- select stage --</option>` +
-      stages.map(s => `<option value="${s}"${s === selectedStage ? ' selected' : ''}>${s}</option>`).join('')
-    : `<option value="">-- select track first --</option>`;
+window.plSourceChange = function(companyName) {
+  var source   = document.getElementById('pf-source-' + companyName).value;
+  var techWrap = document.getElementById('pf-tech-wrap-' + companyName);
+  if (source === 'On Prem') {
+    techWrap.style.display = '';
+  } else {
+    techWrap.style.display = 'none';
+    document.getElementById('pf-tech-' + companyName).value = '';
+  }
+};
+
+function plHideMigrationFields(companyName) {
+  var sourceWrap = document.getElementById('pf-source-wrap-' + companyName);
+  var techWrap   = document.getElementById('pf-tech-wrap-'   + companyName);
+  if (sourceWrap) sourceWrap.style.display = 'none';
+  if (techWrap)   techWrap.style.display   = 'none';
+  var src = document.getElementById('pf-source-' + companyName);
+  var tch = document.getElementById('pf-tech-'   + companyName);
+  if (src) src.value = '';
+  if (tch) tch.value = '';
 }
 
-function openAddModal() {
-  modalMode = 'add';
-  modalOrigCompany = null;
-  document.getElementById('modal-title').textContent = 'Set Customer Stage';
-  document.getElementById('modal-company').value    = '';
-  document.getElementById('modal-company').disabled = false;
-  document.getElementById('modal-track').value  = '';
-  document.getElementById('modal-source').value = '';
-  document.getElementById('modal-tech').value   = '';
-  setStageOptions('', '');
-  document.getElementById('modal-date').value   = new Date().toISOString().slice(0, 10);
-  document.getElementById('modal-notes').value  = '';
-  document.getElementById('modal-delete-btn').style.display   = 'none';
-  document.getElementById('modal-history-section').style.display = 'none';
-  document.getElementById('modal-history-list').innerHTML = '';
-  applyMigrationVisibility();
-  openModal();
-}
-
-async function openEditModal(companyName) {
-  modalMode = 'edit';
-  modalOrigCompany = companyName;
-  const row = pipelineRows?.find(r => r.companyName === companyName);
-
-  document.getElementById('modal-title').textContent    = `Edit Stage — ${companyName}`;
-  document.getElementById('modal-company').value        = companyName;
-  document.getElementById('modal-company').disabled     = true;
-  document.getElementById('modal-track').value          = row?.progressionTrack || '';
-  setStageOptions(row?.progressionTrack || '', row?.progressionStage || '');
-  document.getElementById('modal-source').value         = row?.migrationSource || '';
-  document.getElementById('modal-tech').value           = row?.migrationTech   || '';
-  document.getElementById('modal-date').value           = row?.stageEnteredAt  || new Date().toISOString().slice(0, 10);
-  document.getElementById('modal-notes').value          = row?.notes           || '';
-  document.getElementById('modal-delete-btn').style.display   = 'inline-block';
-  document.getElementById('modal-history-section').style.display = 'block';
-  document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">Loading history…</em>';
-  applyMigrationVisibility();
-  openModal();
-
-  try {
-    const res  = await fetch(`/api/progression/history?company=${encodeURIComponent(companyName)}`);
-    const json = await res.json();
-    const entries = json.data || [];
-    document.getElementById('modal-history-list').innerHTML = entries.length === 0
-      ? '<em style="font-size:11px;color:#aaa;">No history yet.</em>'
-      : entries.map(e => `<div class="history-entry">
-          <span class="history-date">${e.changedAt.slice(0, 10)}</span>
-          <span class="history-badge">${escHtml(e.progressionTrack)}</span>
-          <span class="history-badge">${escHtml(e.progressionStage)}</span>
-          ${e.migrationSource ? `<span class="history-badge">${escHtml(e.migrationSource)}</span>` : ''}
-          ${e.migrationTech   ? `<span class="history-badge">${escHtml(e.migrationTech)}</span>`   : ''}
-          <span style="color:#888;">${escHtml(e.changedBy)}</span>
-        </div>`).join('');
-  } catch {
-    document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#c00;">Failed to load history.</em>';
+window.plCloseForm = function(companyName) {
+  var form = document.getElementById('form-' + companyName);
+  if (form) form.remove();
+  var cardEl = document.getElementById('card-' + companyName);
+  if (cardEl) {
+    var btn = cardEl.querySelector('.pl-edit-btn');
+    if (btn) btn.style.display = '';
   }
-}
+  if (openFormFor === companyName) openFormFor = null;
+};
 
-function openModal()  { document.getElementById('progression-modal').classList.add('open'); }
-function closeModal() {
-  document.getElementById('progression-modal').classList.remove('open');
-  modalMode = 'add';
-  modalOrigCompany = null;
-}
+window.plSave = async function(companyName) {
+  var track  = document.getElementById('pf-track-'  + companyName).value;
+  var stage  = document.getElementById('pf-stage-'  + companyName).value;
+  var source = document.getElementById('pf-source-' + companyName).value || null;
+  var tech   = document.getElementById('pf-tech-'   + companyName).value || null;
+  var date   = document.getElementById('pf-date-'   + companyName).value;
 
-document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
-document.getElementById('progression-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('progression-modal')) closeModal();
-});
+  if (!track || !stage || !date) { toast('Please select Track, Stage, and Date.'); return; }
+  if (stage === 'Migration' && !source) { toast('Please select a Migration Source.'); return; }
+  if (stage === 'Migration' && source === 'On Prem' && !tech) { toast('Please select AEM Tech.'); return; }
 
-// Migration field visibility is handled by onchange= attributes directly in HTML
-// (window.onModalTrackChange / onModalStageChange / onModalSourceChange above)
-
-/* Save */
-document.getElementById('modal-save-btn').addEventListener('click', async () => {
-  const company   = document.getElementById('modal-company').value.trim();
-  const track     = document.getElementById('modal-track').value;
-  const stage     = document.getElementById('modal-stage').value;
-  const source    = document.getElementById('modal-source').value || null;
-  const tech      = document.getElementById('modal-tech').value   || null;
-  const date      = document.getElementById('modal-date').value;
-  const updatedBy = getCurrentUser();
-  const notes     = document.getElementById('modal-notes').value.trim() || null;
-
-  if (!company || !track || !stage || !date) {
-    showToast('Please fill in all required fields (Company, Track, Stage, Date).');
-    return;
-  }
-  if (stage === 'Migration' && !source) {
-    showToast('Please select a Migration Source (On Prem or AMS).');
-    return;
-  }
-  if (stage === 'Migration' && source === 'On Prem' && !tech) {
-    showToast('Please select Migration Tech (AEM or Not AEM).');
-    return;
-  }
-
-  const saveBtn = document.getElementById('modal-save-btn');
-  saveBtn.disabled   = true;
+  var saveBtn = document.getElementById('pf-save-' + companyName);
+  saveBtn.disabled = true;
   saveBtn.textContent = 'Saving…';
 
   try {
-    const res  = await fetch('/api/progression', {
+    var res  = await fetch('/api/progression', {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ companyName: company, progressionTrack: track, progressionStage: stage,
-                                migrationSource: source, migrationTech: tech, stageEnteredAt: date,
-                                updatedBy, notes }),
+      body:    JSON.stringify({
+        companyName:      companyName,
+        progressionTrack: track,
+        progressionStage: stage,
+        migrationSource:  source,
+        migrationTech:    tech,
+        stageEnteredAt:   date,
+        updatedBy:        imsUser(),
+        notes:            null,
+      }),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    var json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
 
-    // Merge into local cache (null-safe)
-    const saved = json.data;
-    if (pipelineRows !== null && saved) {
-      const idx = pipelineRows.findIndex(r => r.companyName === company);
-      if (idx >= 0) pipelineRows[idx] = saved;
-      else          pipelineRows.push(saved);
-    }
-
-    closeModal();
-    renderPipeline();
-    showToast('Stage saved.');
-  } catch (err) {
-    showToast('Error: ' + err.message);
-  } finally {
-    saveBtn.disabled   = false;
+    // Update local state
+    progMap[companyName] = json.data;
+    openFormFor = null;
+    plRender();
+    toast('Saved.');
+  } catch(e) {
+    toast('Error: ' + e.message);
+    saveBtn.disabled = false;
     saveBtn.textContent = 'Save';
   }
-});
+};
 
-/* Delete */
-document.getElementById('modal-delete-btn').addEventListener('click', async () => {
-  const company = modalOrigCompany;
-  if (!company || !confirm(`Remove "${company}" from the pipeline?`)) return;
+window.plRemove = async function(companyName) {
+  if (!confirm('Remove ' + companyName + ' from the pipeline?')) return;
   try {
-    const res = await fetch(`/api/progression?company=${encodeURIComponent(company)}`, { method: 'DELETE' });
-    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `HTTP ${res.status}`); }
-    if (pipelineRows !== null) pipelineRows = pipelineRows.filter(r => r.companyName !== company);
-    closeModal();
-    renderPipeline();
-    showToast(`${company} removed from pipeline.`);
-  } catch (err) {
-    showToast('Error: ' + err.message);
+    var res = await fetch('/api/progression?company=' + encodeURIComponent(companyName), { method: 'DELETE' });
+    if (!res.ok) { var j = await res.json().catch(function(){return{};}); throw new Error(j.error || 'HTTP ' + res.status); }
+    delete progMap[companyName];
+    openFormFor = null;
+    plRender();
+    toast(companyName + ' removed.');
+  } catch(e) {
+    toast('Error: ' + e.message);
   }
-});
+};
 
-document.getElementById('pipeline-add-btn').addEventListener('click', openAddModal);
-
-/* Company autocomplete */
-const companyInput    = document.getElementById('modal-company');
-const companyDropdown = document.getElementById('modal-company-dropdown');
-companyInput.addEventListener('input', () => {
-  companyDropdown.innerHTML = '';
-  const val = companyInput.value.trim().toLowerCase();
-  if (!val || modalMode === 'edit') return;
-  const matches = allCustomerNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
-  if (!matches.length) return;
-  const ul = document.createElement('ul');
-  ul.style.cssText = 'position:absolute;z-index:200;background:white;border:1px solid #ddd;border-radius:4px;list-style:none;margin:0;padding:0;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:180px;overflow-y:auto;';
-  matches.forEach(name => {
-    const li = document.createElement('li');
-    li.textContent = name;
-    li.style.cssText = 'padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
-    li.addEventListener('mouseenter', () => li.style.background = '#f0f4ff');
-    li.addEventListener('mouseleave', () => li.style.background = '');
-    li.addEventListener('click', () => { companyInput.value = name; companyDropdown.innerHTML = ''; });
-    ul.appendChild(li);
-  });
-  companyDropdown.appendChild(ul);
-});
-document.addEventListener('click', e => { if (!companyInput.contains(e.target)) companyDropdown.innerHTML = ''; });
-
-/* ═══════════════════════════════════════════════════════════
-   INIT — pipeline load is here, AFTER all variables above
-   are declared, so there is no temporal dead zone error
-═══════════════════════════════════════════════════════════ */
-loadPipelineData().catch(err => console.error('[pipeline init]', err));
+})();
 </script>
 </body>
 </html>
