@@ -631,6 +631,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
 async function loadCustomerComments(container, customerName) {
   const commentsEl = container.querySelector('.quick-ref-comments');
   const rangeSelect = container.querySelector('.quick-ref-comments-range');
+  const claudeBtn = container.querySelector('.qr-comments-claude-btn');
   if (!commentsEl) return;
 
   async function fetchAndRender(days) {
@@ -673,6 +674,32 @@ async function loadCustomerComments(container, customerName) {
 
   if (rangeSelect) {
     rangeSelect.addEventListener('change', () => fetchAndRender(rangeSelect.value));
+  }
+
+  if (claudeBtn) {
+    claudeBtn.addEventListener('click', async () => {
+      const days = rangeSelect?.value ?? 'latest';
+      const orig = claudeBtn.textContent;
+      claudeBtn.textContent = 'Fetching…';
+      claudeBtn.disabled = true;
+      try {
+        const params = new URLSearchParams({ company: customerName, days });
+        const res = await fetch(`/api/comments?${params}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { data } = await res.json();
+        const comments = data || [];
+        if (comments.length === 0) throw new Error('No comments in this range.');
+        const rangeLabel = days === 'latest' ? 'the most recent' : days === 'all' ? 'all' : `the last ${days} days of`;
+        const body = comments.map((c) => `[${c.commentDate}]${c.author ? ` ${c.author}` : ''}\n${c.body}`).join('\n\n---\n\n');
+        const prompt = `Below are ${rangeLabel} ServiceNow comments for ${customerName}. Please summarize the key themes, customer concerns, action items, and overall sentiment.\n\n${body}`;
+        await navigator.clipboard.writeText(prompt);
+        claudeBtn.textContent = 'Copied!';
+        setTimeout(() => { claudeBtn.textContent = orig; claudeBtn.disabled = false; }, 2000);
+      } catch (err) {
+        claudeBtn.textContent = err.message || 'Failed';
+        setTimeout(() => { claudeBtn.textContent = orig; claudeBtn.disabled = false; }, 3000);
+      }
+    });
   }
 }
 

@@ -197,6 +197,8 @@ async function fetchAudits(siteId, orgId, token) {
 
   await Promise.all(opportunities.map(async (opp) => {
     const auditType = opp.type || opp.opportunityType || 'unknown';
+    // Only show ASO audit types in the panel
+    if (!ASO_OPPORTUNITY_TYPES.includes(auditType)) return;
     const status = (opp.status || '').toUpperCase();
     const autoFix = opp.autoFix === true || opp.autoFix === 'Yes' ? 'Yes' : 'No';
 
