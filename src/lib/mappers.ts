@@ -8,14 +8,16 @@
  *   import { toCustomer, toWeeklySummary } from "@/lib/mappers";
  */
 import type { Schema } from "../../amplify/data/resource";
-import type { Customer, WeeklySummary, SyncJobRecord, CustomerNote } from "./types";
+import type { Customer, WeeklySummary, SyncJobRecord, CustomerNote, CustomerProgression, CustomerStageHistoryEntry } from "./types";
 
 // Amplify generates nullable versions of every optional field (field | null | undefined).
 // These aliases make the mapper signatures readable.
-type SnapshotRecord  = Schema["CustomerSnapshot"]["type"];
-type SummaryRecord   = Schema["WeeklySummary"]["type"];
-type SyncJobDbRecord = Schema["DataSyncJob"]["type"];
-type NoteRecord      = Schema["CustomerNote"]["type"];
+type SnapshotRecord      = Schema["CustomerSnapshot"]["type"];
+type SummaryRecord       = Schema["WeeklySummary"]["type"];
+type SyncJobDbRecord     = Schema["DataSyncJob"]["type"];
+type NoteRecord          = Schema["CustomerNote"]["type"];
+type ProgressionRecord   = Schema["CustomerProgression"]["type"];
+type StageHistoryRecord  = Schema["CustomerStageHistory"]["type"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Normalisation helpers
@@ -131,5 +133,41 @@ export function toCustomerNote(record: NoteRecord): CustomerNote {
     note:        record.note,
     createdAt:   record.createdAt,
     updatedAt:   record.updatedAt,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomerProgression → CustomerProgression
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function toCustomerProgression(record: ProgressionRecord): CustomerProgression {
+  return {
+    companyName:      record.companyName,
+    progressionTrack: record.progressionTrack as CustomerProgression["progressionTrack"],
+    progressionStage: record.progressionStage as CustomerProgression["progressionStage"],
+    migrationSource:  (record.migrationSource ?? null) as CustomerProgression["migrationSource"],
+    migrationTech:    (record.migrationTech   ?? null) as CustomerProgression["migrationTech"],
+    stageEnteredAt:   record.stageEnteredAt,
+    updatedBy:        record.updatedBy,
+    updatedAt:        record.updatedAt,
+    notes:            record.notes ?? null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CustomerStageHistory → CustomerStageHistoryEntry
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function toStageHistoryEntry(record: StageHistoryRecord): CustomerStageHistoryEntry {
+  return {
+    id:               record.id,
+    companyName:      record.companyName,
+    changedAt:        record.changedAt,
+    progressionTrack: record.progressionTrack,
+    progressionStage: record.progressionStage,
+    migrationSource:  record.migrationSource ?? null,
+    migrationTech:    record.migrationTech   ?? null,
+    changedBy:        record.changedBy,
+    notes:            record.notes           ?? null,
   };
 }

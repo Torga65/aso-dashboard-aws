@@ -93,6 +93,39 @@ export interface CustomerNote {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Customer Progression — manual tracking of Moving / On Hold pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ProgressionTrack = "Moving" | "On Hold";
+export type ProgressionStage = "Prod" | "POC" | "Preprod" | "Future Date" | "Migration";
+export type MigrationSource  = "On Prem" | "AMS";
+export type MigrationTech    = "AEM" | "Not AEM";
+
+export interface CustomerProgression {
+  companyName:      string;
+  progressionTrack: ProgressionTrack;
+  progressionStage: ProgressionStage;
+  migrationSource:  MigrationSource | null;
+  migrationTech:    MigrationTech | null;
+  stageEnteredAt:   string; // "YYYY-MM-DD"
+  updatedBy:        string;
+  updatedAt:        string; // ISO datetime
+  notes:            string | null;
+}
+
+export interface CustomerStageHistoryEntry {
+  id:               string;
+  companyName:      string;
+  changedAt:        string; // ISO datetime
+  progressionTrack: string;
+  progressionStage: string;
+  migrationSource:  string | null;
+  migrationTech:    string | null;
+  changedBy:        string;
+  notes:            string | null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Query result envelope — forces callers to handle both paths
 // ─────────────────────────────────────────────────────────────────────────────
 

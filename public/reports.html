@@ -298,6 +298,238 @@
       z-index: 9999;
     }
     .toast.show { opacity: 1; }
+
+    /* ── Tabs ──────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 8px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s;
+    }
+    .tab-btn:hover { color: #444; background: #f5f5f5; }
+    .tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Pipeline ──────────────────────────────────────────── */
+    .pipeline-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      background: #f8f9fa;
+      padding: 12px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+    .pipeline-toolbar input {
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 13px;
+      min-width: 200px;
+    }
+    .pipeline-add-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .pipeline-add-btn:hover { background: #5568d3; }
+    .pipeline-refresh-btn {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #555;
+    }
+    .pipeline-refresh-btn:hover { background: #eee; }
+
+    .pipeline-board {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .pipeline-track {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .pipeline-track-header {
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .track-moving .pipeline-track-header { background: #e8f5e9; color: #2e7d32; border-bottom: 1px solid #c8e6c9; }
+    .track-onhold .pipeline-track-header { background: #fff3e0; color: #e65100; border-bottom: 1px solid #ffe0b2; }
+    .pipeline-stages {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .pipeline-stage {
+      min-width: 200px;
+      flex: 1;
+      border-right: 1px solid #eee;
+      padding: 10px 12px;
+    }
+    .pipeline-stage:last-child { border-right: none; }
+    .pipeline-stage-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stage-count {
+      background: #667eea;
+      color: white;
+      border-radius: 10px;
+      font-size: 11px;
+      padding: 1px 7px;
+      font-weight: 700;
+    }
+    .pipeline-card {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .pipeline-card:hover { border-color: #667eea; box-shadow: 0 2px 6px rgba(102,126,234,0.15); }
+    .pipeline-card-name {
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pipeline-card-meta {
+      color: #666;
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pipeline-card-tag {
+      background: #eee;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10px;
+      color: #444;
+    }
+    .pipeline-empty-stage {
+      color: #bbb;
+      font-size: 11px;
+      font-style: italic;
+      padding: 4px 0;
+    }
+
+    /* Pipeline summary bar */
+    .pipeline-summary {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      background: #f0f1ff;
+      border: 1px solid #d0d3ff;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .pipeline-summary-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .pipeline-summary-item .ps-num { font-size: 20px; font-weight: 700; color: #667eea; line-height: 1; }
+    .pipeline-summary-item .ps-lbl { font-size: 11px; color: #666; }
+
+    /* Edit / Add modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      width: 440px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+    .modal-box h3 { margin: 0 0 16px 0; font-size: 16px; color: #333; }
+    .modal-field { margin-bottom: 12px; }
+    .modal-field label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
+    .modal-field input,
+    .modal-field select,
+    .modal-field textarea {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    .modal-field textarea { resize: vertical; min-height: 70px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+    .modal-save-btn {
+      background: #667eea; color: white; border: none; border-radius: 6px;
+      padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .modal-save-btn:hover { background: #5568d3; }
+    .modal-save-btn:disabled { background: #aaa; cursor: default; }
+    .modal-cancel-btn {
+      background: white; color: #555; border: 1px solid #ccc; border-radius: 6px;
+      padding: 8px 16px; font-size: 13px; cursor: pointer;
+    }
+    .modal-cancel-btn:hover { background: #f5f5f5; }
+    .modal-delete-btn {
+      background: white; color: #c00; border: 1px solid #f8a0a0; border-radius: 6px;
+      padding: 8px 14px; font-size: 13px; cursor: pointer; margin-right: auto;
+    }
+    .modal-delete-btn:hover { background: #fff0f0; }
+
+    /* History list in modal */
+    .history-list { margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px; max-height: 160px; overflow-y: auto; }
+    .history-entry { font-size: 11px; color: #666; padding: 4px 0; border-bottom: 1px solid #f5f5f5; display: flex; gap: 8px; }
+    .history-entry:last-child { border-bottom: none; }
+    .history-date { white-space: nowrap; color: #999; }
+    .history-badge { background: #eee; border-radius: 3px; padding: 1px 5px; color: #444; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -311,6 +543,15 @@
       <a href="/customer-history.html" style="color:rgba(255,255,255,0.85);font-size:13px;text-decoration:none;border:1px solid rgba(255,255,255,0.4);padding:5px 12px;border-radius:5px;white-space:nowrap;">← Customer 360</a>
     </div>
   </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="report">Customer Data</button>
+    <button class="tab-btn" data-tab="pipeline">Pipeline View</button>
+  </div>
+
+  <!-- ══ TAB: Customer Data ════════════════════════════════ -->
+  <div class="tab-content active" id="tab-report">
 
   <!-- Config Panel -->
   <div class="config-panel">
@@ -377,6 +618,97 @@
   <div class="results-panel" id="results-panel">
     <div class="results-empty">Configure a report above and click <strong>Run Report</strong>.</div>
   </div>
+
+  </div><!-- /tab-report -->
+
+  <!-- ══ TAB: Pipeline View ════════════════════════════════ -->
+  <div class="tab-content" id="tab-pipeline">
+
+    <!-- Toolbar -->
+    <div class="pipeline-toolbar">
+      <input type="text" id="pipeline-search" placeholder="Search customer…" style="max-width:240px;"/>
+      <button class="pipeline-add-btn" id="pipeline-add-btn">+ Set / Update Stage</button>
+      <button class="pipeline-refresh-btn" id="pipeline-refresh-btn">&#8635; Refresh</button>
+      <span id="pipeline-load-status" style="font-size:12px;color:#888;"></span>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="pipeline-summary" id="pipeline-summary" style="display:none;"></div>
+
+    <!-- Board -->
+    <div class="pipeline-board" id="pipeline-board">
+      <div style="padding:30px;text-align:center;color:#aaa;font-size:14px;">Loading pipeline data…</div>
+    </div>
+
+  </div><!-- /tab-pipeline -->
+
+  <!-- ══ Edit / Add Modal ══════════════════════════════════ -->
+  <div class="modal-backdrop" id="progression-modal">
+    <div class="modal-box">
+      <h3 id="modal-title">Set Customer Stage</h3>
+
+      <div class="modal-field">
+        <label>Company *</label>
+        <input type="text" id="modal-company" placeholder="Type to search…" autocomplete="off"/>
+        <div id="modal-company-dropdown" style="position:relative;"></div>
+      </div>
+      <div class="modal-field">
+        <label>Track *</label>
+        <select id="modal-track">
+          <option value="">-- select --</option>
+          <option value="Moving">Moving</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Stage *</label>
+        <select id="modal-stage">
+          <option value="">-- select track first --</option>
+        </select>
+      </div>
+      <div class="modal-field" id="modal-source-row" style="display:none;">
+        <label>Migration Source *</label>
+        <select id="modal-source">
+          <option value="">-- select --</option>
+          <option value="On Prem">On Prem</option>
+          <option value="AMS">AMS</option>
+        </select>
+      </div>
+      <div class="modal-field" id="modal-tech-row" style="display:none;">
+        <label>Migration Tech *</label>
+        <select id="modal-tech">
+          <option value="">-- select --</option>
+          <option value="AEM">AEM</option>
+          <option value="Not AEM">Not AEM</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Stage entered date *</label>
+        <input type="date" id="modal-date"/>
+      </div>
+      <div class="modal-field">
+        <label>Updated by *</label>
+        <input type="text" id="modal-updatedby" placeholder="Your name or email"/>
+      </div>
+      <div class="modal-field">
+        <label>Notes</label>
+        <textarea id="modal-notes" placeholder="Optional context about this stage…"></textarea>
+      </div>
+
+      <!-- Stage history (populated when editing) -->
+      <div id="modal-history-section" style="display:none;">
+        <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:4px;">Stage history</div>
+        <div class="history-list" id="modal-history-list"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="modal-delete-btn" id="modal-delete-btn" style="display:none;">Remove from pipeline</button>
+        <button class="modal-cancel-btn" id="modal-cancel-btn">Cancel</button>
+        <button class="modal-save-btn" id="modal-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -814,6 +1146,402 @@ buildFieldSelector();
 
 // Pre-load data in background so first Run Report is fast
 loadData().catch(() => {});
+
+/* ═══════════════════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'pipeline' && pipelineRows === null) {
+      loadPipelineData();
+    }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PIPELINE VIEW
+═══════════════════════════════════════════════════════════ */
+
+const MOVING_STAGES  = ['Prod', 'POC', 'Preprod'];
+const ONHOLD_STAGES  = ['Future Date', 'Migration'];
+const TRACK_STAGES   = { 'Moving': MOVING_STAGES, 'On Hold': ONHOLD_STAGES };
+
+let pipelineRows   = null;   // CustomerProgression[] from API
+let allCustomerNames = [];   // string[] for company autocomplete
+
+/* ── Fetch ── */
+async function loadPipelineData(force = false) {
+  if (pipelineRows !== null && !force) return;
+  const statusEl = document.getElementById('pipeline-load-status');
+  statusEl.textContent = 'Loading…';
+  try {
+    const [progRes, custRes] = await Promise.all([
+      fetch('/api/progression/all'),
+      loadData().catch(() => []),
+    ]);
+    if (!progRes.ok) throw new Error(`HTTP ${progRes.status}`);
+    const progJson = await progRes.json();
+    pipelineRows = progJson.data || [];
+
+    // Build customer name list for autocomplete
+    const custNames = (Array.isArray(custRes) ? custRes : []).map(c => c.companyName);
+    const progNames = pipelineRows.map(p => p.companyName);
+    allCustomerNames = [...new Set([...custNames, ...progNames])].sort();
+
+    statusEl.textContent = `${pipelineRows.length} customer${pipelineRows.length !== 1 ? 's' : ''} tracked`;
+    renderPipeline();
+  } catch (err) {
+    document.getElementById('pipeline-board').innerHTML =
+      `<div style="padding:30px;text-align:center;color:#c00;">Error: ${escHtml(err.message)}</div>`;
+    statusEl.textContent = '';
+  }
+}
+
+document.getElementById('pipeline-refresh-btn').addEventListener('click', () => {
+  pipelineRows = null;
+  loadPipelineData(true);
+});
+
+/* ── Search filter ── */
+document.getElementById('pipeline-search').addEventListener('input', () => {
+  if (pipelineRows !== null) renderPipeline();
+});
+
+/* ── Render board ── */
+function renderPipeline() {
+  const searchVal = document.getElementById('pipeline-search').value.trim().toLowerCase();
+  const rows = searchVal
+    ? pipelineRows.filter(r => r.companyName.toLowerCase().includes(searchVal))
+    : pipelineRows;
+
+  // Summary bar
+  const summaryEl = document.getElementById('pipeline-summary');
+  const movingCount = rows.filter(r => r.progressionTrack === 'Moving').length;
+  const onholdCount = rows.filter(r => r.progressionTrack === 'On Hold').length;
+  summaryEl.style.display = 'flex';
+  summaryEl.innerHTML = [
+    { num: rows.length, lbl: 'Total in pipeline' },
+    { num: movingCount, lbl: 'Moving' },
+    { num: onholdCount, lbl: 'On Hold' },
+    ...MOVING_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
+    ...ONHOLD_STAGES.map(s => ({ num: rows.filter(r => r.progressionStage === s).length, lbl: s })),
+  ].map(item => `
+    <div class="pipeline-summary-item">
+      <span class="ps-num">${item.num}</span>
+      <span class="ps-lbl">${escHtml(item.lbl)}</span>
+    </div>`).join('');
+
+  const board = document.getElementById('pipeline-board');
+  board.innerHTML = '';
+
+  [
+    { track: 'Moving',  cssClass: 'track-moving', stages: MOVING_STAGES },
+    { track: 'On Hold', cssClass: 'track-onhold', stages: ONHOLD_STAGES },
+  ].forEach(({ track, cssClass, stages }) => {
+    const trackRows = rows.filter(r => r.progressionTrack === track);
+    const trackEl = document.createElement('div');
+    trackEl.className = `pipeline-track ${cssClass}`;
+    const headerCount = trackRows.length;
+    trackEl.innerHTML = `
+      <div class="pipeline-track-header">
+        ${escHtml(track)}
+        <span style="font-size:13px;font-weight:400;opacity:0.7;">${headerCount} customer${headerCount !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="pipeline-stages" id="stages-${cssClass}"></div>
+    `;
+
+    const stagesContainer = trackEl.querySelector(`#stages-${cssClass}`);
+    stages.forEach(stage => {
+      const stageRows = trackRows.filter(r => r.progressionStage === stage);
+      const stageEl = document.createElement('div');
+      stageEl.className = 'pipeline-stage';
+      const cards = stageRows.length === 0
+        ? `<div class="pipeline-empty-stage">No customers</div>`
+        : stageRows.map(r => {
+            const daysIn = daysSince(r.stageEnteredAt);
+            const migInfo = r.migrationSource
+              ? `<span class="pipeline-card-tag">${escHtml(r.migrationSource)}${r.migrationTech ? ' / ' + escHtml(r.migrationTech) : ''}</span>`
+              : '';
+            return `<div class="pipeline-card" data-company="${escHtml(r.companyName)}">
+              <div class="pipeline-card-name">${escHtml(r.companyName)}</div>
+              <div class="pipeline-card-meta">
+                <span>${daysIn}d in stage</span>
+                ${migInfo}
+                ${r.updatedBy ? `<span class="pipeline-card-tag">${escHtml(r.updatedBy)}</span>` : ''}
+              </div>
+            </div>`;
+          }).join('');
+
+      stageEl.innerHTML = `
+        <div class="pipeline-stage-title">
+          ${escHtml(stage)}
+          <span class="stage-count">${stageRows.length}</span>
+        </div>
+        ${cards}
+      `;
+      stagesContainer.appendChild(stageEl);
+    });
+
+    board.appendChild(trackEl);
+  });
+
+  // Click card → edit modal
+  board.querySelectorAll('.pipeline-card').forEach(card => {
+    card.addEventListener('click', () => openEditModal(card.dataset.company));
+  });
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return '?';
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESSION MODAL
+═══════════════════════════════════════════════════════════ */
+
+let modalMode = 'add'; // 'add' | 'edit'
+let modalOrigCompany = null;
+
+function openAddModal() {
+  modalMode = 'add';
+  modalOrigCompany = null;
+  document.getElementById('modal-title').textContent = 'Set Customer Stage';
+  document.getElementById('modal-company').value = '';
+  document.getElementById('modal-company').disabled = false;
+  document.getElementById('modal-track').value = '';
+  document.getElementById('modal-stage').innerHTML = '<option value="">-- select track first --</option>';
+  document.getElementById('modal-source').value = '';
+  document.getElementById('modal-tech').value = '';
+  document.getElementById('modal-source-row').style.display = 'none';
+  document.getElementById('modal-tech-row').style.display = 'none';
+  document.getElementById('modal-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('modal-updatedby').value = '';
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('modal-delete-btn').style.display = 'none';
+  document.getElementById('modal-history-section').style.display = 'none';
+  document.getElementById('modal-history-list').innerHTML = '';
+  openModal();
+}
+
+async function openEditModal(companyName) {
+  modalMode = 'edit';
+  modalOrigCompany = companyName;
+  document.getElementById('modal-title').textContent = 'Edit Stage — ' + companyName;
+  document.getElementById('modal-company').value = companyName;
+  document.getElementById('modal-company').disabled = true;
+
+  // Fill from cached data
+  const row = pipelineRows?.find(r => r.companyName === companyName);
+  if (row) {
+    document.getElementById('modal-track').value = row.progressionTrack || '';
+    updateStageOptions(row.progressionTrack);
+    document.getElementById('modal-stage').value = row.progressionStage || '';
+    updateMigrationRows(row.progressionStage, row.migrationSource);
+    document.getElementById('modal-source').value = row.migrationSource || '';
+    document.getElementById('modal-tech').value = row.migrationTech || '';
+    document.getElementById('modal-date').value = row.stageEnteredAt || new Date().toISOString().slice(0, 10);
+    document.getElementById('modal-updatedby').value = '';
+    document.getElementById('modal-notes').value = row.notes || '';
+  }
+  document.getElementById('modal-delete-btn').style.display = 'inline-block';
+
+  // Load history
+  document.getElementById('modal-history-section').style.display = 'block';
+  document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">Loading history…</em>';
+
+  openModal();
+
+  try {
+    const res = await fetch(`/api/progression/history?company=${encodeURIComponent(companyName)}`);
+    const json = await res.json();
+    const entries = json.data || [];
+    if (entries.length === 0) {
+      document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#aaa;">No history yet.</em>';
+    } else {
+      document.getElementById('modal-history-list').innerHTML = entries.map(e => `
+        <div class="history-entry">
+          <span class="history-date">${e.changedAt.slice(0, 10)}</span>
+          <span class="history-badge">${escHtml(e.progressionTrack)}</span>
+          <span class="history-badge">${escHtml(e.progressionStage)}</span>
+          ${e.migrationSource ? `<span class="history-badge">${escHtml(e.migrationSource)}</span>` : ''}
+          <span style="color:#888;">${escHtml(e.changedBy)}</span>
+        </div>`).join('');
+    }
+  } catch {
+    document.getElementById('modal-history-list').innerHTML = '<em style="font-size:11px;color:#c00;">Failed to load history.</em>';
+  }
+}
+
+function openModal() {
+  document.getElementById('progression-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('progression-modal').classList.remove('open');
+  modalMode = 'add';
+  modalOrigCompany = null;
+}
+
+document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+document.getElementById('progression-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('progression-modal')) closeModal();
+});
+
+/* Stage options driven by track */
+function updateStageOptions(track) {
+  const stages = TRACK_STAGES[track] || [];
+  const sel = document.getElementById('modal-stage');
+  sel.innerHTML = stages.length
+    ? stages.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')
+    : '<option value="">-- select track first --</option>';
+  updateMigrationRows(sel.value, null);
+}
+
+function updateMigrationRows(stage, source) {
+  const showSource = stage === 'Migration';
+  const showTech   = showSource && source === 'On Prem';
+  document.getElementById('modal-source-row').style.display = showSource ? '' : 'none';
+  document.getElementById('modal-tech-row').style.display   = showTech   ? '' : 'none';
+}
+
+document.getElementById('modal-track').addEventListener('change', (e) => {
+  updateStageOptions(e.target.value);
+});
+document.getElementById('modal-stage').addEventListener('change', (e) => {
+  updateMigrationRows(e.target.value, document.getElementById('modal-source').value);
+});
+document.getElementById('modal-source').addEventListener('change', (e) => {
+  updateMigrationRows('Migration', e.target.value);
+});
+
+/* Save */
+document.getElementById('modal-save-btn').addEventListener('click', async () => {
+  const company  = document.getElementById('modal-company').value.trim();
+  const track    = document.getElementById('modal-track').value;
+  const stage    = document.getElementById('modal-stage').value;
+  const source   = document.getElementById('modal-source').value || null;
+  const tech     = document.getElementById('modal-tech').value || null;
+  const date     = document.getElementById('modal-date').value;
+  const updatedBy = document.getElementById('modal-updatedby').value.trim();
+  const notes    = document.getElementById('modal-notes').value.trim() || null;
+
+  if (!company || !track || !stage || !date || !updatedBy) {
+    showToast('Please fill in all required fields.');
+    return;
+  }
+  if (stage === 'Migration' && !source) {
+    showToast('Please select a Migration Source.');
+    return;
+  }
+  if (stage === 'Migration' && source === 'On Prem' && !tech) {
+    showToast('Please select Migration Tech for On Prem source.');
+    return;
+  }
+
+  const saveBtn = document.getElementById('modal-save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/progression', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName: company,
+        progressionTrack: track,
+        progressionStage: stage,
+        migrationSource: source,
+        migrationTech: tech,
+        stageEnteredAt: date,
+        updatedBy,
+        notes,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+    // Update local cache
+    if (pipelineRows !== null) {
+      const idx = pipelineRows.findIndex(r => r.companyName === company);
+      if (idx >= 0) {
+        pipelineRows[idx] = json.data;
+      } else {
+        pipelineRows.push(json.data);
+      }
+    }
+
+    closeModal();
+    renderPipeline();
+    showToast('Stage saved.');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
+});
+
+/* Delete (remove from pipeline) */
+document.getElementById('modal-delete-btn').addEventListener('click', async () => {
+  const company = modalOrigCompany;
+  if (!company) return;
+  if (!confirm(`Remove "${company}" from the pipeline?`)) return;
+
+  try {
+    const res = await fetch(`/api/progression?company=${encodeURIComponent(company)}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || `HTTP ${res.status}`);
+    }
+    if (pipelineRows !== null) {
+      pipelineRows = pipelineRows.filter(r => r.companyName !== company);
+    }
+    closeModal();
+    renderPipeline();
+    showToast(`${company} removed from pipeline.`);
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+});
+
+/* Add button */
+document.getElementById('pipeline-add-btn').addEventListener('click', openAddModal);
+
+/* Company autocomplete in modal */
+const companyInput = document.getElementById('modal-company');
+const companyDropdown = document.getElementById('modal-company-dropdown');
+
+companyInput.addEventListener('input', () => {
+  const val = companyInput.value.trim().toLowerCase();
+  companyDropdown.innerHTML = '';
+  if (!val || modalMode === 'edit') return;
+  const matches = allCustomerNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
+  if (matches.length === 0) return;
+  const ul = document.createElement('ul');
+  ul.style.cssText = 'position:absolute;z-index:200;background:white;border:1px solid #ddd;border-radius:4px;list-style:none;margin:0;padding:0;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:180px;overflow-y:auto;';
+  matches.forEach(name => {
+    const li = document.createElement('li');
+    li.textContent = name;
+    li.style.cssText = 'padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+    li.addEventListener('mouseenter', () => li.style.background = '#f0f4ff');
+    li.addEventListener('mouseleave', () => li.style.background = '');
+    li.addEventListener('click', () => {
+      companyInput.value = name;
+      companyDropdown.innerHTML = '';
+    });
+    ul.appendChild(li);
+  });
+  companyDropdown.appendChild(ul);
+});
+document.addEventListener('click', (e) => {
+  if (!companyInput.contains(e.target)) companyDropdown.innerHTML = '';
+});
 </script>
 </body>
 </html>

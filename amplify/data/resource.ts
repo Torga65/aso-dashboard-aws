@@ -237,6 +237,56 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.publicApiKey(),
     ]),
+
+  /**
+   * CustomerProgression
+   *
+   * One record per customer tracking their current position in the
+   * Moving / On Hold pipeline. Written by dashboard users via PUT /api/progression.
+   *
+   * Primary key: companyName (one row per customer, upserted on change).
+   */
+  CustomerProgression: a
+    .model({
+      companyName:      a.string().required(),
+      progressionTrack: a.string().required(), // "Moving" | "On Hold"
+      progressionStage: a.string().required(), // "Prod" | "POC" | "Preprod" | "Future Date" | "Migration"
+      migrationSource:  a.string(),            // "On Prem" | "AMS" — only when stage=Migration
+      migrationTech:    a.string(),            // "AEM" | "Not AEM" — only when source=On Prem
+      stageEnteredAt:   a.string().required(), // "YYYY-MM-DD"
+      updatedBy:        a.string().required(),
+      updatedAt:        a.string().required(), // ISO datetime
+      notes:            a.string(),
+    })
+    .identifier(["companyName"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
+
+  /**
+   * CustomerStageHistory
+   *
+   * Append-only log of every stage change for every customer.
+   * Written atomically alongside CustomerProgression upserts.
+   * PK: auto UUID. GSI: companyName + changedAt for per-customer timeline queries.
+   */
+  CustomerStageHistory: a
+    .model({
+      companyName:      a.string().required(),
+      changedAt:        a.string().required(), // ISO datetime
+      progressionTrack: a.string().required(),
+      progressionStage: a.string().required(),
+      migrationSource:  a.string(),
+      migrationTech:    a.string(),
+      changedBy:        a.string().required(),
+      notes:            a.string(),
+    })
+    .secondaryIndexes((index) => [
+      index("companyName").sortKeys(["changedAt"]),
+    ])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

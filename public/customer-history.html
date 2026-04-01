@@ -253,6 +253,40 @@
     .qr-days-recent { color: #166534; font-weight: 600; }
     .qr-days-warn { color: #92400e; font-weight: 600; }
     .qr-days-stale { color: #991b1b; font-weight: 600; }
+    /* Progression widget */
+    .quick-ref-box--progression { grid-column: 1 / -1; }
+    .qr-progression-wrap { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; padding: 4px 0; }
+    .qr-progression-stage-block { display: flex; flex-direction: column; gap: 4px; }
+    .qr-progression-track-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .qr-progression-track-badge.moving { background: #e8f5e9; color: #2e7d32; }
+    .qr-progression-track-badge.onhold { background: #fff3e0; color: #e65100; }
+    .qr-progression-stage-name { font-size: 18px; font-weight: 700; color: #333; }
+    .qr-progression-days { font-size: 12px; color: #666; }
+    .qr-progression-meta { font-size: 12px; color: #888; display: flex; flex-direction: column; gap: 3px; }
+    .qr-progression-edit-btn { padding: 4px 14px; font-size: 12px; font-weight: 600; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap; align-self: flex-start; }
+    .qr-progression-edit-btn:hover { background: #5568d3; }
+    .qr-progression-history { flex: 1; min-width: 200px; }
+    .qr-progression-history-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .qr-progression-history-entry { font-size: 11px; color: #666; padding: 3px 0; border-bottom: 1px solid #f5f5f5; display: flex; gap: 6px; align-items: center; }
+    .qr-progression-history-entry:last-child { border-bottom: none; }
+    .qr-progression-h-date { color: #aaa; white-space: nowrap; min-width: 80px; }
+    .qr-progression-h-badge { background: #eee; border-radius: 3px; padding: 1px 5px; color: #444; font-size: 10px; }
+    .qr-progression-none { font-size: 12px; color: #aaa; font-style: italic; display: flex; align-items: center; gap: 10px; }
+    /* Inline progression modal */
+    .qr-prog-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+    .qr-prog-modal-backdrop.open { display: flex; }
+    .qr-prog-modal-box { background: white; border-radius: 10px; padding: 22px; width: 420px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .qr-prog-modal-box h3 { margin: 0 0 14px 0; font-size: 15px; color: #333; }
+    .qr-prog-field { margin-bottom: 10px; }
+    .qr-prog-field label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 3px; }
+    .qr-prog-field select, .qr-prog-field input, .qr-prog-field textarea { width: 100%; padding: 6px 9px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; box-sizing: border-box; }
+    .qr-prog-field textarea { resize: vertical; min-height: 60px; }
+    .qr-prog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .qr-prog-save { background: #667eea; color: white; border: none; border-radius: 5px; padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .qr-prog-save:hover { background: #5568d3; }
+    .qr-prog-save:disabled { background: #aaa; cursor: default; }
+    .qr-prog-cancel { background: white; color: #555; border: 1px solid #ccc; border-radius: 5px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+    .qr-prog-cancel:hover { background: #f5f5f5; }
     .quick-ref-logins-chart-wrap { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; }
     .quick-ref-logins-chart-title { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #333; }
     .quick-ref-logins-chart-container { position: relative; height: 200px; min-width: 0; }
@@ -1080,6 +1114,12 @@
             <button type="button" class="quick-ref-refresh-btn">Refresh</button>
           </div>
           <div class="quick-ref-grid">
+            <div class="quick-ref-box quick-ref-box--progression">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Progression stage</summary>
+                <div class="qr-progression-content" style="padding-top:8px;"></div>
+              </details>
+            </div>
             <div class="quick-ref-box">
               <details class="quick-ref-disabled-details" open>
                 <summary>Enabled audits</summary>
@@ -1517,6 +1557,244 @@
     
     // Load data on page load
     loadHistoricalData();
+  </script>
+
+  <!-- ── Progression Edit Modal ─────────────────────────── -->
+  <div class="qr-prog-modal-backdrop" id="qr-prog-modal">
+    <div class="qr-prog-modal-box">
+      <h3 id="qr-prog-modal-title">Edit Progression Stage</h3>
+      <div class="qr-prog-field">
+        <label>Track *</label>
+        <select id="qr-prog-track">
+          <option value="">-- select --</option>
+          <option value="Moving">Moving</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+      </div>
+      <div class="qr-prog-field">
+        <label>Stage *</label>
+        <select id="qr-prog-stage"><option value="">-- select track first --</option></select>
+      </div>
+      <div class="qr-prog-field" id="qr-prog-source-row" style="display:none;">
+        <label>Migration Source *</label>
+        <select id="qr-prog-source">
+          <option value="">-- select --</option>
+          <option value="On Prem">On Prem</option>
+          <option value="AMS">AMS</option>
+        </select>
+      </div>
+      <div class="qr-prog-field" id="qr-prog-tech-row" style="display:none;">
+        <label>Migration Tech *</label>
+        <select id="qr-prog-tech">
+          <option value="">-- select --</option>
+          <option value="AEM">AEM</option>
+          <option value="Not AEM">Not AEM</option>
+        </select>
+      </div>
+      <div class="qr-prog-field">
+        <label>Stage entered date *</label>
+        <input type="date" id="qr-prog-date"/>
+      </div>
+      <div class="qr-prog-field">
+        <label>Updated by *</label>
+        <input type="text" id="qr-prog-updatedby" placeholder="Your name or email"/>
+      </div>
+      <div class="qr-prog-field">
+        <label>Notes</label>
+        <textarea id="qr-prog-notes" placeholder="Optional context…"></textarea>
+      </div>
+      <div class="qr-prog-actions">
+        <button class="qr-prog-cancel" id="qr-prog-cancel">Cancel</button>
+        <button class="qr-prog-save" id="qr-prog-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ── Progression widget for Customer 360 ── */
+  (function() {
+    const MOVING_STAGES = ['Prod', 'POC', 'Preprod'];
+    const ONHOLD_STAGES = ['Future Date', 'Migration'];
+
+    let qrProgCurrentCompany = null;
+
+    function daysSince(dateStr) {
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      return Math.floor((Date.now() - d) / 864e5);
+    }
+
+    function escH(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Called by customer-history-quick-ref.js after a customer is loaded
+    window.loadCustomerProgression = async function(container, companyName) {
+      const el = container.querySelector('.qr-progression-content');
+      if (!el) return;
+      el.innerHTML = '<span style="font-size:12px;color:#aaa;">Loading…</span>';
+
+      try {
+        const res = await fetch(`/api/progression?company=${encodeURIComponent(companyName)}`);
+        const json = await res.json();
+        const data = json.data;
+
+        if (!data) {
+          el.innerHTML = `<div class="qr-progression-none">
+            <span>Not in pipeline yet.</span>
+            <button class="qr-progression-edit-btn" data-company="${escH(companyName)}">+ Set Stage</button>
+          </div>`;
+        } else {
+          const days = daysSince(data.stageEnteredAt);
+          const trackClass = data.progressionTrack === 'Moving' ? 'moving' : 'onhold';
+          const migExtra = data.migrationSource
+            ? ` &nbsp;·&nbsp; ${escH(data.migrationSource)}${data.migrationTech ? ' / ' + escH(data.migrationTech) : ''}`
+            : '';
+
+          // Load history async
+          let historyHtml = '<span style="font-size:11px;color:#aaa;">Loading history…</span>';
+
+          el.innerHTML = `<div class="qr-progression-wrap">
+            <div class="qr-progression-stage-block">
+              <span class="qr-progression-track-badge ${trackClass}">${escH(data.progressionTrack)}</span>
+              <span class="qr-progression-stage-name">${escH(data.progressionStage)}</span>
+              <span class="qr-progression-days">${days !== null ? days + ' days in stage' : ''}${migExtra}</span>
+            </div>
+            <div class="qr-progression-meta">
+              <span>Entered: ${escH(data.stageEnteredAt)}</span>
+              <span>Updated by: ${escH(data.updatedBy)}</span>
+              ${data.notes ? `<span style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escH(data.notes)}">Notes: ${escH(data.notes)}</span>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+              <button class="qr-progression-edit-btn" data-company="${escH(companyName)}">Edit Stage</button>
+              <a href="/reports.html#pipeline" style="font-size:11px;color:#667eea;text-decoration:none;">View pipeline →</a>
+            </div>
+            <div class="qr-progression-history">
+              <div class="qr-progression-history-title">Stage history</div>
+              <div class="qr-prog-hist-entries">${historyHtml}</div>
+            </div>
+          </div>`;
+
+          // Load history
+          fetch(`/api/progression/history?company=${encodeURIComponent(companyName)}`)
+            .then(r => r.json())
+            .then(j => {
+              const entries = (j.data || []).slice(0, 5);
+              const histEl = el.querySelector('.qr-prog-hist-entries');
+              if (!histEl) return;
+              if (entries.length === 0) {
+                histEl.innerHTML = '<span style="font-size:11px;color:#aaa;">No history.</span>';
+              } else {
+                histEl.innerHTML = entries.map(e => `
+                  <div class="qr-progression-history-entry">
+                    <span class="qr-progression-h-date">${e.changedAt.slice(0,10)}</span>
+                    <span class="qr-progression-h-badge">${escH(e.progressionTrack)}</span>
+                    <span class="qr-progression-h-badge">${escH(e.progressionStage)}</span>
+                    <span style="color:#aaa;">${escH(e.changedBy)}</span>
+                  </div>`).join('');
+              }
+            }).catch(() => {
+              const histEl = el.querySelector('.qr-prog-hist-entries');
+              if (histEl) histEl.innerHTML = '';
+            });
+        }
+
+        // Wire edit button
+        el.querySelector('.qr-progression-edit-btn')?.addEventListener('click', (e) => {
+          openQrProgModal(companyName, data);
+        });
+      } catch (err) {
+        el.innerHTML = `<span style="font-size:12px;color:#c00;">Failed to load progression.</span>`;
+      }
+    };
+
+    /* Modal logic */
+    function updateStageOpts(track) {
+      const stages = track === 'Moving' ? MOVING_STAGES : track === 'On Hold' ? ONHOLD_STAGES : [];
+      const sel = document.getElementById('qr-prog-stage');
+      sel.innerHTML = stages.length
+        ? stages.map(s => `<option value="${escH(s)}">${escH(s)}</option>`).join('')
+        : '<option value="">-- select track first --</option>';
+      updateMigRows(sel.value, null);
+    }
+    function updateMigRows(stage, source) {
+      const showSrc = stage === 'Migration';
+      const showTch = showSrc && source === 'On Prem';
+      document.getElementById('qr-prog-source-row').style.display = showSrc ? '' : 'none';
+      document.getElementById('qr-prog-tech-row').style.display   = showTch ? '' : 'none';
+    }
+    document.getElementById('qr-prog-track').addEventListener('change', e => updateStageOpts(e.target.value));
+    document.getElementById('qr-prog-stage').addEventListener('change', e => updateMigRows(e.target.value, document.getElementById('qr-prog-source').value));
+    document.getElementById('qr-prog-source').addEventListener('change', e => updateMigRows('Migration', e.target.value));
+
+    function openQrProgModal(companyName, existing) {
+      qrProgCurrentCompany = companyName;
+      document.getElementById('qr-prog-modal-title').textContent =
+        existing ? `Edit Stage — ${companyName}` : `Set Stage — ${companyName}`;
+      document.getElementById('qr-prog-track').value = existing?.progressionTrack || '';
+      updateStageOpts(existing?.progressionTrack || '');
+      if (existing?.progressionStage) document.getElementById('qr-prog-stage').value = existing.progressionStage;
+      document.getElementById('qr-prog-source').value = existing?.migrationSource || '';
+      document.getElementById('qr-prog-tech').value   = existing?.migrationTech   || '';
+      updateMigRows(existing?.progressionStage || '', existing?.migrationSource || '');
+      document.getElementById('qr-prog-date').value       = existing?.stageEnteredAt || new Date().toISOString().slice(0,10);
+      document.getElementById('qr-prog-updatedby').value  = '';
+      document.getElementById('qr-prog-notes').value      = existing?.notes || '';
+      document.getElementById('qr-prog-modal').classList.add('open');
+    }
+
+    document.getElementById('qr-prog-cancel').addEventListener('click', () => {
+      document.getElementById('qr-prog-modal').classList.remove('open');
+    });
+    document.getElementById('qr-prog-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('qr-prog-modal'))
+        document.getElementById('qr-prog-modal').classList.remove('open');
+    });
+
+    document.getElementById('qr-prog-save').addEventListener('click', async () => {
+      const company   = qrProgCurrentCompany;
+      const track     = document.getElementById('qr-prog-track').value;
+      const stage     = document.getElementById('qr-prog-stage').value;
+      const source    = document.getElementById('qr-prog-source').value || null;
+      const tech      = document.getElementById('qr-prog-tech').value   || null;
+      const date      = document.getElementById('qr-prog-date').value;
+      const updatedBy = document.getElementById('qr-prog-updatedby').value.trim();
+      const notes     = document.getElementById('qr-prog-notes').value.trim() || null;
+
+      if (!company || !track || !stage || !date || !updatedBy) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      if (stage === 'Migration' && !source) { alert('Please select a Migration Source.'); return; }
+      if (stage === 'Migration' && source === 'On Prem' && !tech) { alert('Please select Migration Tech.'); return; }
+
+      const saveBtn = document.getElementById('qr-prog-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+
+      try {
+        const res = await fetch('/api/progression', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: company, progressionTrack: track, progressionStage: stage, migrationSource: source, migrationTech: tech, stageEnteredAt: date, updatedBy, notes }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+        document.getElementById('qr-prog-modal').classList.remove('open');
+        // Reload the widget
+        const container = document.querySelector('.customer-timeline');
+        if (container && window.loadCustomerProgression) {
+          window.loadCustomerProgression(container, company);
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+      }
+    });
+  })();
   </script>
 </body>
 </html>

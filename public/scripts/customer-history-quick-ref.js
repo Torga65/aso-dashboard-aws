@@ -607,6 +607,9 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     loadCustomerTranscripts(container, customerName);
     loadCustomerNotes(container, customerName);
 
+    // Load progression stage widget (no auth required — API key)
+    if (window.loadCustomerProgression) window.loadCustomerProgression(container, customerName);
+
     wireRefreshButton(container, customerName);
   } catch (err) {
     // eslint-disable-next-line no-console
