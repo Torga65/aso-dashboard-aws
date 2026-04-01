@@ -9,11 +9,11 @@ import { ASO_ENDPOINTS } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
 
-/** sessionStorage key for the quick-ref cache */
+/** localStorage key for the quick-ref cache */
 const CACHE_KEY = 'asoCustomerQuickRefCache';
 
-/** Cache TTL: 10 minutes */
-const CACHE_TTL_MS = 10 * 60 * 1000;
+/** Cache TTL: 24 hours — audits, pending validation, and user data change infrequently */
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /* ------------------------------------------------------------------ */
 /*  Cache helpers                                                       */
@@ -21,7 +21,7 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 
 function loadCache() {
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(CACHE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -30,7 +30,7 @@ function loadCache() {
 
 function saveCache(cache) {
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
   } catch { /* quota — ignore */ }
 }
 

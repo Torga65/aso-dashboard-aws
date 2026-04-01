@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "aso-dashboard": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/server.mjs"],
+      "env": {
+        "ASO_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
