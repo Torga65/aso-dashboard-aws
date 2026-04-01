@@ -610,6 +610,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
 
     // Load ServiceNow comments (independent of SpaceCat — fetched from our own DB)
     loadCustomerComments(container, customerName);
+    loadCustomerTranscripts(container, customerName);
 
     wireRefreshButton(container, customerName);
   } catch (err) {
@@ -673,6 +674,128 @@ async function loadCustomerComments(container, customerName) {
   if (rangeSelect) {
     rangeSelect.addEventListener('change', () => fetchAndRender(rangeSelect.value));
   }
+}
+
+/**
+ * Wire the Meeting Transcripts panel for a customer.
+ * Handles upload, list, and download.
+ */
+async function loadCustomerTranscripts(container, customerName) {
+  const listEl = container.querySelector('.qr-transcript-list');
+  const rangeSelect = container.querySelector('.qr-transcript-range');
+  const uploadBtn = container.querySelector('.qr-transcript-upload-btn');
+  const statusEl = container.querySelector('.qr-transcript-upload-status');
+  const fileInput = container.querySelector('.qr-transcript-file');
+  const dateInput = container.querySelector('.qr-transcript-date');
+  const typeSelect = container.querySelector('.qr-transcript-type');
+  const downloadBtns = container.querySelectorAll('.qr-transcript-download-btn');
+
+  if (!listEl) return;
+
+  // Default date input to today
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  async function fetchAndRenderList() {
+    if (!listEl) return;
+    listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
+    try {
+      const days = rangeSelect?.value ?? '30';
+      const params = new URLSearchParams({ company: customerName, days });
+      const res = await fetch(`/api/transcripts?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { data } = await res.json();
+      const items = data || [];
+
+      // Update count badge
+      const summary = listEl.closest('details')?.querySelector('summary');
+      const badge = summary?.querySelector('.qr-summary-count');
+      if (badge) badge.textContent = items.length > 0 ? `(${items.length})` : '';
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<p class="quick-ref-msg">No meeting files in this period.</p>';
+        return;
+      }
+
+      listEl.innerHTML = items.map((item) => {
+        const typeClass = item.fileType === 'attendance' ? 'attendance' : '';
+        const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
+        const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
+        return `
+          <div class="qr-transcript-item">
+            <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
+            <span class="qr-transcript-item-type ${typeClass}">${escapeHtml(item.fileType)}</span>
+            <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
+            <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load files.</p>';
+    }
+  }
+
+  // Wire range selector
+  if (rangeSelect) {
+    rangeSelect.addEventListener('change', fetchAndRenderList);
+  }
+
+  // Wire download buttons
+  downloadBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.type || 'both';
+      const days = rangeSelect?.value ?? '30';
+      const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&type=${type}`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.click();
+    });
+  });
+
+  // Wire upload button
+  if (uploadBtn && fileInput && dateInput && typeSelect) {
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files?.[0];
+      const date = dateInput.value;
+      const ftype = typeSelect.value;
+
+      if (!file) { if (statusEl) { statusEl.textContent = 'Select a VTT file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
+      if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
+
+      uploadBtn.disabled = true;
+      if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
+
+      try {
+        // Get current user info from IMS profile if available
+        const profile = typeof getProfile === 'function' ? getProfile() : null;
+        const uploadedBy = profile?.email || profile?.name || '';
+
+        const form = new FormData();
+        form.append('company', customerName);
+        form.append('meetingDate', date);
+        form.append('fileType', ftype);
+        form.append('uploadedBy', uploadedBy);
+        form.append('file', file);
+
+        const res = await fetch('/api/transcripts', { method: 'POST', body: form });
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || `HTTP ${res.status}`);
+        }
+
+        if (statusEl) { statusEl.textContent = `Uploaded: ${file.name}`; statusEl.className = 'qr-transcript-upload-status ok'; }
+        fileInput.value = '';
+        await fetchAndRenderList();
+      } catch (err) {
+        if (statusEl) { statusEl.textContent = `Upload failed: ${err.message}`; statusEl.className = 'qr-transcript-upload-status err'; }
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  }
+
+  await fetchAndRenderList();
 }
 
 if (typeof window !== 'undefined') {

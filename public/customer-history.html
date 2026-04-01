@@ -139,6 +139,32 @@
     .qr-comment-meta { font-size: 11px; color: #888; margin-bottom: 4px; }
     .qr-comment-meta strong { color: #555; }
     .qr-comment-body { font-size: 12px; color: #333; white-space: pre-wrap; line-height: 1.5; }
+    /* Meeting transcripts */
+    .quick-ref-box--transcripts { grid-column: 1 / -1; }
+    .qr-transcript-upload-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 8px 0 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+    .qr-transcript-upload-form label { font-size: 12px; font-weight: 600; color: #555; display: flex; flex-direction: column; gap: 3px; }
+    .qr-transcript-upload-form input[type="date"],
+    .qr-transcript-upload-form select { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-transcript-upload-form input[type="file"] { font-size: 12px; }
+    .qr-transcript-upload-btn { padding: 5px 14px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .qr-transcript-upload-btn:hover { background: #5568d3; }
+    .qr-transcript-upload-btn:disabled { background: #aaa; cursor: not-allowed; }
+    .qr-transcript-upload-status { font-size: 12px; margin: 0; }
+    .qr-transcript-upload-status.ok { color: #16a34a; }
+    .qr-transcript-upload-status.err { color: #dc2626; }
+    .qr-transcript-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .qr-transcript-controls select { font-size: 12px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-transcript-download-btn { padding: 4px 12px; font-size: 12px; background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 4px; cursor: pointer; color: #4338ca; font-weight: 600; }
+    .qr-transcript-download-btn:hover { background: #e0e7ff; }
+    .qr-transcript-list { font-size: 12px; }
+    .qr-transcript-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    .qr-transcript-item:last-child { border-bottom: none; }
+    .qr-transcript-item-date { color: #555; font-weight: 600; min-width: 90px; }
+    .qr-transcript-item-type { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: #e0e7ff; color: #4338ca; }
+    .qr-transcript-item-type.attendance { background: #dcfce7; color: #16a34a; }
+    .qr-transcript-item-name { color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qr-transcript-item-dl { padding: 2px 8px; font-size: 11px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #333; text-decoration: none; white-space: nowrap; }
+    .qr-transcript-item-dl:hover { background: #e9ecef; }
     .quick-ref-table { width: 100%; font-size: 12px; border-collapse: collapse; }
     .quick-ref-table th, .quick-ref-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #eee; }
     .quick-ref-table th { background: #e9ecef; font-weight: 600; }
@@ -1050,6 +1076,30 @@
                 <div class="quick-ref-comments"></div>
               </details>
             </div>
+            <div class="quick-ref-box quick-ref-box--transcripts">
+              <details class="quick-ref-disabled-details" open>
+                <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
+                <div class="qr-transcript-upload-form">
+                  <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
+                  <label>File type<select class="qr-transcript-type"><option value="transcript">Transcript</option><option value="attendance">Attendance</option></select></label>
+                  <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                  <button type="button" class="qr-transcript-upload-btn">Upload</button>
+                  <p class="qr-transcript-upload-status"></p>
+                </div>
+                <div class="qr-transcript-controls">
+                  <select class="qr-transcript-range">
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="60">Last 60 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                  <button type="button" class="qr-transcript-download-btn" data-type="transcript">Download transcripts</button>
+                  <button type="button" class="qr-transcript-download-btn" data-type="attendance">Download attendance</button>
+                  <button type="button" class="qr-transcript-download-btn" data-type="both">Download all</button>
+                </div>
+                <div class="qr-transcript-list"></div>
+              </details>
+            </div>
           </div>
         </div>
       `;
@@ -1262,6 +1312,30 @@
                       </select>
                     </div>
                     <div class="quick-ref-comments"></div>
+                  </details>
+                </div>
+                <div class="quick-ref-box quick-ref-box--transcripts">
+                  <details class="quick-ref-disabled-details" open>
+                    <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
+                    <div class="qr-transcript-upload-form">
+                      <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
+                      <label>File type<select class="qr-transcript-type"><option value="transcript">Transcript</option><option value="attendance">Attendance</option></select></label>
+                      <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                      <button type="button" class="qr-transcript-upload-btn">Upload</button>
+                      <p class="qr-transcript-upload-status"></p>
+                    </div>
+                    <div class="qr-transcript-controls">
+                      <select class="qr-transcript-range">
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="60">Last 60 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="all">All time</option>
+                      </select>
+                      <button type="button" class="qr-transcript-download-btn" data-type="transcript">Download transcripts</button>
+                      <button type="button" class="qr-transcript-download-btn" data-type="attendance">Download attendance</button>
+                      <button type="button" class="qr-transcript-download-btn" data-type="both">Download all</button>
+                    </div>
+                    <div class="qr-transcript-list"></div>
                   </details>
                 </div>
               </div>

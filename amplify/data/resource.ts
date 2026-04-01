@@ -212,6 +212,31 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.publicApiKey(),
     ]),
+
+  /**
+   * MeetingTranscript
+   *
+   * Stores VTT transcript and attendance files uploaded by ESEs for customer meetings.
+   * Auto-generated id is the PK. GSI on companyName+meetingDate for per-customer queries.
+   *
+   * DynamoDB has a 400 KB item limit — the API enforces a 350 KB max on content.
+   */
+  MeetingTranscript: a
+    .model({
+      companyName: a.string().required(),
+      meetingDate: a.string().required(), // "YYYY-MM-DD"
+      fileType: a.string().required(),    // "transcript" | "attendance"
+      fileName: a.string().required(),
+      content: a.string().required(),     // raw VTT text (≤ 350 KB)
+      uploadedBy: a.string(),
+      uploadedAt: a.datetime().required(),
+    })
+    .secondaryIndexes((index) => [
+      index("companyName").sortKeys(["meetingDate"]),
+    ])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
