@@ -1148,8 +1148,9 @@ function showToast(msg) {
 ───────────────────────────────────────────── */
 buildFieldSelector();
 
-// Pre-load data in background so first Run Report is fast
+// Pre-load both datasets in background
 loadData().catch(() => {});
+loadPipelineData().catch(() => {});
 
 /* ═══════════════════════════════════════════════════════════
    TAB SWITCHING
@@ -1160,8 +1161,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'pipeline' && pipelineRows === null) {
-      loadPipelineData();
+    if (btn.dataset.tab === 'pipeline') {
+      // Re-render if already loaded; fetch if not yet (e.g. error on init)
+      if (pipelineRows !== null) renderPipeline();
+      else loadPipelineData();
     }
   });
 });
@@ -1405,16 +1408,19 @@ function updateStageOptions(track) {
   const stages = TRACK_STAGES[track] || [];
   const sel = document.getElementById('modal-stage');
   sel.innerHTML = stages.length
-    ? stages.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')
+    ? `<option value="">-- select stage --</option>` + stages.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')
     : '<option value="">-- select track first --</option>';
-  updateMigrationRows(sel.value, null);
+  sel.value = '';
+  document.getElementById('modal-source').value = '';
+  document.getElementById('modal-tech').value = '';
+  updateMigrationRows('', null);
 }
 
 function updateMigrationRows(stage, source) {
   const showSource = stage === 'Migration';
   const showTech   = showSource && source === 'On Prem';
-  document.getElementById('modal-source-row').style.display = showSource ? '' : 'none';
-  document.getElementById('modal-tech-row').style.display   = showTech   ? '' : 'none';
+  document.getElementById('modal-source-row').style.display = showSource ? 'block' : 'none';
+  document.getElementById('modal-tech-row').style.display   = showTech   ? 'block' : 'none';
 }
 
 document.getElementById('modal-track').addEventListener('change', (e) => {

@@ -1709,15 +1709,18 @@
       const stages = track === 'Moving' ? MOVING_STAGES : track === 'On Hold' ? ONHOLD_STAGES : [];
       const sel = document.getElementById('qr-prog-stage');
       sel.innerHTML = stages.length
-        ? stages.map(s => `<option value="${escH(s)}">${escH(s)}</option>`).join('')
+        ? `<option value="">-- select stage --</option>` + stages.map(s => `<option value="${escH(s)}">${escH(s)}</option>`).join('')
         : '<option value="">-- select track first --</option>';
-      updateMigRows(sel.value, null);
+      sel.value = '';
+      document.getElementById('qr-prog-source').value = '';
+      document.getElementById('qr-prog-tech').value = '';
+      updateMigRows('', null);
     }
     function updateMigRows(stage, source) {
       const showSrc = stage === 'Migration';
       const showTch = showSrc && source === 'On Prem';
-      document.getElementById('qr-prog-source-row').style.display = showSrc ? '' : 'none';
-      document.getElementById('qr-prog-tech-row').style.display   = showTch ? '' : 'none';
+      document.getElementById('qr-prog-source-row').style.display = showSrc ? 'block' : 'none';
+      document.getElementById('qr-prog-tech-row').style.display   = showTch ? 'block' : 'none';
     }
     document.getElementById('qr-prog-track').addEventListener('change', e => updateStageOpts(e.target.value));
     document.getElementById('qr-prog-stage').addEventListener('change', e => updateMigRows(e.target.value, document.getElementById('qr-prog-source').value));
