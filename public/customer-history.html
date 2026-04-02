@@ -860,24 +860,15 @@
 
     async function loadHistoricalData() {
       try {
-        const stored = localStorage.getItem('aso_customer_history_data');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            allData = Array.isArray(parsed) ? parsed : (parsed.data || []);
-          } catch (e) {
-            allData = [];
-          }
+        // Always fetch fresh from API — remove any stale localStorage cache
+        localStorage.removeItem('aso_customer_history_data');
+        const response = await fetch('/api/customers');
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || `API error ${response.status}`);
         }
-        if (allData.length === 0) {
-          const response = await fetch('/api/customers');
-          if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.error || `API error ${response.status}`);
-          }
-          const data = await response.json();
-          allData = data.data || [];
-        }
+        const data = await response.json();
+        allData = data.data || [];
         const rawLength = allData.length;
         const weeksForStats = [...new Set(allData.map(c => c.week))].filter(Boolean).sort();
         // One record per customer (latest only)
