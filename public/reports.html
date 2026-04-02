@@ -1274,21 +1274,11 @@ window.plSave = async function(companyName) {
     var json = await res.json();
     if (!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
 
-    // Update local state — use returned data when available; fall back to form
-    // values so the card moves immediately even if Amplify returns null
-    progMap[companyName] = json.data || {
-      companyName:      companyName,
-      progressionTrack: track,
-      progressionStage: stage,
-      migrationSource:  source,
-      migrationTech:    tech,
-      stageEnteredAt:   date,
-      updatedBy:        imsUser(),
-      notes:            null,
-    };
+    // Re-fetch everything from DB so the board reflects what was actually saved
     openFormFor = null;
-    plRender();
     toast('Saved.');
+    customers = [];
+    await plLoad();
   } catch(e) {
     toast('Error: ' + e.message);
     saveBtn.disabled = false;
@@ -1301,10 +1291,10 @@ window.plRemove = async function(companyName) {
   try {
     var res = await fetch('/api/progression?company=' + encodeURIComponent(companyName), { method: 'DELETE' });
     if (!res.ok) { var j = await res.json().catch(function(){return{};}); throw new Error(j.error || 'HTTP ' + res.status); }
-    delete progMap[companyName];
     openFormFor = null;
-    plRender();
-    toast(companyName + ' removed.');
+    toast(companyName + ' removed from pipeline.');
+    customers = [];
+    await plLoad();
   } catch(e) {
     toast('Error: ' + e.message);
   }
