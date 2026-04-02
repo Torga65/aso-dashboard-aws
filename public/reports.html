@@ -1273,6 +1273,7 @@ window.plSave = async function(companyName) {
     });
     var json = await res.json();
     if (!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
+    if (!json.data) throw new Error('Save appeared to succeed but DB returned no record. Check server logs.');
 
     // Re-fetch everything from DB so the board reflects what was actually saved
     openFormFor = null;
