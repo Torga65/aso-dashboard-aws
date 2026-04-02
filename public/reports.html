@@ -938,7 +938,10 @@ window.switchTab = function(tab) {
   document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
   document.getElementById('tab-btn-' + tab).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'pipeline' && customers.length === 0) plLoad();
+  if (tab === 'pipeline') {
+    if (customers.length === 0) plLoad();
+    else plRender();
+  }
 };
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -1271,8 +1274,18 @@ window.plSave = async function(companyName) {
     var json = await res.json();
     if (!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
 
-    // Update local state
-    progMap[companyName] = json.data;
+    // Update local state — use returned data when available; fall back to form
+    // values so the card moves immediately even if Amplify returns null
+    progMap[companyName] = json.data || {
+      companyName:      companyName,
+      progressionTrack: track,
+      progressionStage: stage,
+      migrationSource:  source,
+      migrationTech:    tech,
+      stageEnteredAt:   date,
+      updatedBy:        imsUser(),
+      notes:            null,
+    };
     openFormFor = null;
     plRender();
     toast('Saved.');
@@ -1296,6 +1309,9 @@ window.plRemove = async function(companyName) {
     toast('Error: ' + e.message);
   }
 };
+
+// Pre-fetch pipeline data on page load so it's ready when the user switches tabs
+plLoad();
 
 })();
 </script>
