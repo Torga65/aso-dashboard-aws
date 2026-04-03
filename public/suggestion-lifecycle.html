@@ -1581,6 +1581,7 @@
     import { setGlobalToken, apiGet, isApiError } from '/scripts/services/spacecat-api.js';
     import {
       buildCustomerSiteTree,
+      fetchSpaceCatOrgs,
       fetchSiteById,
       fetchOrgSites,
       fetchOrganizationEntitlements,
@@ -1907,16 +1908,32 @@
           }) || null;
         }
 
+        /** /api/customers and snapshots must yield an array; non-arrays would throw on .map and show "Error loading customers". */
+        function normalizeCustomerRecords(raw) {
+          if (Array.isArray(raw)) return raw;
+          if (raw && typeof raw === 'object' && Array.isArray(raw.items)) return raw.items;
+          return [];
+        }
+
         try {
           let records = [];
           if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
-            const data = await snapshotRes.value.json();
-            records = data.data || data.customers || [];
+            try {
+              const data = await snapshotRes.value.json();
+              records = normalizeCustomerRecords(data.data ?? data.customers);
+            } catch (e) {
+              console.warn('[Auth] /api/customers response was not valid JSON', e);
+            }
+          } else if (snapshotRes.status === 'fulfilled' && !snapshotRes.value.ok) {
+            try {
+              const errBody = await snapshotRes.value.json().catch(() => ({}));
+              console.warn('[Auth] /api/customers failed:', snapshotRes.value.status, errBody?.error || errBody);
+            } catch (_) { /* ignore */ }
           }
           if (records.length === 0) {
             try {
               const snap = await getCustomersSnapshot();
-              records = snap.customers || snap.data || [];
+              records = normalizeCustomerRecords(snap.customers ?? snap.data);
             } catch (_) { /* keep empty */ }
           }
           if (records.length > 0) {
@@ -2399,7 +2416,7 @@
 
     /** Sites in scope for the selected site list + Scope / Site. */
     function updatePortfolioScopeSummary() {
-      if (!portfolioScopeSummaryEl) return;
+      if (!portfolioScopeSummaryEl || !portfolioScope) return;
       const mode = getPortfolioListMode();
       const scopeValue = portfolioScope.value;
       const siteValue = (portfolioSiteSelect?.value ?? '').trim();
@@ -2433,6 +2450,7 @@
 
     // ---- Portfolio: scope dropdown = customers that have at least one allowlisted site ----
     function updatePortfolioScopeOptions() {
+      if (!portfolioScope) return;
       const mode = getPortfolioListMode();
       const currentVal = portfolioScope.value;
       const scopedOrgs = getPortfolioScopedOrgs(customerTree, mode);
@@ -2445,11 +2463,11 @@
           .join('');
       }
       portfolioScope.innerHTML = html;
-      if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
-        portfolioScope.value = currentVal;
-      } else {
-        portfolioScope.value = 'global';
-      }
+      // Avoid querySelector with raw value — invalid CSS selectors throw (breaks populateCustomers).
+      const matchOpt = currentVal
+        ? Array.from(portfolioScope.options).find((o) => o.value === currentVal)
+        : null;
+      portfolioScope.value = matchOpt ? currentVal : 'global';
       syncPortfolioSiteVisibility();
     }
 
