@@ -5,8 +5,106 @@
  * for a given site. Used by suggestions-manager.js as the data layer.
  */
 
-import { ASO_ENDPOINTS, PAGINATION } from '../constants/api.js';
+import { ASO_ENDPOINTS, PAGINATION, SUGGESTION_STATUS, FIX_STATUS } from '../constants/api.js';
 import { apiGet, isApiError, batchRequests } from './spacecat-api.js';
+
+/**
+ * Aggregate suggestion counts by status into the shape expected by
+ * aggregateSuggestionsAcrossOpportunities() / calculateLifecycleMetrics() (same as EDS dashboard).
+ *
+ * @param {Array} suggestions
+ * @returns {Object}
+ */
+export function aggregateSuggestionCounts(suggestions) {
+  const counts = {
+    newCount: 0,
+    approvedCount: 0,
+    inProgressCount: 0,
+    pendingValidationCount: 0,
+    fixedCount: 0,
+    skippedCount: 0,
+    rejectedRawCount: 0,
+    errorCount: 0,
+    outdatedCount: 0,
+    totalCount: suggestions.length,
+  };
+
+  suggestions.forEach((suggestion) => {
+    const status = suggestion.status || SUGGESTION_STATUS.NEW;
+    switch (status) {
+      case SUGGESTION_STATUS.FIXED:
+        counts.fixedCount++;
+        break;
+      case SUGGESTION_STATUS.SKIPPED:
+        counts.skippedCount++;
+        break;
+      case SUGGESTION_STATUS.REJECTED:
+        counts.rejectedRawCount++;
+        break;
+      case SUGGESTION_STATUS.APPROVED:
+        counts.approvedCount++;
+        break;
+      case SUGGESTION_STATUS.IN_PROGRESS:
+        counts.inProgressCount++;
+        break;
+      case SUGGESTION_STATUS.PENDING_VALIDATION:
+        counts.pendingValidationCount++;
+        break;
+      case SUGGESTION_STATUS.ERROR:
+        counts.errorCount++;
+        break;
+      case SUGGESTION_STATUS.OUTDATED:
+        counts.outdatedCount++;
+        break;
+      default:
+        counts.newCount++;
+    }
+  });
+
+  counts.pendingCount = counts.newCount
+    + counts.approvedCount
+    + counts.inProgressCount
+    + counts.pendingValidationCount;
+  counts.awaitingCustomerReviewCount = counts.newCount
+    + counts.approvedCount
+    + counts.inProgressCount;
+  counts.terminalCount = counts.fixedCount
+    + counts.skippedCount
+    + counts.rejectedRawCount
+    + counts.errorCount
+    + counts.outdatedCount;
+
+  return counts;
+}
+
+function aggregateFixCounts(fixes) {
+  const counts = {
+    pendingFixes: 0,
+    inProgressFixes: 0,
+    completedFixes: 0,
+    failedFixes: 0,
+    totalFixes: fixes.length,
+  };
+
+  fixes.forEach((fix) => {
+    switch (fix.status) {
+      case FIX_STATUS.COMPLETED:
+        counts.completedFixes++;
+        break;
+      case FIX_STATUS.FAILED:
+        counts.failedFixes++;
+        break;
+      case FIX_STATUS.IN_PROGRESS:
+        counts.inProgressFixes++;
+        break;
+      case FIX_STATUS.PENDING:
+      default:
+        counts.pendingFixes++;
+    }
+  });
+
+  return counts;
+}
 
 /**
  * Fetch all opportunities for a site.
@@ -90,22 +188,12 @@ export async function getSiteLifecycleData(siteId, token = null) {
         fetchFixes(siteId, oppId, token),
       ]);
 
-      // Build suggestionsCounts summary
-      const countByStatus = suggestions.reduce((acc, s) => {
-        const status = s.status || 'UNKNOWN';
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      }, {});
-
       return {
         ...opp,
         suggestions,
         fixes,
-        suggestionsCounts: {
-          totalCount: suggestions.length,
-          fixedCount: countByStatus.FIXED || 0,
-          ...countByStatus,
-        },
+        suggestionsCounts: aggregateSuggestionCounts(suggestions),
+        fixesCounts: aggregateFixCounts(fixes),
       };
     }),
     PAGINATION.DEFAULT_PAGE_SIZE,
