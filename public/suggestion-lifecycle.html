@@ -116,6 +116,14 @@
     .btn-connect:hover { background: #0d66d0 !important; }
     .btn-connect:disabled { background: #a0b4d0 !important; cursor: not-allowed; }
 
+    .customer-source-hint {
+      font-size: 12px;
+      color: #5c5c5c;
+      font-weight: 400;
+      max-width: 480px;
+      line-height: 1.35;
+    }
+
     /* Selector row */
     .selector-group {
       display: flex;
@@ -1308,6 +1316,17 @@
         </div>
       </div>
 
+      <div id="customer-source-row" class="controls-row">
+        <div class="selector-group">
+          <label for="customer-source-mode">Customer list:</label>
+          <select id="customer-source-mode" name="customer-list-source" autocomplete="off" aria-describedby="customer-source-hint-text">
+            <option value="portfolio">Portfolio snapshot (default)</option>
+            <option value="api">API customers</option>
+          </select>
+        </div>
+        <span id="customer-source-hint-text" class="customer-source-hint">Default: snapshot, then live sites. API: /api/customers only (not customers.json).</span>
+      </div>
+
       <!-- Row 2: Search customer/site (auto-populates when customers are loaded) -->
       <div id="customer-search-row" class="controls-row customer-search-row" style="display: none;">
         <div class="selector-group customer-search-wrap">
@@ -1632,6 +1651,7 @@
     const tokenInput = document.getElementById('token-input');
     const tokenToggle = document.getElementById('token-toggle');
     const tokenConnectBtn = document.getElementById('token-connect-btn');
+    const customerSourceModeSelect = document.getElementById('customer-source-mode');
     const selectorRow = document.getElementById('selector-row');
     const customerSearchRow = document.getElementById('customer-search-row');
     const customerSearchInput = document.getElementById('customer-search-input');
@@ -1717,6 +1737,10 @@
     let currentSiteId = null;
     let customerTree = []; // populated after IMS login
     let allSpaceCatOrgs = []; // full SpaceCat org list, for org picker + customer enrichment
+    /** Bumped each populateCustomers so in-flight lazy org fetches do not apply stale results. */
+    let customerLoadGeneration = 0;
+    /** In-flight fetch for ensureSpaceCatOrgsLoaded (portfolio mode lazy load). */
+    let spaceCatOrgsLazyPromise = null;
     let isDevMode = false;
 
     // Profile key to use for "Opportunities (Paid profile)" — config may be keyed as { paid: { audits, config }, ... }
@@ -1727,6 +1751,46 @@
     const AUTH_LOGIN_CALLED_KEY = 'aso_auth_login_called';
     /** localStorage key for manual API token (persists across tabs and refreshes) */
     const MANUAL_TOKEN_STORAGE_KEY = 'aso_manual_api_token';
+    const CUSTOMER_SOURCE_STORAGE_KEY = 'aso_sl_customer_source';
+    /** EDS-style: customers.json snapshot, then buildCustomerSiteTree (not all SpaceCat orgs). */
+    const CUSTOMER_SOURCE_PORTFOLIO = 'portfolio';
+    /** GET /api/customers + SpaceCat enrichment; org mapping when names do not match. */
+    const CUSTOMER_SOURCE_API = 'api';
+
+    /**
+     * Resolve customer list mode. Prefer localStorage over the select value so browser form
+     * restoration (bfcache / autofill) cannot reset the dropdown back to default after load.
+     */
+    function getCustomerSourceMode() {
+      const el = document.getElementById('customer-source-mode');
+      if (!el) return CUSTOMER_SOURCE_PORTFOLIO;
+
+      try {
+        const raw = localStorage.getItem(CUSTOMER_SOURCE_STORAGE_KEY);
+        const migrated = raw === 'spacecat'
+          ? CUSTOMER_SOURCE_PORTFOLIO
+          : raw === 'dashboard' || raw === 'amplify'
+            ? CUSTOMER_SOURCE_API
+            : raw;
+        if (migrated === CUSTOMER_SOURCE_API || migrated === CUSTOMER_SOURCE_PORTFOLIO) {
+          if (el.value !== migrated) el.value = migrated;
+          if (raw === 'spacecat' || raw === 'dashboard' || raw === 'amplify') {
+            try {
+              localStorage.setItem(CUSTOMER_SOURCE_STORAGE_KEY, migrated);
+            } catch (_) { /* ignore */ }
+          }
+          return migrated;
+        }
+      } catch (_) { /* ignore */ }
+
+      let ev = el.value;
+      if (ev === 'amplify') ev = CUSTOMER_SOURCE_API;
+      const v = ev === CUSTOMER_SOURCE_API ? CUSTOMER_SOURCE_API : CUSTOMER_SOURCE_PORTFOLIO;
+      try {
+        localStorage.setItem(CUSTOMER_SOURCE_STORAGE_KEY, v);
+      } catch (_) { /* ignore */ }
+      return v;
+    }
 
     /** @type {null | { orgId: string, hasASO: boolean, hasPaidASO: boolean }} */
     let currentOrgEntitlements = null;
@@ -1773,6 +1837,10 @@
       if (saved && tokenInput) tokenInput.value = saved;
     } catch (e) { /* ignore */ }
 
+    try {
+      getCustomerSourceMode();
+    } catch (e) { /* ignore */ }
+
     // Persist manual API token to localStorage when user types/pastes (shared across tabs)
     tokenInput.addEventListener('input', () => {
       try {
@@ -1789,6 +1857,24 @@
       } catch (e) { /* ignore */ }
     });
 
+    if (customerSourceModeSelect) {
+      customerSourceModeSelect.addEventListener('change', () => {
+        try {
+          const v = customerSourceModeSelect.value === CUSTOMER_SOURCE_API
+            ? CUSTOMER_SOURCE_API
+            : CUSTOMER_SOURCE_PORTFOLIO;
+          localStorage.setItem(CUSTOMER_SOURCE_STORAGE_KEY, v);
+        } catch (_) { /* ignore */ }
+        const t = tokenInput.value.trim() || getAccessToken();
+        if (t) populateCustomers(t);
+      });
+    }
+
+    window.addEventListener('pageshow', () => {
+      try {
+        getCustomerSourceMode();
+      } catch (_) { /* ignore */ }
+    });
 
     // Token show/hide toggle
     tokenToggle.addEventListener('click', () => {
@@ -1879,10 +1965,54 @@
       }
     }
 
+    /** Same shape helpers as customers.json / GET /api/customers for portfolio snapshot. */
+    function normalizePortfolioSnapshotCustomers(snap) {
+      if (!snap || typeof snap !== 'object') return [];
+      if (Array.isArray(snap.data)) return snap.data;
+      if (Array.isArray(snap.items)) return snap.items;
+      return [];
+    }
+
+    async function finishPopulateCustomerUI(effectiveToken) {
+      if (customerTree.length === 0) {
+        customerSelect.innerHTML = '<option value="">No customers found</option>';
+        return;
+      }
+      customerSelect.innerHTML = '<option value="">Select a customer</option>'
+        + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+            .map((c) => {
+              const val = c.orgId || `__nr:${encodeURIComponent(c.orgName)}`;
+              return `<option value="${val}">${c.orgName}</option>`;
+            }).join('');
+      siteSelect.innerHTML = '<option value="">Select a customer first</option>';
+      viewTabs.style.display = 'flex';
+      updatePortfolioScopeOptions();
+      await restoreSavedCustomerAndSite(effectiveToken);
+
+      if (!customerSelect.value) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const preCustomer = urlParams.get('customer');
+        if (preCustomer) {
+          const cleanTarget = preCustomer.replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
+          const match = customerTree.find((c) => {
+            const cleanOrg = (c.orgName || '').replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
+            return cleanOrg === cleanTarget;
+          });
+          if (match) {
+            const matchVal = match.orgId || `__nr:${encodeURIComponent(match.orgName)}`;
+            customerSelect.value = matchVal;
+            customerSelect.dispatchEvent(new Event('change'));
+          }
+        }
+      }
+      if (customerSearchRow) customerSearchRow.style.display = customerTree.length > 0 ? 'flex' : 'none';
+    }
+
     async function populateCustomers(token) {
       const effectiveToken = token || getAccessToken();
       if (!effectiveToken) return;
       setGlobalToken(effectiveToken);
+      customerLoadGeneration += 1;
 
       selectorRow.classList.add('visible');
       selectorSpinner.style.display = 'flex';
@@ -1890,108 +2020,97 @@
       siteSelect.innerHTML = '<option value="">—</option>';
 
       try {
-        let fromSnapshot = false;
-        const [snapshotRes, spacecatOrgs] = await Promise.allSettled([
-          fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS()),
-          fetchSpaceCatOrgs(effectiveToken),
-        ]);
-
-        const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
-        allSpaceCatOrgs = scOrgs;
-        const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
-
-        function fuzzyFindOrg(name) {
-          const needle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-          return scOrgs.find((o) => {
-            const haystack = (o.orgName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            return haystack.includes(needle) || needle.includes(haystack);
-          }) || null;
-        }
-
-        /** /api/customers and snapshots must yield an array; non-arrays would throw on .map and show "Error loading customers". */
-        function normalizeCustomerRecords(raw) {
-          if (Array.isArray(raw)) return raw;
-          if (raw && typeof raw === 'object' && Array.isArray(raw.items)) return raw.items;
-          return [];
-        }
-
-        try {
-          let records = [];
-          if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
-            try {
-              const data = await snapshotRes.value.json();
-              records = normalizeCustomerRecords(data.data ?? data.customers);
-            } catch (e) {
-              console.warn('[Auth] /api/customers response was not valid JSON', e);
+        if (getCustomerSourceMode() === CUSTOMER_SOURCE_PORTFOLIO) {
+          // Classic ASO dashboard flow (cm-p186978): snapshot first, then buildCustomerSiteTree — not the full SpaceCat org directory.
+          let fromSnapshot = false;
+          customerTree = [];
+          try {
+            const snap = await getCustomersSnapshot();
+            let list = [];
+            if (Array.isArray(snap.customers) && snap.customers.length > 0) {
+              list = snap.customers;
+            } else {
+              list = normalizePortfolioSnapshotCustomers(snap);
             }
-          } else if (snapshotRes.status === 'fulfilled' && !snapshotRes.value.ok) {
-            try {
-              const errBody = await snapshotRes.value.json().catch(() => ({}));
-              console.warn('[Auth] /api/customers failed:', snapshotRes.value.status, errBody?.error || errBody);
-            } catch (_) { /* ignore */ }
-          }
-          if (records.length === 0) {
-            try {
-              const snap = await getCustomersSnapshot();
-              records = normalizeCustomerRecords(snap.customers ?? snap.data);
-            } catch (_) { /* keep empty */ }
-          }
-          if (records.length > 0) {
-            const seen = new Set();
-            customerTree = records
-              .map((c) => {
-                const name = c.companyName || c.orgName || '';
-                const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
-                  || fuzzyFindOrg(name);
-                return {
-                  orgId: scOrg?.orgId || null,
-                  orgName: name,
-                  unresolved: !scOrg,
-                  licenseType: c.licenseType || '',
-                  sites: c.sites || [],
-                };
-              })
-              .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
-            if (customerTree.length > 0) fromSnapshot = true;
-          }
-        } catch (_) { /* ignore */ }
-        if (!fromSnapshot) {
-          customerTree = scOrgs.length > 0
-            ? scOrgs.map((o) => ({ orgId: o.orgId, orgName: o.orgName }))
-            : await buildCustomerSiteTree(effectiveToken);
-        }
-        if (customerTree.length === 0) {
-          customerSelect.innerHTML = '<option value="">No customers found</option>';
-          return;
-        }
-        customerSelect.innerHTML = '<option value="">Select a customer</option>'
-          + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-              .map((c) => {
-                const val = c.orgId || `__nr:${encodeURIComponent(c.orgName)}`;
-                return `<option value="${val}">${c.orgName}</option>`;
-              }).join('');
-        siteSelect.innerHTML = '<option value="">Select a customer first</option>';
-        viewTabs.style.display = 'flex';
-        updatePortfolioScopeOptions();
-        await restoreSavedCustomerAndSite(effectiveToken);
-
-        if (!customerSelect.value) {
-          const urlParams = new URLSearchParams(window.location.search);
-          const preCustomer = urlParams.get('customer');
-          if (preCustomer) {
-            const cleanTarget = preCustomer.replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
-            const match = customerTree.find((c) => {
-              const cleanOrg = (c.orgName || '').replace(/^ASO\s*-\s*/i, '').trim().toLowerCase();
-              return cleanOrg === cleanTarget;
-            });
-            if (match) {
-              const matchVal = match.orgId || `__nr:${encodeURIComponent(match.orgName)}`;
-              customerSelect.value = matchVal;
-              customerSelect.dispatchEvent(new Event('change'));
+            if (list.length > 0) {
+              customerTree = list;
+              fromSnapshot = true;
             }
+          } catch (_) { /* fall through to buildCustomerSiteTree */ }
+          if (!fromSnapshot) {
+            customerTree = await buildCustomerSiteTree(effectiveToken);
+          }
+          // Lazy-load full org list when org picker opens or __nr resolution needs it.
+          allSpaceCatOrgs = [];
+        } else {
+          // API list only: never fall back to raw SpaceCat orgs.
+          customerTree = [];
+          let fromSnapshot = false;
+          const [snapshotRes, spacecatOrgs] = await Promise.allSettled([
+            fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS()),
+            fetchSpaceCatOrgs(effectiveToken),
+          ]);
+
+          const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
+          allSpaceCatOrgs = scOrgs;
+          const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
+
+          function fuzzyFindOrg(name) {
+            const needle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return scOrgs.find((o) => {
+              const haystack = (o.orgName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              return haystack.includes(needle) || needle.includes(haystack);
+            }) || null;
+          }
+
+          /** /api/customers and snapshots must yield an array; non-arrays would throw on .map and show "Error loading customers". */
+          function normalizeCustomerRecords(raw) {
+            if (Array.isArray(raw)) return raw;
+            if (raw && typeof raw === 'object' && Array.isArray(raw.items)) return raw.items;
+            return [];
+          }
+
+          try {
+            let records = [];
+            if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
+              try {
+                const data = await snapshotRes.value.json();
+                records = normalizeCustomerRecords(data.data ?? data.customers);
+              } catch (e) {
+                console.warn('[Auth] /api/customers response was not valid JSON', e);
+              }
+            } else if (snapshotRes.status === 'fulfilled' && !snapshotRes.value.ok) {
+              try {
+                const errBody = await snapshotRes.value.json().catch(() => ({}));
+                console.warn('[Auth] /api/customers failed:', snapshotRes.value.status, errBody?.error || errBody);
+              } catch (_) { /* ignore */ }
+            }
+            // API mode: do not fall back to customers.json (would match portfolio snapshot).
+            if (records.length > 0) {
+              const seen = new Set();
+              customerTree = records
+                .map((c) => {
+                  const name = c.companyName || c.orgName || '';
+                  const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
+                    || fuzzyFindOrg(name);
+                  return {
+                    orgId: scOrg?.orgId || null,
+                    orgName: name,
+                    unresolved: !scOrg,
+                    licenseType: c.licenseType || '',
+                    sites: c.sites || [],
+                  };
+                })
+                .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
+              if (customerTree.length > 0) fromSnapshot = true;
+            }
+          } catch (_) { /* ignore */ }
+          if (!fromSnapshot) {
+            customerTree = [];
           }
         }
-        if (customerSearchRow) customerSearchRow.style.display = customerTree.length > 0 ? 'flex' : 'none';
+
+        await finishPopulateCustomerUI(effectiveToken);
       } catch (err) {
         console.error('[Auth] Failed to load customers', err);
         customerSelect.innerHTML = '<option value="">Error loading customers</option>';
@@ -2032,7 +2151,33 @@
       siteSelect.style.display = '';
     }
 
-    function showOrgPicker(orgName) {
+    async function ensureSpaceCatOrgsLoaded(token) {
+      const t = token || tokenInput.value.trim() || getAccessToken();
+      if (!t) return;
+      if (allSpaceCatOrgs.length > 0) return;
+      if (spaceCatOrgsLazyPromise) {
+        await spaceCatOrgsLazyPromise;
+        return;
+      }
+      const gen = customerLoadGeneration;
+      spaceCatOrgsLazyPromise = (async () => {
+        try {
+          const orgs = await fetchSpaceCatOrgs(t);
+          if (gen === customerLoadGeneration) {
+            allSpaceCatOrgs = Array.isArray(orgs) ? orgs : [];
+          }
+        } catch (_) {
+          if (gen === customerLoadGeneration) {
+            allSpaceCatOrgs = [];
+          }
+        } finally {
+          spaceCatOrgsLazyPromise = null;
+        }
+      })();
+      await spaceCatOrgsLazyPromise;
+    }
+
+    async function showOrgPicker(orgName) {
       const row = document.getElementById('org-picker-row');
       const cnameEl = document.getElementById('org-picker-cname');
       const input = document.getElementById('org-picker-input');
@@ -2044,6 +2189,19 @@
       list.classList.remove('show');
       siteSelect.style.display = 'none';
       row.style.display = '';
+      input.disabled = false;
+
+      list.innerHTML = '<li data-empty>Loading organizations…</li>';
+      list.classList.add('show');
+      const token = tokenInput.value.trim() || getAccessToken();
+      await ensureSpaceCatOrgsLoaded(token);
+      if (allSpaceCatOrgs.length === 0) {
+        list.innerHTML = '<li data-empty>No organizations loaded. Check your API token and try again.</li>';
+        list.classList.add('show');
+        input.disabled = true;
+        return;
+      }
+      input.disabled = false;
 
       function renderList() {
         const q = input.value.trim().toLowerCase();
@@ -2161,7 +2319,11 @@
         const orgName = decodeURIComponent(rawValue.replace('__nr:', ''));
         siteSelect.innerHTML = '<option value="">Checking saved mapping…</option>';
         selectorSpinner.style.display = 'flex';
-        const savedOrgId = await getSavedOrgMapping(orgName);
+        const mapToken = tokenInput.value.trim() || getAccessToken();
+        const [savedOrgId] = await Promise.all([
+          getSavedOrgMapping(orgName),
+          ensureSpaceCatOrgsLoaded(mapToken),
+        ]);
         selectorSpinner.style.display = 'none';
         if (savedOrgId && allSpaceCatOrgs.some((o) => o.orgId === savedOrgId)) {
           const customer = customerTree.find((c) => c.orgName === orgName);
@@ -2175,7 +2337,7 @@
           }
         } else {
           siteSelect.innerHTML = '<option value="">Select an organization first</option>';
-          showOrgPicker(orgName);
+          await showOrgPicker(orgName);
         }
         return;
       }
