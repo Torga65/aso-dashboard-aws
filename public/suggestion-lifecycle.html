@@ -387,18 +387,32 @@
       box-sizing: border-box;
     }
 
-    /* Layout for the scope row: label + select pairs in two columns */
+    /* Site list + Scope + Site (three columns on wide screens) */
     #portfolio-view .pf-row--scope {
       display: grid !important;
-      grid-template-columns: 92px 1fr 92px 1fr; /* label / select | label / select */
-      column-gap: 24px;
+      grid-template-columns: minmax(72px, auto) 1fr minmax(72px, auto) 1fr minmax(64px, auto) 1fr;
+      column-gap: 20px;
       row-gap: 12px;
-      align-items: center;
+      align-items: start;
       width: 100%;
       box-sizing: border-box;
     }
 
+    #portfolio-view .pf-row--scope .pf-field--site-list { grid-column: 1 / span 2; }
+    #portfolio-view .pf-row--scope .pf-field--scope { grid-column: 3 / span 2; }
+    #portfolio-view .pf-row--scope .pf-field--site { grid-column: 5 / span 2; }
+
+    @media (width <= 900px) {
+      #portfolio-view .pf-row--scope {
+        grid-template-columns: 1fr 1fr;
+      }
+      #portfolio-view .pf-row--scope .pf-field--site-list { grid-column: 1 / -1; }
+      #portfolio-view .pf-row--scope .pf-field--scope { grid-column: 1 / -1; }
+      #portfolio-view .pf-row--scope .pf-field--site { grid-column: 1 / -1; }
+    }
+
     /* Force pf-fields to behave as grid items rather than flex children */
+    #portfolio-view .pf-row--scope .pf-field--site-list,
     #portfolio-view .pf-row--scope .pf-field--scope,
     #portfolio-view .pf-row--scope .pf-field--site {
       /* cancel earlier flex-basis / calc rules that come from styles.css */
@@ -424,22 +438,35 @@
       margin: 0 !important;
     }
 
-    /* Explicit placement (keeps layout stable if markup order shifts) */
-    #portfolio-view .pf-field--scope { grid-column: 1 / span 2; }
-    #portfolio-view .pf-field--site  { grid-column: 3 / span 2; }
-    /* If site is hidden, scope takes full width */
     #portfolio-view .pf-field--scope:only-child { grid-column: 1 / -1 !important; }
 
     /* Options row spacing and inline toggles */
+    #portfolio-view .pf-field--custom-range .pf-custom-dates {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    #portfolio-view .pf-date-input {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    #portfolio-view .pf-custom-dates-sep { color: #64748b; }
+
     #portfolio-view .pf-row--options {
       border-top: 1px solid #e2e8f0;
       padding-top: 16px;
       padding-bottom: 12px;
       display: flex !important;
       flex-direction: row !important;
-      flex-wrap: nowrap !important;
-      align-items: center !important;
-      gap: 48px !important;
+      flex-wrap: wrap !important;
+      align-items: flex-end !important;
+      gap: 16px 28px !important;
       box-sizing: border-box;
     }
     #portfolio-view .pf-row--options .pf-field--range {
@@ -1247,7 +1274,7 @@
   <header></header>
   <main>
     <div class="page-header">
-      <h1>Suggestions Lifecycle</h1>
+      <h1>Suggestion Lifecycle</h1>
       <p>Track ASO suggestion deployment rates, time to resolution, and overall health</p>
     </div>
     
@@ -1259,13 +1286,13 @@
     <!-- IMS Auth Bar -->
     <div id="auth-bar" class="auth-bar">
       <div id="auth-signed-out" class="auth-row">
-        <button id="ims-sign-in-btn" class="btn-primary" onclick="adobeIMS.signIn()">Sign in with Adobe</button>
+        <button id="ims-sign-in-btn" class="btn-primary">Sign in with Adobe</button>
         <span class="auth-divider">or</span>
         <button id="dev-mode-toggle" class="btn-link">Use developer mode (manual token)</button>
       </div>
       <div id="auth-signed-in" class="auth-row" style="display: none;">
         <span id="auth-user-name" class="auth-user"></span>
-        <button id="ims-sign-out-btn" class="btn-link" onclick="adobeIMS.signOut()">Sign out</button>
+        <button id="ims-sign-out-btn" class="btn-link">Sign out</button>
       </div>
     </div>
 
@@ -1350,10 +1377,17 @@
         <h2 id="portfolio-title">Portfolio Overview</h2>
         <div class="portfolio-controls-bar">
           <div class="pf-row pf-row--scope" role="form" aria-label="Portfolio controls">
+            <div class="pf-field pf-field--site-list">
+              <label class="pf-label" for="portfolio-site-list">Site list</label>
+              <select id="portfolio-site-list" class="pf-select" name="portfolioSiteList" title="Team portfolio is default; CJA matches Ankit’s dashboard for comparison">
+                <option value="aso" selected>Team portfolio (ASO)</option>
+                <option value="cja">CJA dashboard (comparison)</option>
+              </select>
+            </div>
             <div class="pf-field pf-field--scope">
               <label class="pf-label" for="portfolio-scope">Scope</label>
               <select id="portfolio-scope" class="pf-select" name="portfolioScope" aria-describedby="scopeHelp">
-                <option value="" disabled selected>Select a customer…</option>
+                <option value="global" selected>All Customers</option>
               </select>
               <div id="scopeHelp" class="sr-only">Choose a customer scope</div>
             </div>
@@ -1373,13 +1407,20 @@
                 <option value="90">Last 90 days</option>
                 <option value="180">Last 180 days</option>
                 <option value="365">Last year</option>
+                <option value="custom">Custom…</option>
               </select>
             </div>
+            <div id="portfolio-custom-range-wrap" class="pf-field pf-field--custom-range" style="display: none;" aria-hidden="true">
+              <span class="pf-label">Custom range</span>
+              <div class="pf-custom-dates">
+                <label class="sr-only" for="portfolio-date-from">From date</label>
+                <input type="date" id="portfolio-date-from" class="pf-date-input" title="Start date" />
+                <span class="pf-custom-dates-sep" aria-hidden="true">–</span>
+                <label class="sr-only" for="portfolio-date-to">To date</label>
+                <input type="date" id="portfolio-date-to" class="pf-date-input" title="End date" />
+              </div>
+            </div>
             <div class="pf-toggles">
-              <label class="pf-toggle">
-                <input type="checkbox" id="portfolio-paid-only" />
-                <span>Paid only</span>
-              </label>
               <label class="pf-toggle">
                 <input type="checkbox" id="portfolio-include-llmo" />
                 <span>Include LLMO</span>
@@ -1392,6 +1433,7 @@
             <button id="portfolio-refresh-btn" class="pf-load-btn" type="button">Load</button>
           </div>
         </div>
+        <div id="portfolio-scope-summary" class="portfolio-scope-summary-wrap" style="display: none;" aria-live="polite"></div>
       </div>
       <div id="portfolio-loading" class="loading-message" style="display: none;">
         Loading portfolio data...
@@ -1539,7 +1581,6 @@
     import { setGlobalToken, apiGet, isApiError } from '/scripts/services/spacecat-api.js';
     import {
       buildCustomerSiteTree,
-      fetchSpaceCatOrgs,
       fetchSiteById,
       fetchOrgSites,
       fetchOrganizationEntitlements,
@@ -1547,6 +1588,7 @@
       hasPaidASOEntitlement,
     } from '/scripts/services/org-site-service.js';
     import { ASO_ENDPOINTS, PORTFOLIO_ENDPOINTS } from '/scripts/constants/api.js';
+    import { getPortfolioMetrics, getCustomersSnapshot } from '/scripts/services/portfolio-snapshot.js';
     import { renderGlobalFilters } from '/scripts/components/global-filters.js';
     import { calculateQualityScore, getQualityLabel } from '/scripts/utils/quality-score.js';
     import { renderTrendChart } from '/scripts/components/trend-chart.js';
@@ -1564,6 +1606,15 @@
       subscribe as subscribeFilters,
     } from '/scripts/state/filter-state.js';
     import { isLlmoOnly, isExcludedOpportunity } from '/scripts/utils/llmo-classification.js';
+    import {
+      getPortfolioScopedOrgs,
+      getAllowedSitesForOrg,
+      getPortfolioScopeSiteIds,
+      getPortfolioSiteLabel,
+      getPortfolioSiteCount,
+      getPortfolioSiteListTitle,
+      getPortfolioSiteListHint,
+    } from '/scripts/constants/portfolio-allowed-sites.js';
 
     // ---- DOM elements ----
     // Auth bar
@@ -1609,14 +1660,51 @@
     const portfolioError = document.getElementById('portfolio-error');
     const portfolioMetricsScope = document.getElementById('portfolio-metrics-scope');
     const portfolioRange = document.getElementById('portfolio-range');
+    const portfolioCustomRangeWrap = document.getElementById('portfolio-custom-range-wrap');
+    const portfolioDateFrom = document.getElementById('portfolio-date-from');
+    const portfolioDateTo = document.getElementById('portfolio-date-to');
     const portfolioIncludeLlmo = document.getElementById('portfolio-include-llmo');
     const portfolioIncludeGeneric = document.getElementById('portfolio-include-generic');
-    const portfolioPaidOnly = document.getElementById('portfolio-paid-only');
     const portfolioRefreshBtn = document.getElementById('portfolio-refresh-btn');
     const portfolioTitle = document.getElementById('portfolio-title');
     const portfolioScope = document.getElementById('portfolio-scope');
     const portfolioSiteWrap = document.getElementById('portfolio-site-wrap');
     const portfolioSiteSelect = document.getElementById('portfolio-site');
+    const portfolioSiteListSelect = document.getElementById('portfolio-site-list');
+    const portfolioScopeSummaryEl = document.getElementById('portfolio-scope-summary');
+
+    function getPortfolioListMode() {
+      return (portfolioSiteListSelect?.value === 'cja' ? 'cja' : 'aso');
+    }
+
+    function syncPortfolioCustomRangeVisibility() {
+      const isCustom = portfolioRange.value === 'custom';
+      if (portfolioCustomRangeWrap) {
+        portfolioCustomRangeWrap.style.display = isCustom ? 'flex' : 'none';
+        portfolioCustomRangeWrap.style.flexDirection = 'column';
+        portfolioCustomRangeWrap.setAttribute('aria-hidden', isCustom ? 'false' : 'true');
+      }
+      if (isCustom && portfolioDateFrom && portfolioDateTo) {
+        if (!portfolioDateFrom.value || !portfolioDateTo.value) {
+          const to = new Date();
+          const from = new Date();
+          from.setDate(from.getDate() - 30);
+          portfolioDateTo.value = to.toISOString().slice(0, 10);
+          portfolioDateFrom.value = from.toISOString().slice(0, 10);
+        }
+      }
+    }
+
+    /** Cache key for portfolio date range (preset id or custom:from:to). */
+    function getPortfolioRangeCacheKey() {
+      if (portfolioRange.value === 'custom') {
+        const f = portfolioDateFrom?.value;
+        const t = portfolioDateTo?.value;
+        if (f && t && f <= t) return `custom:${f}:${t}`;
+        return 'custom:invalid';
+      }
+      return portfolioRange.value;
+    }
     
     let currentData = null;
     let currentView = 'site'; // 'site' | 'portfolio'
@@ -1627,7 +1715,7 @@
     const SAVED_SITE_KEY = 'aso_saved_site_id';
     let currentSiteId = null;
     let customerTree = []; // populated after IMS login
-    let allSpaceCatOrgs = []; // full SpaceCat org list, kept for org picker
+    let allSpaceCatOrgs = []; // full SpaceCat org list, for org picker + customer enrichment
     let isDevMode = false;
 
     // Profile key to use for "Opportunities (Paid profile)" — config may be keyed as { paid: { audits, config }, ... }
@@ -1741,21 +1829,66 @@
       }
     }
 
+    /**
+     * Restore customer/site from sessionStorage after customerTree is populated (search UX + refresh).
+     */
+    async function restoreSavedCustomerAndSite(token) {
+      let savedOrgId = null;
+      let savedSiteId = null;
+      try {
+        savedOrgId = sessionStorage.getItem(SAVED_ORG_KEY);
+        savedSiteId = sessionStorage.getItem(SAVED_SITE_KEY);
+      } catch {
+        return;
+      }
+      if (!savedOrgId || !customerTree.some((c) => c.orgId === savedOrgId)) return;
+
+      customerSelect.value = savedOrgId;
+      currentOrgEntitlements = null;
+      const t = token || tokenInput.value.trim() || getAccessToken();
+      const asoMessage = document.getElementById('aso-selector-message');
+
+      if (t) {
+        selectorSpinner.style.display = 'flex';
+        try {
+          const ent = await ensureOrgEntitlements(savedOrgId, t);
+          selectorSpinner.style.display = 'none';
+          if (ent && !ent.hasASO) {
+            siteSelect.innerHTML = '<option value="">— No ASO —</option>';
+            siteSelect.disabled = true;
+            if (asoMessage) asoMessage.style.display = 'block';
+            return;
+          }
+        } catch (e) {
+          selectorSpinner.style.display = 'none';
+          console.warn('[Auth] restoreSavedCustomerAndSite entitlements failed', e);
+        }
+      }
+
+      siteSelect.disabled = false;
+      if (asoMessage) asoMessage.style.display = 'none';
+      await populateSites(savedOrgId);
+
+      if (savedSiteId) {
+        const opt = siteSelect.querySelector(`option[value="${CSS.escape(savedSiteId)}"]`);
+        if (opt) {
+          siteSelect.value = savedSiteId;
+          currentSiteId = savedSiteId;
+        }
+      }
+    }
+
     async function populateCustomers(token) {
       const effectiveToken = token || getAccessToken();
       if (!effectiveToken) return;
       setGlobalToken(effectiveToken);
 
-      // Show selector row + spinner
       selectorRow.classList.add('visible');
       selectorSpinner.style.display = 'flex';
       customerSelect.innerHTML = '<option value="">Loading customers...</option>';
       siteSelect.innerHTML = '<option value="">—</option>';
 
       try {
-        // Fetch snapshot customers and SpaceCat orgs in parallel.
-        // Snapshot gives us the ASO customer list; SpaceCat gives us the UUIDs
-        // needed for subsequent /organizations/{uuid}/sites calls.
         let fromSnapshot = false;
         const [snapshotRes, spacecatOrgs] = await Promise.allSettled([
           fetch(PORTFOLIO_ENDPOINTS.CUSTOMERS()),
@@ -1763,11 +1896,9 @@
         ]);
 
         const scOrgs = spacecatOrgs.status === 'fulfilled' ? spacecatOrgs.value : [];
-        allSpaceCatOrgs = scOrgs; // keep for org picker
-        // Build lookup map: imsOrgId → SpaceCat org
+        allSpaceCatOrgs = scOrgs;
         const scByImsId = new Map(scOrgs.filter((o) => o.imsOrgId).map((o) => [o.imsOrgId, o]));
 
-        /** Fuzzy match a customer name against SpaceCat orgs (same algorithm as history page). */
         function fuzzyFindOrg(name) {
           const needle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
           return scOrgs.find((o) => {
@@ -1777,29 +1908,36 @@
         }
 
         try {
+          let records = [];
           if (snapshotRes.status === 'fulfilled' && snapshotRes.value.ok) {
             const data = await snapshotRes.value.json();
-            const records = data.data || data.customers || [];
-            if (records.length > 0) {
-              const seen = new Set();
-              customerTree = records
-                .map((c) => {
-                  const name = c.companyName || c.orgName || '';
-                  // Prefer SpaceCat UUID (required for /organizations/{id}/sites calls)
-                  const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
-                    || fuzzyFindOrg(name);
-                  return {
-                    orgId: scOrg?.orgId || null,
-                    orgName: name,
-                    unresolved: !scOrg,
-                    licenseType: c.licenseType || '',
-                  };
-                })
-                .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
-              if (customerTree.length > 0) fromSnapshot = true;
-            }
+            records = data.data || data.customers || [];
           }
-        } catch (_) { /* ignore; fall back to buildCustomerSiteTree */ }
+          if (records.length === 0) {
+            try {
+              const snap = await getCustomersSnapshot();
+              records = snap.customers || snap.data || [];
+            } catch (_) { /* keep empty */ }
+          }
+          if (records.length > 0) {
+            const seen = new Set();
+            customerTree = records
+              .map((c) => {
+                const name = c.companyName || c.orgName || '';
+                const scOrg = (c.imsOrgId && scByImsId.get(c.imsOrgId))
+                  || fuzzyFindOrg(name);
+                return {
+                  orgId: scOrg?.orgId || null,
+                  orgName: name,
+                  unresolved: !scOrg,
+                  licenseType: c.licenseType || '',
+                  sites: c.sites || [],
+                };
+              })
+              .filter((c) => c.orgName && !seen.has(c.orgName) && seen.add(c.orgName));
+            if (customerTree.length > 0) fromSnapshot = true;
+          }
+        } catch (_) { /* ignore */ }
         if (!fromSnapshot) {
           customerTree = scOrgs.length > 0
             ? scOrgs.map((o) => ({ orgId: o.orgId, orgName: o.orgName }))
@@ -1816,14 +1954,10 @@
                 return `<option value="${val}">${c.orgName}</option>`;
               }).join('');
         siteSelect.innerHTML = '<option value="">Select a customer first</option>';
-        // Show view tabs once customers are loaded
         viewTabs.style.display = 'flex';
-        // Keep portfolio scope dropdown in sync with available customers
         updatePortfolioScopeOptions();
-        // Restore previously selected customer and site (and load data if both were set)
         await restoreSavedCustomerAndSite(effectiveToken);
 
-        // If no saved customer was restored, check for ?customer= URL param
         if (!customerSelect.value) {
           const urlParams = new URLSearchParams(window.location.search);
           const preCustomer = urlParams.get('customer');
@@ -1840,32 +1974,12 @@
             }
           }
         }
-        // Show customer/site search when we have customers
         if (customerSearchRow) customerSearchRow.style.display = customerTree.length > 0 ? 'flex' : 'none';
       } catch (err) {
         console.error('[Auth] Failed to load customers', err);
         customerSelect.innerHTML = '<option value="">Error loading customers</option>';
       } finally {
         selectorSpinner.style.display = 'none';
-      }
-    }
-
-    async function restoreSavedCustomerAndSite(token) {
-      try {
-        const savedOrg = sessionStorage.getItem(SAVED_ORG_KEY);
-        if (!savedOrg) return;
-        const match = customerTree.find((c) => c.orgId === savedOrg);
-        if (!match) return;
-        customerSelect.value = savedOrg;
-        await populateSites(savedOrg);
-        const savedSite = sessionStorage.getItem(SAVED_SITE_KEY);
-        if (savedSite && siteSelect.querySelector(`option[value="${savedSite}"]`)) {
-          siteSelect.value = savedSite;
-          currentSiteId = savedSite;
-          await loadData(true);
-        }
-      } catch (err) {
-        // Non-critical — ignore restore failures
       }
     }
 
@@ -1885,8 +1999,6 @@
           return `<option value="${s.siteId}">${label}</option>`;
         }).join('');
     }
-
-    // ── Org picker helpers ────────────────────────────────────────────────────
 
     async function getSavedOrgMapping(customerName) {
       try {
@@ -1930,18 +2042,15 @@
             const selectedOrgId = li.dataset.orgId;
             input.value = li.textContent;
             list.classList.remove('show');
-            // Save mapping to DB
             fetch('/api/org-mapping', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ companyName: orgName, spacecatOrgId: selectedOrgId }),
             }).catch(() => {});
-            // Update customerTree entry
             const customer = customerTree.find((c) => c.orgName === orgName);
             if (customer) {
               customer.orgId = selectedOrgId;
               customer.unresolved = false;
-              // Update dropdown option value to real orgId
               const sentinelVal = `__nr:${encodeURIComponent(orgName)}`;
               const opt = Array.from(customerSelect.options).find((o) => o.value === sentinelVal);
               if (opt) opt.value = selectedOrgId;
@@ -2020,8 +2129,8 @@
     customerSelect.addEventListener('change', async () => {
       const rawValue = customerSelect.value;
       hideOrgPicker();
-      currentOrgEntitlements = null; // refetch when loading for this org
-      portfolioCache = null; // invalidate portfolio cache on customer change
+      currentOrgEntitlements = null;
+      portfolioCache = null;
       const asoMessage = document.getElementById('aso-selector-message');
 
       if (!rawValue) {
@@ -2031,7 +2140,6 @@
         return;
       }
 
-      // Unresolved customer — check DB then show picker if still no match
       if (rawValue.startsWith('__nr:')) {
         const orgName = decodeURIComponent(rawValue.replace('__nr:', ''));
         siteSelect.innerHTML = '<option value="">Checking saved mapping…</option>';
@@ -2268,13 +2376,15 @@
       // Portfolio auto-load when switching to portfolio tab
       if (view === 'portfolio') {
         syncPortfolioSiteVisibility();
+        syncPortfolioCustomRangeVisibility();
         if (portfolioIncludeLlmo) portfolioIncludeLlmo.checked = getFilters().includeLlmoData;
         if (portfolioIncludeGeneric) portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
         const hasToken = !!(tokenInput.value.trim() || getAccessToken());
         const cacheValid = portfolioCache
+          && portfolioCache.siteList === getPortfolioListMode()
           && portfolioCache.scope === portfolioScope.value
           && portfolioCache.site === (portfolioSiteSelect?.value ?? '')
-          && portfolioCache.range === portfolioRange.value
+          && portfolioCache.rangeKey === getPortfolioRangeCacheKey()
           && portfolioCache.llmo === (portfolioIncludeLlmo && portfolioIncludeLlmo.checked)
           && portfolioCache.generic === (portfolioIncludeGeneric && portfolioIncludeGeneric.checked)
           && (Date.now() - portfolioCache.fetchedAt) < PORTFOLIO_CACHE_TTL_MS;
@@ -2282,25 +2392,59 @@
           loadPortfolioData();
         } else if (cacheValid) {
           renderPortfolioDashboard(portfolioCache.data);
+          updatePortfolioScopeSummary();
         }
       }
     }
 
-    // ---- Portfolio: populate scope dropdown with customers ----
+    /** Sites in scope for the selected site list + Scope / Site. */
+    function updatePortfolioScopeSummary() {
+      if (!portfolioScopeSummaryEl) return;
+      const mode = getPortfolioListMode();
+      const scopeValue = portfolioScope.value;
+      const siteValue = (portfolioSiteSelect?.value ?? '').trim();
+      const org = scopeValue !== 'global' && scopeValue
+        ? customerTree.find((c) => c.orgId === scopeValue)
+        : null;
+      const ids = getPortfolioScopeSiteIds(scopeValue, org, siteValue || null, mode);
+      const labels = [...new Set(ids.map((id) => getPortfolioSiteLabel(id, mode)))].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+      );
+      const n = labels.length;
+      portfolioScopeSummaryEl.style.display = n ? 'block' : 'none';
+      const listTitle = getPortfolioSiteListTitle(mode);
+      const scopeDesc = scopeValue === 'global' || !scopeValue
+        ? 'all sites in this list'
+        : siteValue
+          ? 'the selected site'
+          : `${org?.orgName || 'customer'} (sites in this list only)`;
+      const hintHtml = getPortfolioSiteListHint(mode);
+      portfolioScopeSummaryEl.innerHTML = `
+        <details class="portfolio-scope-details" open>
+          <summary class="portfolio-scope-summary-title">${listTitle} — <span class="portfolio-scope-count">${n} site${n === 1 ? '' : 's'}</span></summary>
+          <p class="portfolio-scope-hint">${hintHtml}</p>
+          <p class="portfolio-scope-hint portfolio-scope-hint--secondary">Current scope: ${scopeDesc}.</p>
+          <ul class="portfolio-scope-list" aria-label="Sites in portfolio scope">
+            ${labels.map((l) => `<li>${l}</li>`).join('')}
+          </ul>
+        </details>
+      `;
+    }
+
+    // ---- Portfolio: scope dropdown = customers that have at least one allowlisted site ----
     function updatePortfolioScopeOptions() {
+      const mode = getPortfolioListMode();
       const currentVal = portfolioScope.value;
-      const paidOnly = portfolioPaidOnly?.checked;
-      let visibleOrgs = (customerTree || []).filter((c) => c.orgId);
-      if (paidOnly) {
-        visibleOrgs = visibleOrgs.filter((c) => /paid/i.test(c.licenseType || ''));
+      const scopedOrgs = getPortfolioScopedOrgs(customerTree, mode);
+      const n = getPortfolioSiteCount(mode);
+      let html = `<option value="global">All sites in list (${n})</option>`;
+      if (scopedOrgs.length > 0) {
+        html += [...scopedOrgs]
+          .sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
+          .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
+          .join('');
       }
-      let html = '<option value="global">All Customers' + (paidOnly ? ' (Paid)' : '') + '</option>';
-      html += visibleOrgs
-        .slice().sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-        .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`)
-        .join('');
       portfolioScope.innerHTML = html;
-      // Restore previous selection if it still exists
       if (currentVal && portfolioScope.querySelector(`option[value="${currentVal}"]`)) {
         portfolioScope.value = currentVal;
       } else {
@@ -2337,12 +2481,19 @@
           }
         }
       }
-      const sorted = [...sites].sort((a, b) => {
+      const allowedInOrg = getAllowedSitesForOrg(org, getPortfolioListMode());
+      if (!allowedInOrg.length && (org.sites || []).length > 0) {
+        portfolioSiteSelect.innerHTML = '<option value="">No allowlisted sites for this customer</option>';
+        portfolioSiteWrap.style.display = 'flex';
+        portfolioSiteWrap.setAttribute('data-visible', 'true');
+        return;
+      }
+      const sorted = [...allowedInOrg].sort((a, b) => {
         const la = (a.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || a.siteId || '';
         const lb = (b.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || b.siteId || '';
         return la.localeCompare(lb);
       });
-      let html = '<option value="">All sites</option>';
+      let html = '<option value="">All allowlisted sites</option>';
       html += sorted.map((s) => {
         const label = (s.baseURL || '').replace(/^https?:\/\//, '').replace(/\/$/, '') || s.siteId || s;
         return `<option value="${s.siteId}">${label}</option>`;
@@ -2359,10 +2510,13 @@
       if (scopeValue === 'global' || !scopeValue) {
         portfolioSiteWrap.style.display = 'none';
         portfolioSiteWrap.setAttribute('data-visible', 'false');
-        portfolioSiteSelect.innerHTML = '<option value="">All sites</option>';
+        portfolioSiteSelect.innerHTML = '<option value="">All allowlisted sites</option>';
+        updatePortfolioScopeSummary();
         return;
       }
-      updatePortfolioSiteOptions(scopeValue);
+      updatePortfolioSiteOptions(scopeValue)
+        .then(() => updatePortfolioScopeSummary())
+        .catch(() => updatePortfolioScopeSummary());
     }
 
     // ---- Portfolio data loading ----
@@ -2376,23 +2530,51 @@
 
       const scopeValue = portfolioScope.value; // 'global' or an orgId
       const siteValue = (portfolioSiteSelect?.value ?? '').trim();
-      const paidOnly = portfolioPaidOnly?.checked;
+      const org = scopeValue !== 'global' && scopeValue
+        ? customerTree.find((c) => c.orgId === scopeValue)
+        : null;
+      const listMode = getPortfolioListMode();
+      const scopeSiteIds = getPortfolioScopeSiteIds(scopeValue, org, siteValue || null, listMode);
 
-      if (!scopeValue) {
-        portfolioError.textContent = 'Please select a scope from the dropdown.';
+      let fromStr;
+      let toStr;
+      let rangeDisplayLabel;
+      if (portfolioRange.value === 'custom') {
+        fromStr = portfolioDateFrom?.value?.trim() || '';
+        toStr = portfolioDateTo?.value?.trim() || '';
+        if (!fromStr || !toStr) {
+          portfolioError.textContent = 'Choose a start and end date for the custom range, then click Load.';
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
+        }
+        if (fromStr > toStr) {
+          portfolioError.textContent = 'Start date must be on or before the end date.';
+          portfolioError.style.display = 'block';
+          portfolioLoading.style.display = 'none';
+          return;
+        }
+        rangeDisplayLabel = `${fromStr} → ${toStr}`;
+      } else {
+        const rangeDays = parseInt(portfolioRange.value, 10);
+        const to = new Date();
+        const from = new Date();
+        from.setDate(from.getDate() - rangeDays);
+        fromStr = from.toISOString().slice(0, 10);
+        toStr = to.toISOString().slice(0, 10);
+        rangeDisplayLabel = portfolioRange.options[portfolioRange.selectedIndex]?.text || `Last ${rangeDays} days`;
+      }
+
+      if (!scopeSiteIds.length) {
+        portfolioError.textContent = 'No sites in this list for the selected scope. Try another customer or “All sites in list”.';
         portfolioError.style.display = 'block';
+        portfolioLoading.style.display = 'none';
         return;
       }
 
-      // Compute date range from the dropdown
-      const rangeDays = parseInt(portfolioRange.value, 10);
-      const to = new Date();
-      const from = new Date();
-      from.setDate(from.getDate() - rangeDays);
-      const fromStr = from.toISOString().slice(0, 10);
-      const toStr = to.toISOString().slice(0, 10);
-
-      portfolioLoading.textContent = 'Loading portfolio data...';
+      portfolioLoading.textContent = scopeValue === 'global'
+        ? `Loading portfolio data for ${scopeSiteIds.length} allowlisted sites...`
+        : siteValue ? 'Loading portfolio data...' : 'Loading portfolio data...';
       portfolioLoading.style.display = 'block';
       portfolioError.style.display = 'none';
       errorEl.style.display = 'none'; // clear global error banner when loading portfolio
@@ -2400,135 +2582,52 @@
       portfolioMetricsScope.style.display = 'none';
       portfolioChartSection.style.display = 'none';
 
+      const listTitleShort = listMode === 'cja' ? 'CJA' : 'ASO';
       // Update title
-      const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
-      if (siteValue) {
-        const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
-        const siteLabel = siteOpt?.text || siteValue;
-        portfolioTitle.textContent = `Portfolio: ${scopeLabel} — ${siteLabel}`;
-      } else {
-        portfolioTitle.textContent = scopeValue === 'global'
-          ? `Portfolio: All Customers${paidOnly ? ' (Paid)' : ''}`
-          : `Portfolio: ${scopeLabel} (all sites)`;
-      }
-
-      // ---- Global scope: fan out one request per org, aggregate client-side ----
       if (scopeValue === 'global') {
-        let orgs = (customerTree || []).filter((c) => c.orgId);
-        if (paidOnly) orgs = orgs.filter((c) => /paid/i.test(c.licenseType || ''));
-        if (orgs.length === 0) {
-          portfolioError.textContent = paidOnly
-            ? 'No paid customers with a resolved SpaceCat org found.'
-            : 'No customers with a resolved SpaceCat org found.';
-          portfolioError.style.display = 'block';
-          portfolioLoading.style.display = 'none';
-          return;
-        }
-        const startTime = Date.now();
-        const ticker = setInterval(() => {
-          const elapsed = Math.round((Date.now() - startTime) / 1000);
-          portfolioLoading.textContent = `Loading ${orgs.length} customers... ${elapsed}s elapsed`;
-        }, 1000);
-        try {
-          const baseParams = new URLSearchParams({ from: fromStr, to: toStr });
-          if (portfolioIncludeLlmo?.checked) baseParams.set('includeLlmo', '1');
-          if (portfolioIncludeGeneric?.checked) baseParams.set('includeGeneric', '1');
-          // Batch org requests to avoid overwhelming the API
-          const BATCH = 8;
-          const results = [];
-          for (let i = 0; i < orgs.length; i += BATCH) {
-            const batch = orgs.slice(i, i + BATCH);
-            const batchResults = await Promise.all(batch.map(async (org) => {
-              try {
-                const p = new URLSearchParams(baseParams);
-                p.set('orgId', org.orgId);
-                const r = await fetch(`${PORTFOLIO_ENDPOINTS.OPPORTUNITY_METRICS()}?${p.toString()}`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                  signal: AbortSignal.timeout(55_000),
-                });
-                if (!r.ok) return null;
-                return r.json();
-              } catch { return null; }
-            }));
-            results.push(...batchResults.filter(Boolean));
-          }
-          clearInterval(ticker);
-          portfolioLoading.style.display = 'none';
-          if (results.length === 0) {
-            portfolioError.textContent = 'No data returned for any customers.';
-            portfolioError.style.display = 'block';
-            return;
-          }
-          // Aggregate summaries across all orgs
-          const merged = { buckets: [], totalCounts: {}, statusChangeBuckets: [], siteCount: 0, summary: {}, source: 'live' };
-          const sumKeys = ['totalAvailable','createdInPeriod','fixedInPeriod','outdatedInPeriod',
-            'skippedByCustomer','rejectedByEse','pendingValidation','awaitingCustomerReview',
-            'suggestionsFixed','totalSuggestions','customerEngagement','movedToFixed',
-            'movedToAwaitingCustomerReview','movedToAwaitingEseReview','movedToSkipped',
-            'movedToRejected','movedToOutdated','movedToError','movedToCustomerEngagement',
-            'totalCreatedOrUpdatedInPeriod'];
-          for (const r of results) {
-            merged.siteCount += r.siteCount || 0;
-            if (r.summary) {
-              sumKeys.forEach((k) => { merged.summary[k] = (merged.summary[k] || 0) + (r.summary[k] || 0); });
-            }
-          }
-          renderPortfolioDashboard(merged, fromStr, toStr, scopeLabel);
-          return;
-        } catch (err) {
-          clearInterval(ticker);
-          portfolioError.textContent = `Load failed: ${err.message}`;
-          portfolioError.style.display = 'block';
-          portfolioLoading.style.display = 'none';
-          return;
+        portfolioTitle.textContent = `Portfolio [${listTitleShort}]: All sites (${scopeSiteIds.length})`;
+      } else {
+        const scopeLabel = portfolioScope.options[portfolioScope.selectedIndex]?.text || scopeValue;
+        if (siteValue) {
+          const siteOpt = portfolioSiteSelect.options[portfolioSiteSelect.selectedIndex];
+          const siteLabel = siteOpt?.text || siteValue;
+          portfolioTitle.textContent = `Portfolio [${listTitleShort}]: ${scopeLabel} — ${siteLabel}`;
+        } else {
+          portfolioTitle.textContent = `Portfolio [${listTitleShort}]: ${scopeLabel} (${scopeSiteIds.length} site${scopeSiteIds.length === 1 ? '' : 's'})`;
         }
       }
 
       try {
-        const params = new URLSearchParams({ from: fromStr, to: toStr });
-        if (siteValue) {
-          params.set('siteIds', siteValue);
-        } else {
-          params.set('orgId', scopeValue);
-        }
-        if (portfolioIncludeLlmo && portfolioIncludeLlmo.checked) params.set('includeLlmo', '1');
-        if (portfolioIncludeGeneric && portfolioIncludeGeneric.checked) params.set('includeGeneric', '1');
-
-        const url = `${PORTFOLIO_ENDPOINTS.OPPORTUNITY_METRICS()}?${params.toString()}`;
         const startTime = Date.now();
 
         // Elapsed-time ticker so the user sees progress
         const ticker = setInterval(() => {
           const elapsed = Math.round((Date.now() - startTime) / 1000);
-          portfolioLoading.textContent = `Loading portfolio data... ${elapsed}s elapsed`;
+          portfolioLoading.textContent = scopeValue === 'global'
+            ? `Loading portfolio (${scopeSiteIds.length} sites)... ${elapsed}s elapsed`
+            : `Loading portfolio data... ${elapsed}s elapsed`;
         }, 1000);
 
-        // 2-minute timeout for org (all sites), 1-minute for single site
-        const timeoutMs = siteValue ? 60_000 : 120_000;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        let res;
+        let data;
         try {
-          res = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
+          data = await getPortfolioMetrics({
+            siteIds: scopeSiteIds,
+            from: fromStr,
+            to: toStr,
+            portfolioVariant: listMode === 'cja' ? 'cja' : 'aso',
+            includeLlmo: !!(portfolioIncludeLlmo && portfolioIncludeLlmo.checked),
+            includeGeneric: !!(portfolioIncludeGeneric && portfolioIncludeGeneric.checked),
           });
         } finally {
-          clearTimeout(timeoutId);
           clearInterval(ticker);
         }
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: res.statusText }));
-          throw new Error(err.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
         portfolioCache = {
           data,
+          siteList: listMode,
           scope: scopeValue,
           site: siteValue,
-          range: String(rangeDays),
+          rangeKey: getPortfolioRangeCacheKey(),
+          rangeDisplayLabel,
           llmo: !!(portfolioIncludeLlmo && portfolioIncludeLlmo.checked),
           generic: !!(portfolioIncludeGeneric && portfolioIncludeGeneric.checked),
           fetchedAt: Date.now(),
@@ -2561,6 +2660,7 @@
       const fixedInPeriod = sm.fixedInPeriod || 0;
       const skippedByCustomer = sm.skippedByCustomer ?? 0;
       const totalSuggestions = sm.totalSuggestions ?? 0;
+      const suggestionsCreatedInPeriod = sm.suggestionsCreatedInPeriod ?? 0;
       const suggestionsFixed = sm.suggestionsFixed ?? 0;
 
       const awaitingCustomerReview = sm.awaitingCustomerReview ?? 0;
@@ -2598,6 +2698,8 @@
       const pctMovedOutdated = totalForMovedPct > 0 ? pct(movedToOutdated, totalForMovedPct) : '0';
       const pctMovedError = totalForMovedPct > 0 ? pct(movedToError, totalForMovedPct) : '0';
       const pctCreated = totalAvailable > 0 ? pct(createdInPeriod, totalAvailable) : '0';
+      const pctSuggestionsCreated = totalSuggestions > 0
+        ? pct(suggestionsCreatedInPeriod, totalSuggestions) : '0';
       const customerEngagementMainValue = (hasMovedToMetrics && movedToCustomerEngagement !== undefined)
         ? movedToCustomerEngagement : customerEngagement;
       const customerEngagementTooltip = 'Suggestions that had customer engagement in this period: skipped by customer, or fixed (deployed and confirmed). '
@@ -2632,8 +2734,11 @@
           </div>`;
       }
 
-      // Scope line: "Metrics for: Last 7 days" with tooltip — one clear place so users know numbers are range-based
-      const rangeLabel = portfolioRange.options[portfolioRange.selectedIndex]?.text || `Last ${portfolioRange.value || 7} days`;
+      // Scope line — use label from last successful load (covers custom range)
+      const rangeLabel = portfolioCache?.rangeDisplayLabel
+        || (portfolioRange.value === 'custom' && portfolioDateFrom?.value && portfolioDateTo?.value
+          ? `${portfolioDateFrom.value} → ${portfolioDateTo.value}`
+          : portfolioRange.options[portfolioRange.selectedIndex]?.text || `Last ${portfolioRange.value || 7} days`);
       const scopeTooltip = hasMovedToMetrics
         ? 'Total = suggestions created or updated in this date range. Each "Moved to" card shows count and % of that total (percentages add up to 100%).'
         : 'Total = suggestions on in-scope opportunities. Each card shows count and % of that total.';
@@ -2645,16 +2750,12 @@
         <div class="portfolio-stats-inner">
           <section class="portfolio-stat-group portfolio-stat-group--suggestion" aria-label="Suggestion-level metrics">
             <h3 class="portfolio-stat-group-title">Suggestions</h3>
+            <!-- Suggestion cards: intake → in-flight → engagement → terminal outcomes -->
             <div class="stats-grid">
-              <div class="stat-card" style="border-left: 4px solid #0d9488;">
-                <div class="stat-value">${customerEngagementMainValue.toLocaleString()}</div>
-                <div class="stat-label">Customer Engagement <span class="info-bubble">?<span class="info-text">${customerEngagementTooltip}</span></span></div>
-                <div class="stat-detail">${pctMovedCustomerEngagement}% of total</div>
-              </div>
-              <div class="stat-card" style="border-left: 4px solid #10b981;">
-                <div class="stat-value">${(hasMovedToMetrics ? movedToFixed : suggestionsFixed).toLocaleString()}</div>
-                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Fixed' : 'Fixed'}</div>
-                <div class="stat-detail">${pctMovedFixed}% of total</div>
+              <div class="stat-card" style="border-left: 4px solid #0ea5e9;">
+                <div class="stat-value">${suggestionsCreatedInPeriod.toLocaleString()}</div>
+                <div class="stat-label">Created in Period <span class="info-bubble">?<span class="info-text">Suggestions whose created date falls in the selected range, for the current site / customer scope. Uses per-suggestion dates from the snapshot when available. The percentage is of all suggestions on this scope (snapshot total); Moved to cards use a different denominator when period-activity mode is on.</span></span></div>
+                <div class="stat-detail">${pctSuggestionsCreated}% of total</div>
               </div>
               <div class="stat-card" style="border-left: 4px solid #f59e0b;">
                 <div class="stat-value">${(hasMovedToMetrics ? movedToAwaitingCustomerReview : awaitingCustomerReview).toLocaleString()}</div>
@@ -2665,6 +2766,16 @@
                 <div class="stat-value">${(hasMovedToMetrics ? movedToAwaitingEseReview : (sm.pendingValidation ?? 0)).toLocaleString()}</div>
                 <div class="stat-label">${hasMovedToMetrics ? 'Moved to Awaiting ESE Review' : 'Awaiting ESE Review'}</div>
                 <div class="stat-detail">${hasMovedToMetrics ? pctMovedAwaitingEse : pctAwaitingEse}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #0d9488;">
+                <div class="stat-value">${customerEngagementMainValue.toLocaleString()}</div>
+                <div class="stat-label">Customer Engagement <span class="info-bubble">?<span class="info-text">${customerEngagementTooltip}</span></span></div>
+                <div class="stat-detail">${pctMovedCustomerEngagement}% of total</div>
+              </div>
+              <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-value">${(hasMovedToMetrics ? movedToFixed : suggestionsFixed).toLocaleString()}</div>
+                <div class="stat-label">${hasMovedToMetrics ? 'Moved to Fixed' : 'Fixed'}</div>
+                <div class="stat-detail">${pctMovedFixed}% of total</div>
               </div>
               <div class="stat-card" style="border-left: 4px solid #9ca3af;">
                 <div class="stat-value">${(hasMovedToMetrics ? movedToSkipped : skippedByCustomer).toLocaleString()}</div>
@@ -2692,6 +2803,7 @@
           </section>
           <section class="portfolio-stat-group portfolio-stat-group--opportunity" aria-label="Opportunity-level metrics">
             <h3 class="portfolio-stat-group-title">Opportunities</h3>
+            <!-- Pool (denominator) → new in range → resolved in range -->
             <div class="stats-grid">
               <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
                 <div class="stat-value">${totalAvailable.toLocaleString()}</div>
@@ -2727,6 +2839,7 @@
         { key: 'IGNORED', label: 'Skipped / Ignored (by customer)', color: '#6b7280' },
       ];
       renderPortfolioChart(buckets, statuses);
+      updatePortfolioScopeSummary();
     }
 
     async function renderPortfolioChart(buckets, statuses) {
@@ -2881,10 +2994,7 @@
       selectorRow.classList.add('visible');
       customerSelect.innerHTML = '<option value="">Select a customer</option>'
         + [...customerTree].sort((a, b) => (a.orgName || '').localeCompare(b.orgName || ''))
-            .map((c) => {
-              const val = c.orgId || `__nr:${encodeURIComponent(c.orgName)}`;
-              return `<option value="${val}">${c.orgName}</option>`;
-            }).join('');
+            .map((c) => `<option value="${c.orgId}">${c.orgName}</option>`).join('');
       customerSelect.value = newOrg.orgId;
       renderSiteOptions(newOrg.sites); // sites already fetched above
       siteSelect.value = siteId;
@@ -3711,10 +3821,23 @@
       tab.addEventListener('click', () => switchView(tab.dataset.view));
     });
     portfolioScope.addEventListener('change', () => { syncPortfolioSiteVisibility(); });
+    if (portfolioSiteSelect) {
+      portfolioSiteSelect.addEventListener('change', () => updatePortfolioScopeSummary());
+    }
+    if (portfolioSiteListSelect) {
+      portfolioSiteListSelect.addEventListener('change', () => {
+        portfolioScope.value = 'global';
+        updatePortfolioScopeOptions();
+        syncPortfolioSiteVisibility();
+      });
+    }
     portfolioRefreshBtn.addEventListener('click', () => {
       portfolioCache = null; // force refresh
       loadPortfolioData();
     });
+    if (portfolioRange) {
+      portfolioRange.addEventListener('change', () => syncPortfolioCustomRangeVisibility());
+    }
     // Portfolio data updates only when Load is clicked; filter changes do not trigger a fetch
     if (portfolioIncludeLlmo) {
       portfolioIncludeLlmo.checked = getFilters().includeLlmoData;
@@ -3723,12 +3846,6 @@
     if (portfolioIncludeGeneric) {
       portfolioIncludeGeneric.checked = getFilters().includeGenericOpportunities;
       portfolioIncludeGeneric.addEventListener('change', () => setIncludeGenericOpportunities(portfolioIncludeGeneric.checked));
-    }
-    if (portfolioPaidOnly) {
-      portfolioPaidOnly.addEventListener('change', () => {
-        portfolioCache = null;
-        updatePortfolioScopeOptions();
-      });
     }
 
     // Event listeners
