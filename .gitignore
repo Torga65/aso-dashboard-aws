@@ -33,6 +33,9 @@ cdk.context.json
 # (each environment gets its own copy via CI or local sandbox)
 amplify_outputs.json
 
+# Cursor (local plans / state — do not commit)
+.cursor/
+
 # Misc
 .DS_Store
 *.pem
