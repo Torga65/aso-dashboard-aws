@@ -18,6 +18,9 @@ import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/amplify-server-utils";
 import { toCustomer } from "@/lib/mappers";
 
+/** Uses cookie-based Amplify client; always run per-request (avoid stale/empty static snapshot). */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const client = getServerClient();
