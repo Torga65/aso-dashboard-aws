@@ -1,0 +1,20 @@
+name: Mirror to Torga65/aso-dashboard-aws
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror to Torga65/aso-dashboard-aws
+        run: |
+          git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/Torga65/aso-dashboard-aws.git
+          git push mirror --force "refs/remotes/origin/${{ github.ref_name }}:refs/heads/${{ github.ref_name }}"
