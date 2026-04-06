@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/customer-history", label: "Customer 360" },
   { href: "/suggestion-lifecycle", label: "Suggestions Lifecycle" },
   { href: "/reports", label: "Reports" },
+  { href: "/validator", label: "Validator" },
 ];
 
 export function Header() {

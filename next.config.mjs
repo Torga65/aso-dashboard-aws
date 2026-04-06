@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  transpilePackages: ["@aws-amplify/ui-react", "aws-amplify"],
+  transpilePackages: ["@aws-amplify/ui-react", "aws-amplify", "@adobe/react-spectrum"],
+  serverExternalPackages: ["playwright"],
   async headers() {
     return [
       {
