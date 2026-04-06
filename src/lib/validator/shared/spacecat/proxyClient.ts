@@ -14,8 +14,10 @@ export class SpaceCatProxyClient {
 
   constructor(bearerToken: string) {
     this.bearerToken = bearerToken;
-    // Always route through the same-origin proxy
-    this.proxyBase = '/api/spacecat';
+    // Call SpaceCat directly from server-side API routes (relative URLs don't
+    // work in Node.js). The proxy exists for browser→server CORS; server-side
+    // code can call SpaceCat directly with the same IMS Bearer token.
+    this.proxyBase = 'https://spacecat.experiencecloud.live/api/v1';
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
