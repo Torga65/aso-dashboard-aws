@@ -1,0 +1,61 @@
+{
+  "title": "Broken internal links suggestion data",
+  "description": "SpaceCat suggestion.data: need a referring page URL and a target link URL",
+  "type": "object",
+  "allOf": [
+    {
+      "anyOf": [
+        { "required": ["pageUrl"] },
+        { "required": ["urlFrom"] },
+        { "required": ["url_from"] }
+      ]
+    },
+    {
+      "anyOf": [
+        { "required": ["urlTo"] },
+        { "required": ["url_to"] },
+        { "required": ["brokenUrl"] },
+        { "required": ["brokenHref"] }
+      ]
+    }
+  ],
+  "properties": {
+    "pageUrl": {
+      "type": "string",
+      "description": "URL of the page where the broken link appears"
+    },
+    "urlFrom": {
+      "type": "string",
+      "description": "Source URL (ESS / SpaceCat camelCase); Referring domain column"
+    },
+    "urlTo": {
+      "type": "string",
+      "description": "Broken target URL (ESS / SpaceCat camelCase); URL To column"
+    },
+    "url_from": {
+      "type": "string",
+      "description": "Source page or domain (snake_case); Referring domain column"
+    },
+    "url_to": {
+      "type": "string",
+      "description": "Broken link target (snake_case); URL To column"
+    },
+    "referringDomain": { "type": "string" },
+    "referring_domain": { "type": "string" },
+    "sourceDomain": { "type": "string" },
+    "sourceHost": { "type": "string" },
+    "url": { "type": "string" },
+    "canonicalUrl": { "type": "string" },
+    "brokenUrl": { "type": "string" },
+    "brokenHref": { "type": "string" },
+    "targetUrl": { "type": "string" },
+    "linkUrl": { "type": "string" },
+    "destinationUrl": { "type": "string" },
+    "toUrl": { "type": "string" },
+    "brokenLink": { "type": "string" },
+    "statusCode": { "type": "integer" },
+    "httpStatus": { "type": "integer" },
+    "suggestionValue": { "type": "string" }
+  },
+  "additionalProperties": true
+}

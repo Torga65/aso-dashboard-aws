@@ -16,7 +16,9 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@amplify-backend": ["./amplify/backend.ts"]
+      "@amplify-backend": ["./amplify/backend.ts"],
+      "@validator-shared/*": ["./src/lib/validator/shared/*"],
+      "@validator-opportunities/*": ["./src/lib/validator/opportunities/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
