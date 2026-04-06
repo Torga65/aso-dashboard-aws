@@ -38,6 +38,9 @@ export const ASO_PORTFOLIO_SITES = [
   { siteId: 'b26912fa-5892-4d9c-8d11-56d9f0d1650d', baseURL: 'https://parcelpro.com' },
   { siteId: '7daac04b-0641-408f-ac71-0e70a20f4e0d', baseURL: 'https://zepbound.lilly.com' },
   { siteId: 'b6974573-5212-4e0c-aa0e-3ad0874622eb', baseURL: 'https://lilly.com' },
+  { siteId: '3d277788-7b1c-40b8-bc7d-94fdee2da781', baseURL: 'https://doverfuelingsolutions.com' },
+  { siteId: 'c5e041ba-86db-496f-88de-bae9419e7874', baseURL: 'https://eastman.com' },
+  { siteId: 'eb0cac5a-09c9-4d5f-8d82-34bb5125b240', baseURL: 'https://halliburton.com' },
 ];
 
 export const ASO_PORTFOLIO_SITE_IDS = ASO_PORTFOLIO_SITES.map((s) => s.siteId);
