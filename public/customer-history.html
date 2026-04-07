@@ -341,7 +341,24 @@
     .acc-ls-item--resolved .acc-ls-val { color: #16a34a; }
     .acc-ls-item--fixed .acc-ls-val { color: #7c3aed; }
     .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
+    .acc-ls-lifecycle-link {
+      align-self: center;
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a56b0;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #c7d2fe;
+      background: white;
+      transition: background 0.15s;
+    }
+    .acc-ls-lifecycle-link:hover { background: #e8f0fe; }
 
+    [data-theme="dark"] .acc-ls-lifecycle-link { background: #1e2a3a; color: #93c5fd; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-ls-lifecycle-link:hover { background: #253a5a; }
     [data-theme="dark"] .acc-chip { background: #2a2a2a; color: #ccc; }
     [data-theme="dark"] .acc-chip--cse { background: #1e2a3a; color: #93c5fd; }
     [data-theme="dark"] .acc-chip--license { background: #2a1a3a; color: #d8b4fe; }
@@ -1547,12 +1564,12 @@
               <div class="acc-header-left">
                 <div class="customer-name">${customerName}</div>
                 <div class="acc-header-chips">
-                  <a class="acc-chip acc-chip--cse" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(eseLead)}</a>
-                  <a class="acc-chip acc-chip--license" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(licenseType)}</a>
-                  <a class="acc-chip acc-chip--status" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(statusLabel)}</a>
-                  <a class="acc-chip acc-chip--live acc-chip-audits" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— audits</a>
-                  <a class="acc-chip acc-chip--live acc-chip-pending" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— pending</a>
-                  <a class="acc-chip acc-chip--live acc-chip-users" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— active users</a>
+                  <span class="acc-chip acc-chip--cse">${escapeHtml(eseLead)}</span>
+                  <span class="acc-chip acc-chip--license">${escapeHtml(licenseType)}</span>
+                  <span class="acc-chip acc-chip--status">${escapeHtml(statusLabel)}</span>
+                  <span class="acc-chip acc-chip--live acc-chip-audits">— audits</span>
+                  <span class="acc-chip acc-chip--live acc-chip-pending">— pending</span>
+                  <span class="acc-chip acc-chip--live acc-chip-users">— active users</span>
                 </div>
               </div>
             </div>
