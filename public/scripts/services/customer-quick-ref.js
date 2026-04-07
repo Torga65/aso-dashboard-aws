@@ -5,7 +5,7 @@
  * quick-reference panel. Used by customer-history-quick-ref.js.
  */
 
-import { ASO_ENDPOINTS } from '../constants/api.js';
+import { ASO_ENDPOINTS, ASO_OPPORTUNITY_TYPES } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
 
@@ -201,7 +201,10 @@ async function fetchAudits(siteId, orgId, token) {
   const raw = Array.isArray(oppsResponse)
     ? oppsResponse
     : (oppsResponse.opportunities || oppsResponse.data || []);
-  const opportunities = Array.isArray(raw) ? raw : [];
+  // Filter to ASO opportunity types only — exclude LLMO and other products
+  const opportunities = (Array.isArray(raw) ? raw : []).filter(
+    (opp) => ASO_OPPORTUNITY_TYPES.includes(opp.type || opp.opportunityType || '')
+  );
 
   const disabledSet = new Set(auditStatus?.disabled ?? []);
 
