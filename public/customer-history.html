@@ -751,6 +751,7 @@
   
   <script type="module">
     let allData = [];
+    let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
 
     function collapseToOneRecordPerCustomer(rows) {
@@ -954,7 +955,8 @@
           throw new Error(err.error || `API error ${response.status}`);
         }
         const data = await response.json();
-        allData = data.data || [];
+        rawData = data.data || [];
+        allData = rawData;
         const rawLength = allData.length;
         const weeksForStats = [...new Set(allData.map(c => c.week))].filter(Boolean).sort();
         // One record per customer (latest only)
@@ -1153,13 +1155,19 @@
     function displaySummaryStats() {
       const container = document.getElementById('summary-stats');
       if (!container) return;
-      const paid       = allData.filter(c => (c.licenseType || '').trim().toLowerCase() === 'paid');
+      // Count unique paid customers across ALL historical records (not just latest)
+      const paidNames = new Set(
+        rawData
+          .filter(c => (c.licenseType || '').trim().toLowerCase() === 'paid')
+          .map(c => (c.companyName || '').trim())
+          .filter(Boolean)
+      );
       const production = allData.filter(c => c.status === 'Active').length;
       const preProd    = allData.filter(c => c.status === 'Pre-Production').length;
       const trial      = allData.filter(c => (c.licenseType || '').trim().toLowerCase() === 'trial').length;
       const deferred   = allData.filter(c => c.status === 'On-Hold').length;
       const stats = [
-        { label: 'Total Paid Customers', value: paid.length },
+        { label: 'Total Paid Customers', value: paidNames.size },
         { label: 'Production',           value: production },
         { label: 'Pre-Production',       value: preProd },
         { label: 'Trial',                value: trial },
