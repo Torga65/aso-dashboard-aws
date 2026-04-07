@@ -334,7 +334,11 @@
       background: white;
       border-radius: 6px;
       border: 1px solid #e0e7ff;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
     }
+    a.acc-ls-item:hover { background: #e8f0fe; border-color: #a5b4fc; }
     .acc-ls-val { font-size: 18px; font-weight: 700; color: #1e3a8a; line-height: 1.2; }
     .acc-ls-label { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
     .acc-ls-item--open .acc-ls-val { color: #d97706; }
@@ -367,6 +371,7 @@
     [data-theme="dark"] .acc-chip--warn { background: #78350f !important; color: #fde68a !important; }
     [data-theme="dark"] .acc-lifecycle-stats { background: #1e2235; border-color: #3a4a6a; }
     [data-theme="dark"] .acc-ls-item { background: #252f4a; border-color: #3a4a6a; }
+    [data-theme="dark"] a.acc-ls-item:hover { background: #2e3f6a; border-color: #5a7aaa; }
     [data-theme="dark"] .acc-ls-val { color: #93c5fd; }
     [data-theme="dark"] .acc-ls-label { color: #9ca3af; }
 
@@ -1574,7 +1579,7 @@
               </div>
             </div>
             <div class="view-all-accordion-body">
-              <div class="acc-lifecycle-stats"><span class="acc-ls-loading">Loading opportunity stats…</span><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a></div>
+              <div class="acc-lifecycle-stats"><span class="acc-ls-loading">Loading opportunity stats…</span></div>
               ${tableHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>

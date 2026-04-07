@@ -456,14 +456,12 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
       const lifecycleUrl = `/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}`;
       lifecycleEl.innerHTML = `
-        <div class="acc-ls-item"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></div>
-        <div class="acc-ls-item acc-ls-item--open"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></div>
-        <div class="acc-ls-item acc-ls-item--resolved"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></div>
-        <div class="acc-ls-item"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></div>
-        <div class="acc-ls-item acc-ls-item--fixed"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></div>
-        <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
+        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></a>
+        <a class="acc-ls-item acc-ls-item--open" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></a>
+        <a class="acc-ls-item acc-ls-item--resolved" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></a>
+        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></a>
+        <a class="acc-ls-item acc-ls-item--fixed" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></a>
       `;
-      // ↑ link is re-stamped here so it survives the innerHTML replacement above
     }
 
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
