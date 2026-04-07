@@ -6,7 +6,7 @@
   gap: 12px;
   padding: 60px 20px;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .icon {
@@ -19,7 +19,7 @@
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-body);
 }
 
 .message {

@@ -46,6 +46,43 @@
   /* Layout */
   --nav-height: 64px;
   --max-width: 1264px;
+
+  /* Surfaces (used by cards, tables, panels) */
+  --surface-color: #ffffff;
+  --surface-alt: #f9fafb;
+  --border-color: #e5e7eb;
+
+  /* Text scale */
+  --text-strong: #111827;
+  --text-body: #374151;
+  --text-muted: #6b7280;
+  --text-subtle: #9ca3af;
+}
+
+/* ─── Dark theme ────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --background-color: #1a1a1a;
+  --light-color: #2a2a2a;
+  --dark-color: #cccccc;
+  --text-color: #e8e8e8;
+  --link-color: #7e9fff;
+  --link-hover-color: #aabfff;
+  --status-active-bg: #14532d;
+  --status-active-text: #86efac;
+  --status-at-risk-bg: #78350f;
+  --status-at-risk-text: #fde68a;
+  --status-onboarding-bg: #1e3a5f;
+  --status-onboarding-text: #93c5fd;
+  --status-churned-bg: #7f1d1d;
+  --status-churned-text: #fca5a5;
+
+  --surface-color: #252525;
+  --surface-alt: #1e1e1e;
+  --border-color: #3a3a3a;
+  --text-strong: #f0f0f0;
+  --text-body: #d0d0d0;
+  --text-muted: #999999;
+  --text-subtle: #666666;
 }
 
 @media (width >= 900px) {
@@ -59,6 +96,51 @@
     --heading-font-size-m: 22px;
     --heading-font-size-s: 20px;
     --heading-font-size-xs: 18px;
+  }
+}
+
+/* ─── Dark theme ────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --background-color: #1a1a1a;
+  --light-color: #2a2a2a;
+  --dark-color: #cccccc;
+  --text-color: #e8e8e8;
+  --link-color: #7e9fff;
+  --link-hover-color: #aabfff;
+  --status-active-bg: #14532d;
+  --status-active-text: #86efac;
+  --status-at-risk-bg: #78350f;
+  --status-at-risk-text: #fde68a;
+  --status-onboarding-bg: #1e3a5f;
+  --status-onboarding-text: #93c5fd;
+  --status-churned-bg: #7f1d1d;
+  --status-churned-text: #fca5a5;
+}
+
+/* ─── Font size overrides ────────────────────────────────────────────────── */
+[data-font-size="small"] {
+  --body-font-size-m: 14px;
+  --body-font-size-s: 13px;
+  --body-font-size-xs: 11px;
+}
+
+[data-font-size="large"] {
+  --body-font-size-m: 22px;
+  --body-font-size-s: 19px;
+  --body-font-size-xs: 17px;
+}
+
+@media (width >= 900px) {
+  [data-font-size="small"] {
+    --body-font-size-m: 13px;
+    --body-font-size-s: 12px;
+    --body-font-size-xs: 11px;
+  }
+
+  [data-font-size="large"] {
+    --body-font-size-m: 20px;
+    --body-font-size-s: 18px;
+    --body-font-size-xs: 16px;
   }
 }
 

@@ -18,6 +18,8 @@ interface SiteSelectorProps {
   /** Currently loaded site; its name is shown to the right of the search bar. */
   selectedSite?: Site | null;
   disabled?: boolean;
+  /** If provided, auto-select the site matching this baseURL once sites load. */
+  preloadBaseURL?: string;
 }
 
 function siteLabel(site: Site): string {
@@ -47,7 +49,7 @@ function saveRecentSite(site: Site): void {
   }
 }
 
-export function SiteSelector({ onSelect, selectedSite, disabled }: SiteSelectorProps) {
+export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL }: SiteSelectorProps) {
   const { accessToken } = useIMSAuth();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +89,17 @@ export function SiteSelector({ onSelect, selectedSite, disabled }: SiteSelectorP
         if (cancelled) return;
         const list = Array.isArray(data) ? data : [];
         setSites(list);
+        // Auto-select if a baseURL was passed via query param
+        if (preloadBaseURL && list.length > 0) {
+          const normalized = preloadBaseURL.trim().replace(/\/$/, '').toLowerCase();
+          const match = list.find(
+            (s: Site) => ((s.baseURL as string) ?? '').trim().replace(/\/$/, '').toLowerCase() === normalized
+          );
+          if (match) {
+            onSelect(match);
+            saveRecentSite(match);
+          }
+        }
         if (list.length === 0) setError('No sites returned.');
       })
       .catch((e) => {

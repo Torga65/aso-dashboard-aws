@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()</script>
 <head>
   <title>Suggestions Lifecycle - ASO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -1281,6 +1282,59 @@
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
+    /* ── Dark mode ───────────────────────────────────────────────────── */
+    [data-theme="dark"] body { background: #1a1a1a; color: #e8e8e8; }
+    [data-theme="dark"] .section-card,
+    [data-theme="dark"] .stat-card,
+    [data-theme="dark"] .health-score-card,
+    [data-theme="dark"] .staleness-card,
+    [data-theme="dark"] .automation-card,
+    [data-theme="dark"] .failures-by-type,
+    [data-theme="dark"] .info-bubble { background: #252525; border-color: #3a3a3a; color: #e8e8e8; }
+    [data-theme="dark"] .portfolio-controls-bar,
+    [data-theme="dark"] .controls { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pf-select,
+    [data-theme="dark"] .pf-date-input,
+    [data-theme="dark"] .pf-load-btn,
+    [data-theme="dark"] .customer-search-input,
+    [data-theme="dark"] .opp-date-range-select,
+    [data-theme="dark"] .table-filter,
+    [data-theme="dark"] .table-status-filter,
+    [data-theme="dark"] select,
+    [data-theme="dark"] input[type="text"],
+    [data-theme="dark"] input[type="date"],
+    [data-theme="dark"] input[type="search"] { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .customer-search-results { background: #252525; border-color: #4a4a4a; }
+    [data-theme="dark"] .search-result-item { border-bottom-color: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .search-result-item:hover { background: #2a3a5a; }
+    [data-theme="dark"] .search-result-customer { color: #e8e8e8; }
+    [data-theme="dark"] .search-result-site { color: #999; }
+    [data-theme="dark"] .opportunities-table { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .table-header { background: #2a2a2a; border-bottom-color: #3a3a3a; color: #bbb; }
+    [data-theme="dark"] .opportunities-table tr { border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .opportunities-table tr:hover { background: #2a2a3a; }
+    [data-theme="dark"] .opportunities-table td { color: #d0d0d0; border-color: #3a3a3a; }
+    [data-theme="dark"] .view-tabs { border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .view-tab { color: #999; }
+    [data-theme="dark"] .view-tab:hover { color: #d0d0d0; background: #2a2a2a; }
+    [data-theme="dark"] .view-tab.active { color: #7e9fff; border-bottom-color: #7e9fff; }
+    [data-theme="dark"] .pf-label,
+    [data-theme="dark"] .pf-toggle,
+    [data-theme="dark"] .staleness-label,
+    [data-theme="dark"] .portfolio-stat-group-title { color: #bbb; }
+    [data-theme="dark"] .stat-value,
+    [data-theme="dark"] .staleness-value { color: #e8e8e8; }
+    [data-theme="dark"] .stat-label { color: #999; }
+    [data-theme="dark"] .trend-controls { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .filter-pill { background: #2a2a2a; border-color: #4a4a4a; color: #d0d0d0; }
+    [data-theme="dark"] .filter-pill.active { background: #667eea; border-color: #667eea; color: #fff; }
+    [data-theme="dark"] .demo-banner { background: #3a2010; border-color: #5a3a20; color: #fed7aa; }
+    [data-theme="dark"] .error-message { background: #3a1010; border-color: #5a2020; color: #fca5a5; }
+    [data-theme="dark"] .progress-bar-container { background: #3a3a3a; }
+    [data-theme="dark"] .info-text { color: #999; }
+    [data-theme="dark"] .customer-source-hint { color: #999; }
+    [data-theme="dark"] .sort-arrow { color: #666; }
   </style>
 </head>
 <body data-view="site">

@@ -180,6 +180,92 @@
   grid-area: tools;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+/* ─── Settings ───────────────────────────────────────────────────────────── */
+.settingsWrapper {
+  position: relative;
+}
+
+.settingsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settingsButton:hover {
+  background: var(--light-color);
+}
+
+.settingsDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--background-color);
+  border: 1px solid var(--light-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 15%);
+  padding: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingsLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dark-color);
+}
+
+.settingsToggleGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.settingsToggleBtn {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--light-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.settingsToggleBtn:hover {
+  background: var(--light-color);
+}
+
+.settingsToggleActive {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
+.settingsToggleActive:hover {
+  background: #5a6fd6;
 }
 
 /* ─── Desktop (≥ 900px) ─────────────────────────────────────────────────── */
