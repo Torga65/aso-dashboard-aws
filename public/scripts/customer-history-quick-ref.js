@@ -434,7 +434,34 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     const result = await getCustomerQuickRef(customerName, token, options);
     const {
       orgResolved, audits = [], disabledAudits = [], pendingValidationOpps = { count: 0, types: [] }, users = [], loginCountByDay = {}, usersByDay = {}, sites = [], siteId: currentSiteId, allOrgs, baseURL,
+      opportunityStats = { total: 0, open: 0, resolved: 0, resolutionRate: 0, deployedFixes: 0 },
     } = result;
+
+    // ── Update accordion header live chips ───────────────────────────────────
+    const accordionItem = container.closest('.view-all-accordion-item');
+    if (accordionItem) {
+      const cutoff30 = Date.now() - 30 * 86400000;
+      const activeUsers30d = users.filter((u) => u.lastSignInAt && new Date(u.lastSignInAt).getTime() >= cutoff30).length;
+      const auditsChip = accordionItem.querySelector('.acc-chip-audits');
+      const pendingChip = accordionItem.querySelector('.acc-chip-pending');
+      const usersChip = accordionItem.querySelector('.acc-chip-users');
+      if (auditsChip) auditsChip.textContent = `${audits.length} audits`;
+      if (pendingChip) { pendingChip.textContent = `${pendingValidationOpps.count} pending`; pendingChip.classList.toggle('acc-chip--warn', pendingValidationOpps.count > 0); }
+      if (usersChip) usersChip.textContent = `${activeUsers30d} active users`;
+    }
+
+    // ── Populate lifecycle stats section ─────────────────────────────────────
+    const lifecycleEl = container.querySelector('.acc-lifecycle-stats');
+    if (lifecycleEl) {
+      const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
+      lifecycleEl.innerHTML = `
+        <div class="acc-ls-item"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></div>
+        <div class="acc-ls-item acc-ls-item--open"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></div>
+        <div class="acc-ls-item acc-ls-item--resolved"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></div>
+        <div class="acc-ls-item"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></div>
+        <div class="acc-ls-item acc-ls-item--fixed"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></div>
+      `;
+    }
 
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
       const pickerHtml = `

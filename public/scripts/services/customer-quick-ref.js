@@ -203,6 +203,12 @@ async function fetchAudits(siteId, orgId, token) {
     : (oppsResponse.opportunities || oppsResponse.data || []);
   const opportunities = Array.isArray(raw) ? raw : [];
 
+  // Opportunity stats (ASO types only)
+  const asoOpps = opportunities.filter((o) => ASO_OPPORTUNITY_TYPES.includes(o.type || o.opportunityType || ''));
+  const openAsoCount = asoOpps.filter((o) => ['NEW', 'IN_PROGRESS'].includes((o.status || '').toUpperCase())).length;
+  const resolvedAsoCount = asoOpps.filter((o) => (o.status || '').toUpperCase() === 'RESOLVED').length;
+  let fixedSuggestionsCount = 0;
+
   const disabledSet = new Set(auditStatus?.disabled ?? []);
 
   const audits = [];
@@ -231,7 +237,7 @@ async function fetchAudits(siteId, orgId, token) {
       audits.push(row);
     }
 
-    // Count suggestions with PENDING_VALIDATION status — ASO opportunity types only
+    // Count suggestions with PENDING_VALIDATION/FIXED status — ASO opportunity types only
     if (opp.id && ASO_OPPORTUNITY_TYPES.includes(auditType)) {
       const sugUrl = ASO_ENDPOINTS.OPPORTUNITY_SUGGESTIONS(siteId, opp.id);
       const suggestions = await apiGet(sugUrl, token);
@@ -243,6 +249,9 @@ async function fetchAudits(siteId, orgId, token) {
           (s) => (s.status || '').toUpperCase() === 'PENDING_VALIDATION',
         );
         if (hasPending) pendingTypes.push(auditType);
+        fixedSuggestionsCount += sugList.filter(
+          (s) => (s.status || '').toUpperCase() === 'FIXED',
+        ).length;
       }
     }
   }));
@@ -251,6 +260,13 @@ async function fetchAudits(siteId, orgId, token) {
     audits,
     disabledAudits,
     pendingValidationOpps: { count: pendingTypes.length, types: pendingTypes },
+    opportunityStats: {
+      total: asoOpps.length,
+      open: openAsoCount,
+      resolved: resolvedAsoCount,
+      resolutionRate: asoOpps.length > 0 ? Math.round((resolvedAsoCount / asoOpps.length) * 100) : 0,
+      deployedFixes: fixedSuggestionsCount,
+    },
   };
 }
 
@@ -423,6 +439,7 @@ export async function getCustomerQuickRef(customerName, token = null, options = 
     sites,
     siteId,
     baseURL,
+    opportunityStats: auditData.opportunityStats || { total: 0, open: 0, resolved: 0, resolutionRate: 0, deployedFixes: 0 },
   };
 
   setCacheEntry(cacheKey, result);

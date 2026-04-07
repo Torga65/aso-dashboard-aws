@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()</script>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}});})()</script>
 <head>
   <title>Customer 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -295,6 +295,64 @@
     .view-all-accordion-body .timeline-table th,
     .view-all-accordion-body .timeline-table td { padding: 4px 8px; }
     
+    /* ── Accordion header chips ─────────────────────────────────────── */
+    .acc-header-left { display: flex; flex-direction: column; gap: 4px; }
+    .acc-header-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .acc-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      background: #e9ecef;
+      color: #495057;
+    }
+    .acc-chip--cse { background: #e8f0fe; color: #1a56b0; }
+    .acc-chip--license { background: #f3e8fd; color: #6b21a8; }
+    .acc-chip--status { background: #dcfce7; color: #166534; }
+    .acc-chip--live { background: #f1f3f4; color: #555; }
+    .acc-chip--warn { background: #fef3c7 !important; color: #92400e !important; }
+
+    /* ── Accordion body lifecycle stats ─────────────────────────────── */
+    .acc-lifecycle-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f0f4ff;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border: 1px solid #c7d2fe;
+    }
+    .acc-ls-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
+      padding: 4px 10px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e0e7ff;
+    }
+    .acc-ls-val { font-size: 18px; font-weight: 700; color: #1e3a8a; line-height: 1.2; }
+    .acc-ls-label { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .acc-ls-item--open .acc-ls-val { color: #d97706; }
+    .acc-ls-item--resolved .acc-ls-val { color: #16a34a; }
+    .acc-ls-item--fixed .acc-ls-val { color: #7c3aed; }
+    .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
+
+    [data-theme="dark"] .acc-chip { background: #2a2a2a; color: #ccc; }
+    [data-theme="dark"] .acc-chip--cse { background: #1e2a3a; color: #93c5fd; }
+    [data-theme="dark"] .acc-chip--license { background: #2a1a3a; color: #d8b4fe; }
+    [data-theme="dark"] .acc-chip--status { background: #14532d; color: #86efac; }
+    [data-theme="dark"] .acc-chip--live { background: #333; color: #aaa; }
+    [data-theme="dark"] .acc-chip--warn { background: #78350f !important; color: #fde68a !important; }
+    [data-theme="dark"] .acc-lifecycle-stats { background: #1e2235; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-ls-item { background: #252f4a; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-ls-val { color: #93c5fd; }
+    [data-theme="dark"] .acc-ls-label { color: #9ca3af; }
+
     .view-all-accordion {
       display: flex;
       flex-direction: column;
@@ -494,11 +552,7 @@
 
     /* Auth bar (same pattern as suggestion-lifecycle) */
     .auth-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 12px 16px;
-      background: #f8f9fa;
+      display: none !important;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       margin-bottom: 12px;
@@ -754,6 +808,12 @@
     let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
 
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = String(s ?? '');
+      return div.innerHTML;
+    }
+
     function collapseToOneRecordPerCustomer(rows) {
       const byCustomer = {};
       rows.forEach((r) => {
@@ -985,12 +1045,6 @@
         const customerSearchInput = document.getElementById('customer-search-input');
         const customerSelectHidden = document.getElementById('customer-select');
         const customerDropdown = document.getElementById('customer-dropdown');
-
-        function escapeHtml(s) {
-          const div = document.createElement('div');
-          div.textContent = s;
-          return div.innerHTML;
-        }
 
         function syncVisibleFromHidden() {
           const v = customerSelectHidden.value;
@@ -1458,19 +1512,26 @@
         const weekLabel = record.week ? '1 week' : 'Current';
 
         const tableHtml = createTimelineTable([record]);
+        const eseLead = record.eseLead || '—';
+        const licenseType = record.licenseType || '—';
+        const statusLabel = record.status || '—';
         html += `
           <div class="view-all-accordion-item" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
             <div class="view-all-accordion-header">
-              <div>
-                <div class="customer-name" style="margin-bottom: 4px;">${customerName}</div>
-                <div style="font-size: 14px; color: #666;">
-                  ${weekLabel} | Health: ${healthScore}
-                  <span class="trend-indicator trend-stable">→</span>
+              <div class="acc-header-left">
+                <div class="customer-name">${customerName}</div>
+                <div class="acc-header-chips">
+                  <span class="acc-chip acc-chip--cse" title="CSE">${escapeHtml(eseLead)}</span>
+                  <span class="acc-chip acc-chip--license">${escapeHtml(licenseType)}</span>
+                  <span class="acc-chip acc-chip--status">${escapeHtml(statusLabel)}</span>
+                  <span class="acc-chip acc-chip--live acc-chip-audits" title="Enabled audits">— audits</span>
+                  <span class="acc-chip acc-chip--live acc-chip-pending" title="Pending validations">— pending</span>
+                  <span class="acc-chip acc-chip--live acc-chip-users" title="Active users (30d)">— active users</span>
                 </div>
               </div>
-              <div class="week-count">${record.status} | ${record.engagement}</div>
             </div>
             <div class="view-all-accordion-body">
+              <div class="acc-lifecycle-stats"><span class="acc-ls-loading">Loading opportunity stats…</span></div>
               ${tableHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>
