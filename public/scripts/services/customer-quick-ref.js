@@ -201,10 +201,7 @@ async function fetchAudits(siteId, orgId, token) {
   const raw = Array.isArray(oppsResponse)
     ? oppsResponse
     : (oppsResponse.opportunities || oppsResponse.data || []);
-  // Filter to ASO opportunity types only — exclude LLMO and other products
-  const opportunities = (Array.isArray(raw) ? raw : []).filter(
-    (opp) => ASO_OPPORTUNITY_TYPES.includes(opp.type || opp.opportunityType || '')
-  );
+  const opportunities = Array.isArray(raw) ? raw : [];
 
   const disabledSet = new Set(auditStatus?.disabled ?? []);
 
@@ -234,8 +231,8 @@ async function fetchAudits(siteId, orgId, token) {
       audits.push(row);
     }
 
-    // Count suggestions with PENDING_VALIDATION status for this opportunity
-    if (opp.id) {
+    // Count suggestions with PENDING_VALIDATION status — ASO opportunity types only
+    if (opp.id && ASO_OPPORTUNITY_TYPES.includes(auditType)) {
       const sugUrl = ASO_ENDPOINTS.OPPORTUNITY_SUGGESTIONS(siteId, opp.id);
       const suggestions = await apiGet(sugUrl, token);
       if (!isApiError(suggestions)) {
