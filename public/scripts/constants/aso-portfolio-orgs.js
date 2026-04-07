@@ -40,7 +40,13 @@ export const ASO_PORTFOLIO_SITES = [
   { siteId: 'b6974573-5212-4e0c-aa0e-3ad0874622eb', baseURL: 'https://lilly.com' },
   { siteId: '3d277788-7b1c-40b8-bc7d-94fdee2da781', baseURL: 'https://doverfuelingsolutions.com' },
   { siteId: 'c5e041ba-86db-496f-88de-bae9419e7874', baseURL: 'https://eastman.com' },
-  { siteId: 'eb0cac5a-09c9-4d5f-8d82-34bb5125b240', baseURL: 'https://halliburton.com' },
+  { siteId: '2ea49d3c-3ed4-42f5-a40e-29d153da2590', baseURL: 'https://llumar.com' },
+  { siteId: '047e1c86-05d0-49ec-896d-2ecb124ba928', baseURL: 'https://tavneospro.com' },
+  { siteId: 'b8ddcc4c-4705-4ce8-8c1b-9d39d74877d5', baseURL: 'https://findkrags12c.com' },
+  { siteId: '0b514f8b-ddd1-4f46-8a55-fcf9b6654538', baseURL: 'https://vectibix.com' },
+  { siteId: 'f4cd1965-0657-4cf3-bc08-76665a243928', baseURL: 'https://amgen.eu' },
+  { siteId: '0f98a36a-783e-4d31-ad26-e97a3044df94', baseURL: 'https://purestorage.com' },
+  { siteId: '76afaaf7-4ffb-4551-a52e-dca16552ddff', baseURL: 'https://workday.com' },
 ];
 
 export const ASO_PORTFOLIO_SITE_IDS = ASO_PORTFOLIO_SITES.map((s) => s.siteId);
