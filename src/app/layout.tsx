@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { IMSAuthProvider } from "@/contexts/IMSAuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -32,13 +33,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${roboto.variable} ${robotoCondensed.variable}`}>
       <body>
-        <IMSAuthProvider>
-          <div>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-          </div>
-        </IMSAuthProvider>
+        <ThemeProvider>
+          <IMSAuthProvider>
+            <div>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+            </div>
+          </IMSAuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
