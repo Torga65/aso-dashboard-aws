@@ -347,7 +347,6 @@
     .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
     .acc-ls-lifecycle-link {
       align-self: center;
-      margin-left: auto;
       font-size: 12px;
       font-weight: 600;
       color: #1a56b0;
@@ -1579,7 +1578,7 @@
               </div>
             </div>
             <div class="view-all-accordion-body">
-              <div class="acc-lifecycle-stats"><span class="acc-ls-loading">Loading opportunity stats…</span></div>
+              <div class="acc-lifecycle-stats"><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a><span class="acc-ls-loading">Loading opportunity stats…</span></div>
               ${tableHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>

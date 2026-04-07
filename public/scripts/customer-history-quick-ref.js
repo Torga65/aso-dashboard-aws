@@ -456,6 +456,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
       const lifecycleUrl = `/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}`;
       lifecycleEl.innerHTML = `
+        <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
         <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></a>
         <a class="acc-ls-item acc-ls-item--open" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></a>
         <a class="acc-ls-item acc-ls-item--resolved" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></a>
