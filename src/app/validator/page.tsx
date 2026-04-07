@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import {
   Flex,
   Heading,
@@ -30,6 +30,14 @@ export type ValidationResultItem = {
 };
 
 export default function ValidatorPage() {
+  return (
+    <Suspense>
+      <ValidatorPageInner />
+    </Suspense>
+  );
+}
+
+function ValidatorPageInner() {
   const { accessToken } = useIMSAuth();
   const searchParams = useSearchParams();
   const preloadBaseURL = searchParams.get('baseURL') ?? undefined;
