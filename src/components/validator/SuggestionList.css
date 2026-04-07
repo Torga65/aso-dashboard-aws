@@ -1,0 +1,27 @@
+/* Validator dialog text — force dark text so it's readable on the white
+   React Spectrum Dialog background regardless of the app's global theme. */
+
+.validation-details-field-label {
+  color: #1d1d1d;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.suggestion-info-value,
+.suggestion-info-rationale,
+.suggestion-info-tags,
+.suggestion-info-ai-list,
+.suggestion-info-ai-list li {
+  color: #1d1d1d;
+}
+
+.suggestion-info-value code,
+.suggestion-info-ai-list code {
+  color: #1d1d1d;
+  background: #f3f3f3;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
