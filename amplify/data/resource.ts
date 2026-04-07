@@ -62,6 +62,7 @@ const schema = a.schema({
       sourceLastUpdated: a.string(), // "lastUpdated" from the source record
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
       dataSource: a.string(), // "ServiceNow" | "Manual"
+      customFields: a.json(), // arbitrary key-value pairs added via the edit form
     })
     .identifier(["companyName", "week"])
     .secondaryIndexes((index) => [

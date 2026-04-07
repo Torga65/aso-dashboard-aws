@@ -8,37 +8,21 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #f8f9fa;
-      --surface: #fff;
-      --border: #dee2e6;
-      --text: #212529;
-      --text-muted: #6c757d;
-      --primary: #1a56b0;
-      --primary-hover: #1240a0;
-      --success: #198754;
-      --danger: #dc3545;
-      --input-bg: #fff;
-      --label: #495057;
+      --bg: #f8f9fa; --surface: #fff; --border: #dee2e6; --text: #212529;
+      --text-muted: #6c757d; --primary: #1a56b0; --primary-hover: #1240a0;
+      --success: #198754; --danger: #dc3545; --input-bg: #fff; --label: #495057;
     }
     [data-theme="dark"] {
-      --bg: #1a1a1a;
-      --surface: #252525;
-      --border: #3a3a3a;
-      --text: #e8e8e8;
-      --text-muted: #999;
-      --primary: #4a90e2;
-      --primary-hover: #357abd;
-      --input-bg: #2e2e2e;
-      --label: #ccc;
+      --bg: #1a1a1a; --surface: #252525; --border: #3a3a3a; --text: #e8e8e8;
+      --text-muted: #999; --primary: #4a90e2; --primary-hover: #357abd;
+      --input-bg: #2e2e2e; --label: #ccc;
     }
     body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; padding: 24px; }
-
     aside#auth-bar { display: none !important; }
-
     h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
     .page-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
 
-    /* Customer search autocomplete */
+    /* Search */
     .search-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 24px; }
     .search-wrap { position: relative; flex: 1; max-width: 400px; }
     .search-wrap input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 14px; }
@@ -46,11 +30,11 @@
     .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 100; max-height: 220px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
     .autocomplete-list.open { display: block; }
     .autocomplete-item { padding: 8px 12px; cursor: pointer; font-size: 13px; }
-    .autocomplete-item:hover, .autocomplete-item.selected { background: var(--primary); color: #fff; }
-    .btn-new { padding: 8px 16px; background: var(--primary); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
-    .btn-new:hover { background: var(--primary-hover); }
+    .autocomplete-item:hover { background: var(--primary); color: #fff; }
+    .btn-secondary { padding: 8px 16px; background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .btn-secondary:hover { background: var(--primary); color: #fff; }
 
-    /* Form layout */
+    /* Form */
     form { display: flex; flex-direction: column; gap: 0; }
     .form-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
     .form-section h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 16px; }
@@ -66,6 +50,17 @@
     input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
     textarea { resize: vertical; min-height: 72px; }
     select option { background: var(--input-bg); color: var(--text); }
+
+    /* Custom fields */
+    .custom-fields-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .custom-field-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; }
+    .custom-field-row input { width: 100%; }
+    .btn-remove-field { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--danger); cursor: pointer; font-size: 13px; line-height: 1; }
+    .btn-remove-field:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-add-field { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: transparent; border: 1px dashed var(--primary); border-radius: 6px; color: var(--primary); cursor: pointer; font-size: 13px; font-weight: 600; }
+    .btn-add-field:hover { background: var(--primary); color: #fff; border-style: solid; }
+    .custom-field-header { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; margin-bottom: 4px; }
+    .custom-field-header span { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
 
     /* Actions */
     .form-actions { display: flex; gap: 12px; align-items: center; padding: 16px 0 4px; }
@@ -91,7 +86,7 @@
     <input type="text" id="customer-search" placeholder="Search existing customers…" autocomplete="off"/>
     <div class="autocomplete-list" id="autocomplete-list"></div>
   </div>
-  <button type="button" class="btn-new" id="btn-clear">New customer</button>
+  <button type="button" class="btn-secondary" id="btn-clear">New customer</button>
 </div>
 
 <form id="customer-form" novalidate>
@@ -206,10 +201,22 @@
         <textarea id="f-feedback" name="feedback"></textarea>
       </div>
       <div class="form-field full-width">
-        <label for="f-comments">ServiceNow Comments</label>
+        <label for="f-comments">Comments</label>
         <textarea id="f-comments" name="comments"></textarea>
       </div>
     </div>
+  </div>
+
+  <!-- Custom fields -->
+  <div class="form-section">
+    <h2>Custom Fields</h2>
+    <div class="custom-field-header">
+      <span>Field Name</span>
+      <span>Value</span>
+      <span></span>
+    </div>
+    <div class="custom-fields-list" id="custom-fields-list"></div>
+    <button type="button" class="btn-add-field" id="btn-add-field">+ Add column</button>
   </div>
 
   <div class="form-actions">
@@ -222,7 +229,6 @@
 <div id="toast"></div>
 
 <script>
-  // ── Helpers ──────────────────────────────────────────────────────────────────
   function currentMonday() {
     const d = new Date();
     const day = d.getDay();
@@ -239,23 +245,52 @@
     el._t = setTimeout(() => { el.className = ''; }, 4000);
   }
 
-  // ── Pre-fill week default ─────────────────────────────────────────────────
   document.getElementById('f-week').value = currentMonday();
 
-  // ── Pre-select customer from query param ──────────────────────────────────
-  const urlParams = new URLSearchParams(window.location.search);
-  const preCustomer = urlParams.get('customer');
+  // ── Custom fields ─────────────────────────────────────────────────────────
+  const customFieldsList = document.getElementById('custom-fields-list');
+
+  function addCustomFieldRow(key = '', value = '') {
+    const row = document.createElement('div');
+    row.className = 'custom-field-row';
+    row.innerHTML = `
+      <input type="text" class="cf-key" placeholder="Field name" value="${key.replace(/"/g,'&quot;')}"/>
+      <input type="text" class="cf-val" placeholder="Value" value="${value.replace(/"/g,'&quot;')}"/>
+      <button type="button" class="btn-remove-field" title="Remove">✕</button>
+    `;
+    row.querySelector('.btn-remove-field').addEventListener('click', () => row.remove());
+    customFieldsList.appendChild(row);
+    row.querySelector('.cf-key').focus();
+  }
+
+  document.getElementById('btn-add-field').addEventListener('click', () => addCustomFieldRow());
+
+  function getCustomFields() {
+    const result = {};
+    customFieldsList.querySelectorAll('.custom-field-row').forEach(row => {
+      const k = row.querySelector('.cf-key').value.trim();
+      const v = row.querySelector('.cf-val').value.trim();
+      if (k) result[k] = v;
+    });
+    return Object.keys(result).length ? result : null;
+  }
+
+  function setCustomFields(obj) {
+    customFieldsList.innerHTML = '';
+    if (!obj || typeof obj !== 'object') return;
+    Object.entries(obj).forEach(([k, v]) => addCustomFieldRow(k, String(v ?? '')));
+  }
 
   // ── Customer autocomplete ─────────────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const preCustomer = urlParams.get('customer');
   let allCustomers = [];
-  let selectedCustomerData = null;
 
   async function loadCustomers() {
     try {
       const res = await fetch('/api/customers');
       const json = await res.json();
       const raw = json.data || [];
-      // Collapse to one record per customer (latest week)
       const map = {};
       for (const r of raw) {
         const key = (r.companyName || '').trim();
@@ -313,21 +348,24 @@
     'healthScore','mau','ttiv','summary','blockers','feedback','comments'];
 
   function prefillForm(data) {
-    selectedCustomerData = data;
     for (const key of FIELDS) {
       const el = document.getElementById('f-' + key);
       if (!el) continue;
-      const val = data[key] != null ? String(data[key]) : '';
-      el.value = val;
+      el.value = data[key] != null ? String(data[key]) : '';
     }
     if (!data.week) document.getElementById('f-week').value = currentMonday();
-    document.getElementById('form-status').textContent = 'Editing existing record for week ' + (data.week || currentMonday());
+    // Restore any saved custom fields
+    let cf = data.customFields;
+    if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch { cf = null; } }
+    setCustomFields(cf);
+    document.getElementById('form-status').textContent =
+      'Editing existing record for week ' + (data.week || currentMonday());
   }
 
   function clearForm() {
-    selectedCustomerData = null;
     document.getElementById('customer-form').reset();
     document.getElementById('f-week').value = currentMonday();
+    customFieldsList.innerHTML = '';
     document.getElementById('form-status').textContent = '';
   }
 
@@ -347,10 +385,11 @@
       const el = document.getElementById('f-' + key);
       if (!el) continue;
       const val = el.value.trim();
-      if (val !== '') {
-        payload[key] = key === 'healthScore' ? Number(val) : val;
-      }
+      if (val !== '') payload[key] = key === 'healthScore' ? Number(val) : val;
     }
+
+    const customFields = getCustomFields();
+    if (customFields) payload.customFields = customFields;
 
     btn.disabled = true;
     btn.textContent = 'Saving…';
