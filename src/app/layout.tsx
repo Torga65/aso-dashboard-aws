@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${roboto.variable} ${robotoCondensed.variable}`}>
+    <html lang="en" className={`${roboto.variable} ${robotoCondensed.variable}`} suppressHydrationWarning>
       <head>
         {/* Flash-free theme init — runs before CSS renders */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()` }} />

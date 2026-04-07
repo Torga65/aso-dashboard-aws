@@ -463,6 +463,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
         <div class="acc-ls-item acc-ls-item--fixed"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></div>
         <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
       `;
+      // ↑ link is re-stamped here so it survives the innerHTML replacement above
     }
 
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
