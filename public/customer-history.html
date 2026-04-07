@@ -4,7 +4,7 @@
 <head>
   <title>Customer 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="description" content="Historical analysis of customer data across all 28 columns and 16 weeks"/>
+  <meta name="description" content="Customer 360 view — current status and quick reference for all ASO customers"/>
   <script>document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('appear'); });</script>
   <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
   <link rel="stylesheet" href="/styles/styles.css"/>
@@ -751,7 +751,7 @@
   <main>
     <div>
       <h1>Customer 360</h1>
-      <p>Track customer changes across all 28 columns over 16 weeks</p>
+      <p>Current status and quick reference for all ASO customers</p>
     </div>
 
     <!-- Auth bar (aside so AEM does not treat it as a section and load auth-controls-row as a block) -->
@@ -806,15 +806,6 @@
         <label for="license-type-select">License Type:</label>
         <select id="license-type-select">
           <option value="">All</option>
-        </select>
-      </div>
-      <div>
-        <label for="metric-select">Focus Metric:</label>
-        <select id="metric-select">
-          <option value="all">All Columns</option>
-          <option value="engagement">Engagement Metrics</option>
-          <option value="business">Business Info</option>
-          <option value="snow">ServiceNow Fields</option>
         </select>
       </div>
     </div>
@@ -1268,13 +1259,6 @@
           <div class="customer-header" style="margin-bottom: 10px; padding-bottom: 8px;">
             <div class="customer-name" style="font-size: 16px;">${customerName}</div>
           </div>
-          ${createTimelineTable(customerData)}
-          <div class="insights-section">
-            <h4>📊 Historical Insights</h4>
-            <ul class="insights-list">
-              ${insights.map(insight => `<li>• ${insight}</li>`).join('')}
-            </ul>
-          </div>
           <div class="quick-ref-actions">
             <button type="button" class="quick-ref-refresh-btn">Refresh</button>
           </div>
@@ -1530,7 +1514,9 @@
       const atRiskCount = engagementLevels.filter(e => e === 'At Risk').length;
       const criticalCount = engagementLevels.filter(e => e === 'Critical').length;
       
-      insights.push(`Engagement history: ${activeCount} weeks Active, ${atRiskCount} weeks At Risk, ${criticalCount} weeks Critical`);
+      if (activeCount || atRiskCount || criticalCount) {
+        insights.push(`Engagement: Active ${activeCount}, At Risk ${atRiskCount}, Critical ${criticalCount}`);
+      }
       
       // Implementation progress
       const implementations = ['autoOptimizeEnabled', 'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed'];
@@ -1540,9 +1526,6 @@
       if (lastCount > firstCount) {
         insights.push(`Implementation progress: ${lastCount - firstCount} new features enabled`);
       }
-      
-      // Weeks tracked
-      insights.push(`Tracked for ${customerData.length} weeks from ${formatWeek(first.week)} to ${formatWeek(last.week)}`);
       
       return insights;
     }
@@ -1556,9 +1539,6 @@
         const record = allData.find((c) => c.companyName === customerName);
         if (!record) return;
         const healthScore = record.healthScore ?? '—';
-        const weekLabel = record.week ? '1 week' : 'Current';
-
-        const tableHtml = createTimelineTable([record]);
         const eseLead = record.eseLead || '—';
         const licenseType = record.licenseType || '—';
         const statusLabel = record.status || '—';
@@ -1579,7 +1559,6 @@
             </div>
             <div class="view-all-accordion-body">
               <div class="acc-lifecycle-stats"><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a><span class="acc-ls-loading">Loading opportunity stats…</span></div>
-              ${tableHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>
               </div>
