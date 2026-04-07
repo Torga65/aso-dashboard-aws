@@ -68,6 +68,7 @@ export function SiteSelector({ onSelect, selectedSite, disabled }: SiteSelectorP
   }, [selectedSite]);
 
   useEffect(() => {
+    if (!accessToken) return;
     let cancelled = false;
     setError(null);
     setLoading(true);
