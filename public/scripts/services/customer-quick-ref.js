@@ -5,7 +5,7 @@
  * quick-reference panel. Used by customer-history-quick-ref.js.
  */
 
-import { ASO_ENDPOINTS } from '../constants/api.js';
+import { ASO_ENDPOINTS, ASO_OPPORTUNITY_TYPES } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
 
@@ -231,8 +231,8 @@ async function fetchAudits(siteId, orgId, token) {
       audits.push(row);
     }
 
-    // Count suggestions with PENDING_VALIDATION status for this opportunity
-    if (opp.id) {
+    // Count suggestions with PENDING_VALIDATION status — ASO opportunity types only
+    if (opp.id && ASO_OPPORTUNITY_TYPES.includes(auditType)) {
       const sugUrl = ASO_ENDPOINTS.OPPORTUNITY_SUGGESTIONS(siteId, opp.id);
       const suggestions = await apiGet(sugUrl, token);
       if (!isApiError(suggestions)) {

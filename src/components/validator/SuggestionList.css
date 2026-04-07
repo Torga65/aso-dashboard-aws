@@ -1,0 +1,32 @@
+/* Validator dialog field label formatting */
+
+.validation-details-field-label {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.suggestion-info-value code,
+.suggestion-info-ai-list code {
+  background: #f3f3f3;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+/* Dark mode: give value boxes a light-grey background so white text is readable */
+[data-theme="dark"] .suggestion-info-value,
+[data-theme="dark"] .suggestion-info-rationale,
+[data-theme="dark"] .suggestion-info-tags,
+[data-theme="dark"] .suggestion-info-ai-list {
+  background: #3a3a3a;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+[data-theme="dark"] .suggestion-info-value code,
+[data-theme="dark"] .suggestion-info-ai-list code {
+  background: #4a4a4a;
+  color: #e8e8e8;
+}

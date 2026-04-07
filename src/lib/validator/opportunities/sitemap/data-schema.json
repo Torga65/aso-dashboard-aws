@@ -1,0 +1,17 @@
+{
+  "title": "Sitemap Suggestion Data",
+  "description": "Shape of suggestion.data for sitemap opportunities (SpaceCat / aso-validating-tools)",
+  "type": "object",
+  "required": ["pageUrl"],
+  "properties": {
+    "pageUrl": { "type": "string" },
+    "sitemapUrl": { "type": "string" },
+    "type": { "type": "string" },
+    "statusCode": { "type": "integer" },
+    "urlsSuggested": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

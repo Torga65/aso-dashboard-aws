@@ -51,8 +51,9 @@ img.avatar {
   top: calc(100% + 0.5rem);
   right: 0;
   min-width: 220px;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
   padding: 1rem;
@@ -65,12 +66,12 @@ img.avatar {
 .dropdownName {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-strong);
 }
 
 .dropdownEmail {
   font-size: 0.8rem;
-  color: #555;
+  color: var(--text-muted);
   word-break: break-all;
 }
 
@@ -86,23 +87,23 @@ img.avatar {
 .dropdownExpiryDate {
   font-size: 0.72rem;
   font-weight: 400;
-  color: #777;
+  color: var(--text-subtle);
 }
 
 .signOutBtn {
   margin-top: 0.5rem;
   font-size: 0.8rem;
   padding: 0.3rem 0.7rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background: transparent;
-  color: #333;
+  color: var(--text-body);
   cursor: pointer;
   align-self: flex-start;
 }
 
 .signOutBtn:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt);
 }
 
 /* ── Sign-in button (unauthenticated state) ────────────────────────── */

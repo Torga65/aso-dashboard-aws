@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()</script>
 <head>
   <title>Customer 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -301,7 +302,7 @@
     }
     
     .view-all-accordion-item {
-      background: white;
+      background: #f5f5f5;
       border: 1px solid #ddd;
       border-radius: 8px;
       overflow: hidden;
@@ -340,7 +341,7 @@
       display: none;
       padding: 16px;
       border-top: 1px solid #e0e0e0;
-      background: #fff;
+      background: #f8f8f8;
     }
     
     .view-all-accordion-item.expanded .view-all-accordion-body {
@@ -583,6 +584,91 @@
       font-size: 14px;
     }
     .btn-edit-customer:hover { background: #0d66d0; color: white !important; }
+
+    /* ── Dark mode ───────────────────────────────────────────────────── */
+    [data-theme="dark"] body { background: #1a1a1a; color: #e8e8e8; }
+    [data-theme="dark"] main > div:first-child { /* keep gradient header */ }
+    [data-theme="dark"] .controls,
+    [data-theme="dark"] .quick-ref-box,
+    [data-theme="dark"] .qr-prog-modal-box { background: #252525; border-color: #3a3a3a; color: #e8e8e8; }
+    [data-theme="dark"] .controls select,
+    [data-theme="dark"] .controls input,
+    [data-theme="dark"] .controls .customer-select-dropdown,
+    [data-theme="dark"] .quick-ref-site-select,
+    [data-theme="dark"] .quick-ref-comments-controls select,
+    [data-theme="dark"] .qr-transcript-controls select,
+    [data-theme="dark"] .qr-notes-controls select,
+    [data-theme="dark"] .qr-notes-upload-form input,
+    [data-theme="dark"] .qr-notes-upload-form select,
+    [data-theme="dark"] .qr-transcript-upload-form select,
+    [data-theme="dark"] .qr-transcript-upload-form input[type="date"],
+    [data-theme="dark"] .qr-notes-textarea,
+    [data-theme="dark"] .qr-prog-field select,
+    [data-theme="dark"] .qr-prog-field input,
+    [data-theme="dark"] .qr-prog-field textarea,
+    [data-theme="dark"] .quick-ref-autofix-select { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .controls .customer-select-dropdown { border-color: #4a4a4a; }
+    [data-theme="dark"] .controls .customer-select-dropdown li { border-bottom-color: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .controls .customer-select-dropdown li:hover { background: #2a3a5a; }
+    [data-theme="dark"] .customer-timeline,
+    [data-theme="dark"] .view-all-accordion-item { background: #2a2a2a; border-color: #3a3a3a; }
+    [data-theme="dark"] .view-all-accordion-header { background: #2a2a2a; color: #e8e8e8; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .customer-name { color: #e8e8e8; }
+    [data-theme="dark"] .view-all-accordion-header:hover { background: #333; }
+    [data-theme="dark"] .view-all-accordion-item.expanded > .view-all-accordion-header { background: #252f4a; color: #e8e8e8; }
+    [data-theme="dark"] .view-all-accordion-body { background: #2a2a2a; border-top-color: #3a3a3a; color: #e8e8e8; }
+    [data-theme="dark"] .timeline-table th { background: #2a2a2a; color: #bbb; border-color: #3a3a3a; }
+    [data-theme="dark"] .timeline-table td { color: #d0d0d0; border-color: #3a3a3a; }
+    [data-theme="dark"] .quick-ref-table th { background: #2a2a2a; color: #bbb; border-color: #3a3a3a; }
+    [data-theme="dark"] .quick-ref-table td { border-color: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .qr-user-row:hover td { background: #2a3a5a; }
+    [data-theme="dark"] .qr-user-row.expanded td { background: #252f4a; }
+    [data-theme="dark"] .qr-user-detail td { background: #252530; }
+    [data-theme="dark"] .qr-comment-entry,
+    [data-theme="dark"] .qr-transcript-item,
+    [data-theme="dark"] .qr-notes-item,
+    [data-theme="dark"] .qr-progression-history-entry { border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .qr-comment-meta,
+    [data-theme="dark"] .qr-transcript-item-name,
+    [data-theme="dark"] .qr-notes-item-by,
+    [data-theme="dark"] .qr-progression-meta,
+    [data-theme="dark"] .qr-progression-days,
+    [data-theme="dark"] .quick-ref-pv-label { color: #999; }
+    [data-theme="dark"] .qr-comment-meta strong,
+    [data-theme="dark"] .qr-comment-body,
+    [data-theme="dark"] .qr-notes-item-title,
+    [data-theme="dark"] .qr-notes-item-body,
+    [data-theme="dark"] .qr-transcript-item-date,
+    [data-theme="dark"] .qr-notes-item-date,
+    [data-theme="dark"] .qr-progression-stage-name { color: #e0e0e0; }
+    [data-theme="dark"] .qr-transcript-item-dl,
+    [data-theme="dark"] .qr-notes-item-view { background: #2a2a2a; border-color: #4a4a4a; color: #d0d0d0; }
+    [data-theme="dark"] .qr-transcript-item-dl:hover,
+    [data-theme="dark"] .qr-notes-item-view:hover { background: #333; }
+    [data-theme="dark"] .qr-prog-modal-box h3,
+    [data-theme="dark"] .qr-prog-field label { color: #d0d0d0; }
+    [data-theme="dark"] .qr-prog-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
+    [data-theme="dark"] .qr-prog-cancel:hover { background: #333; }
+    [data-theme="dark"] .qr-notes-upload-form label,
+    [data-theme="dark"] .qr-transcript-upload-form label { color: #bbb; }
+    [data-theme="dark"] .pl-card { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-card-name { color: #e8e8e8; }
+    [data-theme="dark"] .pl-col { border-right-color: #3a3a3a; }
+    [data-theme="dark"] .pl-col-title { color: #aaa; }
+    [data-theme="dark"] .pl-unset-card { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-unset-card-name { color: #d0d0d0; }
+    [data-theme="dark"] .pl-form { background: #1e2235; border-color: #3a4a7a; }
+    [data-theme="dark"] .pl-form-field label { color: #bbb; }
+    [data-theme="dark"] .pl-form-field select,
+    [data-theme="dark"] .pl-form-field input[type=date] { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-form-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-form-cancel:hover { background: #333; }
+    [data-theme="dark"] .pl-section { border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-moving > .pl-section-hdr { background: #1a3a22; color: #86efac; border-bottom-color: #2d5a38; }
+    [data-theme="dark"] .pl-onhold > .pl-section-hdr { background: #3a2010; color: #fed7aa; border-bottom-color: #5a3a20; }
+    [data-theme="dark"] .pl-unset > .pl-section-hdr { background: #252525; color: #d0d0d0; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .pl-col-count { background: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .quick-ref-logins-chart-wrap { border-top-color: #3a3a3a; }
   </style>
 </head>
 <body>
@@ -665,6 +751,7 @@
   
   <script type="module">
     let allData = [];
+    let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
 
     function collapseToOneRecordPerCustomer(rows) {
@@ -868,7 +955,8 @@
           throw new Error(err.error || `API error ${response.status}`);
         }
         const data = await response.json();
-        allData = data.data || [];
+        rawData = data.data || [];
+        allData = rawData;
         const rawLength = allData.length;
         const weeksForStats = [...new Set(allData.map(c => c.week))].filter(Boolean).sort();
         // One record per customer (latest only)
@@ -889,7 +977,7 @@
           licenseSelect.value = 'Paid';
         }
         
-        displaySummaryStats(getFilteredCustomers().length, weeksForStats, rawLength);
+        displaySummaryStats();
         const summaryEl = document.getElementById('summary-stats');
         if (summaryEl) summaryEl.style.display = 'grid';
         
@@ -1064,15 +1152,26 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
     
-    function displaySummaryStats(customerCount, weeksList, totalRecords) {
+    function displaySummaryStats() {
       const container = document.getElementById('summary-stats');
       if (!container) return;
-      const total = totalRecords != null ? totalRecords : allData.length;
+      // Count unique paid customers across ALL historical records (not just latest)
+      const paidNames = new Set(
+        rawData
+          .filter(c => (c.licenseType || '').trim().toLowerCase() === 'paid')
+          .map(c => (c.companyName || '').trim())
+          .filter(Boolean)
+      );
+      const production = allData.filter(c => c.status === 'Active').length;
+      const preProd    = allData.filter(c => c.status === 'Pre-Production').length;
+      const trial      = allData.filter(c => (c.licenseType || '').trim().toLowerCase() === 'trial').length;
+      const deferred   = allData.filter(c => c.status === 'On-Hold').length;
       const stats = [
-        { label: 'Total Customers', value: customerCount },
-        { label: 'Weeks of Data', value: (weeksList && weeksList.length) ? weeksList.length : 0 },
-        { label: 'Total Records', value: total },
-        { label: 'Latest Week', value: (weeksList && weeksList.length) ? formatWeek(weeksList[weeksList.length - 1]) : '—' }
+        { label: 'Total Paid Customers', value: paidNames.size },
+        { label: 'Production',           value: production },
+        { label: 'Pre-Production',       value: preProd },
+        { label: 'Trial',                value: trial },
+        { label: 'Deferred (On-Hold)',   value: deferred },
       ];
       container.innerHTML = stats.map(stat => `
         <div class="stat-card">

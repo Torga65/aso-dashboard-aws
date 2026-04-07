@@ -1,0 +1,13 @@
+{
+  "title": "Heading Suggestion Data",
+  "description": "Shape of suggestion.data for heading opportunities (SpaceCat / aso-validating-tools)",
+  "type": "object",
+  "required": ["url", "checkType"],
+  "properties": {
+    "url": { "type": "string" },
+    "checkType": { "type": "string" },
+    "expectedHeading": { "type": "string" },
+    "actualHeading": { "type": "string" }
+  },
+  "additionalProperties": true
+}

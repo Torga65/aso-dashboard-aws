@@ -520,8 +520,12 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       const backOfficeLink = currentSiteId
         ? `<a class="quick-ref-backoffice-link" href="https://experience.adobe.com/#/@sitesinternal/custom-apps/245265-EssDeveloperUI/#/sites/${encodeURIComponent(currentSiteId)}/opportunities?showPendingValidation=true" target="_blank" rel="noopener noreferrer">Open in back office</a>`
         : '';
+      const validatorLink = baseURL
+        ? `<a class="quick-ref-backoffice-link" href="/validator?baseURL=${encodeURIComponent(baseURL)}" target="_blank" rel="noopener noreferrer">Open in validator</a>`
+        : '';
+      const linkSeparator = (backOfficeLink && validatorLink) ? '<br>' : '';
       if (pvCount === 0) {
-        pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}`;
+        pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}${linkSeparator}${validatorLink}`;
       } else {
         const typeItems = pvTypes
           .map((t) => `<li>${escapeHtml((t || '').replace(/-/g, ' '))}</li>`)
@@ -530,7 +534,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
           <div class="quick-ref-pv-count">${pvCount}</div>
           <p class="quick-ref-pv-label">suggestion${pvCount !== 1 ? 's' : ''} awaiting validation</p>
           ${pvTypes.length > 0 ? `<ul class="quick-ref-list" style="margin:6px 0 0;padding-left:18px;">${typeItems}</ul>` : ''}
-          ${backOfficeLink}
+          ${backOfficeLink}${linkSeparator}${validatorLink}
         `;
       }
       setDetailsCount(pendingEl.closest('details'), pvCount);

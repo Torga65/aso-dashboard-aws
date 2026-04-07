@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { IMSAuthProvider } from "@/contexts/IMSAuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -31,14 +32,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${roboto.variable} ${robotoCondensed.variable}`}>
+      <head>
+        {/* Flash-free theme init — runs before CSS renders */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()` }} />
+      </head>
       <body>
-        <IMSAuthProvider>
-          <div>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-          </div>
-        </IMSAuthProvider>
+        <ThemeProvider>
+          <IMSAuthProvider>
+            <div>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+            </div>
+          </IMSAuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
