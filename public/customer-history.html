@@ -792,8 +792,8 @@
         <select id="metric-select">
           <option value="all">All Columns</option>
           <option value="engagement">Engagement Metrics</option>
-          <option value="implementation">Implementation Status</option>
           <option value="business">Business Info</option>
+          <option value="snow">ServiceNow Fields</option>
         </select>
       </div>
     </div>
@@ -1361,34 +1361,53 @@
       setTimeout(() => { if (window.loadCustomerQuickRef) window.loadCustomerQuickRef(timelineEl, customerName); }, 0);
     }
     
+    const COLUMN_LABELS = {
+      week: 'Week',
+      status: 'Status',
+      licenseType: 'License Type',
+      industry: 'Industry',
+      eseLead: 'CSE',
+      deploymentType: 'Deployment',
+      imsOrgId: 'IMS Org ID',
+      tenantId: 'Tenant ID',
+      terminationReason: 'Termination Reason',
+      comments: 'Comments',
+      sourceLastUpdated: 'SNOW Updated',
+      ingestedAt: 'Ingested At',
+      dataSource: 'Data Source',
+      engagement: 'Engagement',
+      healthScore: 'Health Score',
+      blockers: 'Blockers',
+      feedback: 'Feedback',
+      mau: 'MAU',
+      ttiv: 'TTIV',
+    };
+
     function createTimelineTable(customerData) {
       const metricSelect = document.getElementById('metric-select');
       const metricValue = metricSelect ? metricSelect.value : 'all';
+      // Columns matching the CustomerSnapshot fields from the ServiceNow daily sync
       const allColumns = [
-        'week', 'status', 'engagement', 'healthScore', 'licenseType', 'industry',
-        'eseLead', 'delayReason', 'closeDate', 'onboardDate', 'deploymentType',
-        'headless', 'blockers', 'feedback', 'mau', 'ttiv', 'opptyRealized',
-        'preflight', 'autoOptimizeEnabled', 'autoOptimizeButtonPressed',
-        'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed', 'codeRepo',
-        'authImplementation', 'workflowManager', 'customerSelfServe'
+        'week', 'status', 'licenseType', 'industry', 'eseLead', 'deploymentType',
+        'imsOrgId', 'tenantId', 'terminationReason', 'comments',
+        'sourceLastUpdated', 'ingestedAt', 'dataSource'
       ];
       const engagementCols = [
         'week', 'status', 'engagement', 'healthScore', 'blockers', 'feedback', 'mau', 'ttiv'
       ];
-      const implementationCols = [
-        'week', 'preflight', 'autoOptimizeEnabled', 'servicePrincipleDeployed',
-        'brandProfile', 'aemyDeployed', 'codeRepo', 'authImplementation'
-      ];
       const businessCols = [
-        'week', 'licenseType', 'industry', 'eseLead', 'status', 'closeDate',
-        'onboardDate', 'deploymentType'
+        'week', 'licenseType', 'industry', 'eseLead', 'status', 'deploymentType'
+      ];
+      const snowCols = [
+        'week', 'imsOrgId', 'tenantId', 'terminationReason', 'comments',
+        'sourceLastUpdated', 'ingestedAt', 'dataSource'
       ];
       let columns = allColumns;
       if (metricValue === 'engagement') columns = engagementCols;
-      if (metricValue === 'implementation') columns = implementationCols;
       if (metricValue === 'business') columns = businessCols;
+      if (metricValue === 'snow') columns = snowCols;
       
-      const headers = columns.map(col => formatColumnName(col));
+      const headers = columns.map(col => COLUMN_LABELS[col] || formatColumnName(col));
       
       let html = '<div class="timeline-container"><table class="timeline-table">';
       html += '<thead><tr>';
@@ -1407,6 +1426,13 @@
           if (col === 'week') {
             cellClass = 'week-col';
             value = value ? formatWeek(value) : value;
+          } else if (col === 'sourceLastUpdated' || col === 'ingestedAt') {
+            if (value) {
+              const d = new Date(value);
+              value = isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+          } else if (col === 'comments' && value && value.length > 80) {
+            value = `<span title="${escapeHtml(value)}">${escapeHtml(value.slice(0, 80))}…</span>`;
           } else if (prevRecord) {
             const prevValue = prevRecord[col] || '';
             if (value !== prevValue) {
@@ -1521,12 +1547,12 @@
               <div class="acc-header-left">
                 <div class="customer-name">${customerName}</div>
                 <div class="acc-header-chips">
-                  <span class="acc-chip acc-chip--cse" title="CSE">${escapeHtml(eseLead)}</span>
-                  <span class="acc-chip acc-chip--license">${escapeHtml(licenseType)}</span>
-                  <span class="acc-chip acc-chip--status">${escapeHtml(statusLabel)}</span>
-                  <span class="acc-chip acc-chip--live acc-chip-audits" title="Enabled audits">— audits</span>
-                  <span class="acc-chip acc-chip--live acc-chip-pending" title="Pending validations">— pending</span>
-                  <span class="acc-chip acc-chip--live acc-chip-users" title="Active users (30d)">— active users</span>
+                  <a class="acc-chip acc-chip--cse" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(eseLead)}</a>
+                  <a class="acc-chip acc-chip--license" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(licenseType)}</a>
+                  <a class="acc-chip acc-chip--status" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">${escapeHtml(statusLabel)}</a>
+                  <a class="acc-chip acc-chip--live acc-chip-audits" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— audits</a>
+                  <a class="acc-chip acc-chip--live acc-chip-pending" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— pending</a>
+                  <a class="acc-chip acc-chip--live acc-chip-users" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer" title="Open in Lifecycle">— active users</a>
                 </div>
               </div>
             </div>
