@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);})()</script>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}});})()</script>
 <head>
   <title>Suggestions Lifecycle - ASO Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -570,11 +570,7 @@
 
     /* Auth Bar */
     .auth-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 12px 16px;
-      background: #f8f9fa;
+      display: none !important;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       margin-bottom: 12px;

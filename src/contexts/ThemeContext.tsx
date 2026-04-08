@@ -43,11 +43,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setColorScheme = useCallback((s: ColorScheme) => {
     setColorSchemeState(s);
     localStorage.setItem('aso-color-scheme', s);
+    document.documentElement.setAttribute('data-theme', s);
   }, []);
 
   const setFontSize = useCallback((s: FontSize) => {
     setFontSizeState(s);
     localStorage.setItem('aso-font-size', s);
+    document.documentElement.setAttribute('data-font-size', s);
   }, []);
 
   return (
