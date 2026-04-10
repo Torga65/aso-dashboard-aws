@@ -63,7 +63,9 @@ const schema = a.schema({
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
       dataSource: a.string(), // "ServiceNow" | "Manual"
       customFields: a.json(), // arbitrary key-value pairs added via the edit form
-      hidden: a.boolean(),  // if true, exclude from all customer lists
+      hidden: a.boolean(),   // if true, exclude from all customer lists
+      headless: a.boolean(), // customer is running headless (true = Yes)
+      preflightEnabled: a.boolean(), // customer has Preflight enabled (true = Yes)
     })
     .identifier(["companyName", "week"])
     .secondaryIndexes((index) => [

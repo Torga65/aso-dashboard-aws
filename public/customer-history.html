@@ -755,6 +755,80 @@
     [data-theme="dark"] .pl-col-count { background: #3a3a3a; color: #d0d0d0; }
     [data-theme="dark"] .quick-ref-logins-chart-wrap { border-top-color: #3a3a3a; }
   </style>
+  <!-- File extraction libraries (lazy-loaded on first binary upload) -->
+  <script>
+    // Extracts plain text from a File object. Returns { text, fileName } where
+    // fileName may be renamed to .txt for binary formats.
+    window.extractFileText = async function(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (['vtt','txt','csv'].includes(ext)) {
+        return { text: await file.text(), fileName: file.name };
+      }
+
+      if (ext === 'pdf') {
+        const pdfjsLib = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+          'pdfjsLib'
+        );
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const bytes = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const tc = await page.getTextContent();
+          pages.push(tc.items.map(s => s.str).join(' '));
+        }
+        return { text: pages.join('\n\n'), fileName: file.name.replace(/\.pdf$/i, '.txt') };
+      }
+
+      if (ext === 'docx') {
+        const mammoth = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+          'mammoth'
+        );
+        const bytes = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: bytes });
+        return { text: result.value, fileName: file.name.replace(/\.docx$/i, '.txt') };
+      }
+
+      if (['xlsx','xls'].includes(ext)) {
+        const XLSX = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+          'XLSX'
+        );
+        const bytes = await file.arrayBuffer();
+        const wb = XLSX.read(bytes, { type: 'array' });
+        const lines = [];
+        wb.SheetNames.forEach(name => {
+          lines.push(`=== Sheet: ${name} ===`);
+          const ws = wb.Sheets[name];
+          lines.push(XLSX.utils.sheet_to_csv(ws));
+        });
+        return { text: lines.join('\n\n'), fileName: file.name.replace(/\.(xlsx|xls)$/i, '.txt') };
+      }
+
+      // Fallback — try reading as text
+      return { text: await file.text(), fileName: file.name };
+    };
+
+    // Load a script by URL and return the global it exposes
+    const _scriptCache = {};
+    function loadScript(url, globalName) {
+      if (window[globalName]) return Promise.resolve(window[globalName]);
+      if (_scriptCache[url]) return _scriptCache[url];
+      _scriptCache[url] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url;
+        s.onload = () => resolve(window[globalName]);
+        s.onerror = () => reject(new Error(`Failed to load ${url}`));
+        document.head.appendChild(s);
+      });
+      return _scriptCache[url];
+    }
+  </script>
 </head>
 <body>
   <header></header>
@@ -1325,7 +1399,7 @@
                 <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
                 <div class="qr-transcript-upload-form">
                   <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                  <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                  <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
                   <button type="button" class="qr-transcript-upload-btn">Upload</button>
                   <p class="qr-transcript-upload-status"></p>
                 </div>
@@ -1671,7 +1745,7 @@
                     <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
                     <div class="qr-transcript-upload-form">
                       <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                      <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                      <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
                       <button type="button" class="qr-transcript-upload-btn">Upload</button>
                       <p class="qr-transcript-upload-status"></p>
                     </div>
