@@ -314,7 +314,7 @@
     .acc-chip--live { background: #f1f3f4; color: #555; }
     .acc-chip--warn { background: #fef3c7 !important; color: #92400e !important; }
 
-    /* ── Accordion body lifecycle stats ─────────────────────────────── */
+    /* ── Accordion body info stats ───────────────────────────────────── */
     .acc-lifecycle-stats {
       display: flex;
       flex-wrap: wrap;
@@ -324,27 +324,21 @@
       border-radius: 6px;
       margin-bottom: 12px;
       border: 1px solid #c7d2fe;
+      align-items: center;
     }
     .acc-ls-item {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      min-width: 80px;
-      padding: 4px 10px;
+      align-items: flex-start;
+      padding: 5px 12px;
       background: white;
       border-radius: 6px;
       border: 1px solid #e0e7ff;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      min-width: 90px;
     }
-    a.acc-ls-item:hover { background: #e8f0fe; border-color: #a5b4fc; }
-    .acc-ls-val { font-size: 18px; font-weight: 700; color: #1e3a8a; line-height: 1.2; }
+    .acc-ls-val { font-size: 13px; font-weight: 700; color: #1e3a8a; line-height: 1.3; }
+    .acc-ls-val--num { font-size: 18px; }
     .acc-ls-label { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-    .acc-ls-item--open .acc-ls-val { color: #d97706; }
-    .acc-ls-item--resolved .acc-ls-val { color: #16a34a; }
-    .acc-ls-item--fixed .acc-ls-val { color: #7c3aed; }
-    .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
     .acc-ls-lifecycle-link {
       align-self: center;
       font-size: 12px;
@@ -360,6 +354,15 @@
     }
     .acc-ls-lifecycle-link:hover { background: #e8f0fe; }
 
+    /* ── Custom fields in accordion body ─────────────────────────────── */
+    .acc-custom-fields { margin-bottom: 12px; }
+    .acc-cf-group { margin-bottom: 6px; }
+    .acc-cf-group-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 4px; }
+    .acc-cf-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .acc-cf-item { display: flex; flex-direction: column; padding: 4px 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 5px; min-width: 80px; }
+    .acc-cf-key { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3px; }
+    .acc-cf-val { font-size: 13px; font-weight: 600; color: #111827; }
+
     [data-theme="dark"] .acc-ls-lifecycle-link { background: #1e2a3a; color: #93c5fd; border-color: #3a4a6a; }
     [data-theme="dark"] .acc-ls-lifecycle-link:hover { background: #253a5a; }
     [data-theme="dark"] .acc-chip { background: #2a2a2a; color: #ccc; }
@@ -370,8 +373,10 @@
     [data-theme="dark"] .acc-chip--warn { background: #78350f !important; color: #fde68a !important; }
     [data-theme="dark"] .acc-lifecycle-stats { background: #1e2235; border-color: #3a4a6a; }
     [data-theme="dark"] .acc-ls-item { background: #252f4a; border-color: #3a4a6a; }
-    [data-theme="dark"] a.acc-ls-item:hover { background: #2e3f6a; border-color: #5a7aaa; }
     [data-theme="dark"] .acc-ls-val { color: #93c5fd; }
+    [data-theme="dark"] .acc-cf-item { background: #1e2235; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-cf-key { color: #9ca3af; }
+    [data-theme="dark"] .acc-cf-val { color: #e5e7eb; }
     [data-theme="dark"] .acc-ls-label { color: #9ca3af; }
 
     .view-all-accordion {
@@ -1008,11 +1013,12 @@
 
     function getFilteredCustomers() {
       const licenseType = document.getElementById('license-type-select')?.value;
+      const visible = allData.filter((c) => !c.hidden);
       let customers;
       if (!licenseType) {
-        customers = [...new Set(allData.map((c) => c.companyName))].sort();
+        customers = [...new Set(visible.map((c) => c.companyName))].sort();
       } else {
-        customers = [...new Set(allData.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
+        customers = [...new Set(visible.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
       }
       return applyQueryFilters(customers);
     }
@@ -1542,6 +1548,49 @@
         const eseLead = record.eseLead || '—';
         const licenseType = record.licenseType || '—';
         const statusLabel = record.status || '—';
+        const deploymentType = record.deploymentType || '—';
+        const engagement = record.engagement || '—';
+
+        // Build custom fields HTML grouped by section
+        let customFieldsHtml = '';
+        const cf = record.customFields;
+        if (cf && typeof cf === 'object') {
+          const sections = { Identity: [], Classification: [], Engagement: [], '': [] };
+          Object.entries(cf).forEach(([k, v]) => {
+            let val, section;
+            if (v && typeof v === 'object' && !Array.isArray(v)) {
+              val = String(v.value ?? ''); section = v.section || '';
+            } else {
+              val = String(v ?? ''); section = '';
+            }
+            const sec = sections.hasOwnProperty(section) ? section : '';
+            sections[sec].push({ k, val });
+          });
+          const allItems = [
+            ...sections['Identity'].map(f => ({ ...f, section: 'Identity' })),
+            ...sections['Classification'].map(f => ({ ...f, section: 'Classification' })),
+            ...sections['Engagement'].map(f => ({ ...f, section: 'Engagement' })),
+            ...sections[''].map(f => ({ ...f, section: '' })),
+          ];
+          if (allItems.length > 0) {
+            const grouped = {};
+            allItems.forEach(({ k, val, section }) => {
+              const g = section || 'Other';
+              if (!grouped[g]) grouped[g] = [];
+              grouped[g].push({ k, val });
+            });
+            customFieldsHtml = '<div class="acc-custom-fields">' +
+              Object.entries(grouped).map(([grp, fields]) =>
+                `<div class="acc-cf-group"><span class="acc-cf-group-label">${escapeHtml(grp)}</span><div class="acc-cf-items">${
+                  fields.map(({ k, val }) =>
+                    `<div class="acc-cf-item"><span class="acc-cf-key">${escapeHtml(k)}</span><span class="acc-cf-val">${escapeHtml(val)}</span></div>`
+                  ).join('')
+                }</div></div>`
+              ).join('') +
+              '</div>';
+          }
+        }
+
         html += `
           <div class="view-all-accordion-item" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
             <div class="view-all-accordion-header">
@@ -1558,7 +1607,16 @@
               </div>
             </div>
             <div class="view-all-accordion-body">
-              <div class="acc-lifecycle-stats"><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a><span class="acc-ls-loading">Loading opportunity stats…</span></div>
+              <div class="acc-lifecycle-stats">
+                <a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
+                <div class="acc-ls-item"><span class="acc-ls-label">CSE</span><span class="acc-ls-val">${escapeHtml(eseLead)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">License Type</span><span class="acc-ls-val">${escapeHtml(licenseType)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Status</span><span class="acc-ls-val">${escapeHtml(statusLabel)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Deployment</span><span class="acc-ls-val">${escapeHtml(deploymentType)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Engagement</span><span class="acc-ls-val">${escapeHtml(engagement)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Health Score</span><span class="acc-ls-val acc-ls-val--num">${healthScore}</span></div>
+              </div>
+              ${customFieldsHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>
               </div>

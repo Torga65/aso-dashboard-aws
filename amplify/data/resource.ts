@@ -63,6 +63,7 @@ const schema = a.schema({
       ingestedAt: a.datetime().required(), // when the Lambda wrote this record
       dataSource: a.string(), // "ServiceNow" | "Manual"
       customFields: a.json(), // arbitrary key-value pairs added via the edit form
+      hidden: a.boolean(),  // if true, exclude from all customer lists
     })
     .identifier(["companyName", "week"])
     .secondaryIndexes((index) => [

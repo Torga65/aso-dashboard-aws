@@ -35,6 +35,8 @@ export interface Customer {
   ttiv: string;
   autoOptimizeButtonPressed: string;
   lastUpdated: string;
+  hidden?: boolean;
+  customFields?: Record<string, { value: string; section: string } | string> | null;
 }
 
 export interface CustomersDataset {

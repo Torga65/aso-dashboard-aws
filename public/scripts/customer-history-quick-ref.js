@@ -450,21 +450,6 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       if (usersChip) usersChip.textContent = `${activeUsers30d} active users`;
     }
 
-    // ── Populate lifecycle stats section ─────────────────────────────────────
-    const lifecycleEl = container.querySelector('.acc-lifecycle-stats');
-    if (lifecycleEl) {
-      const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
-      const lifecycleUrl = `/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}`;
-      lifecycleEl.innerHTML = `
-        <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
-        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></a>
-        <a class="acc-ls-item acc-ls-item--open" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></a>
-        <a class="acc-ls-item acc-ls-item--resolved" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></a>
-        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></a>
-        <a class="acc-ls-item acc-ls-item--fixed" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></a>
-      `;
-    }
-
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
       const pickerHtml = `
         <p class="quick-ref-msg">No automatic match for this customer. Type to search and select the SpaceCat organization:</p>
@@ -759,7 +744,7 @@ async function loadCustomerTranscripts(container, customerName) {
     if (!listEl) return;
     listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
     try {
-      const days = rangeSelect?.value ?? '30';
+      const days = rangeSelect?.value ?? 'all';
       const params = new URLSearchParams({ company: customerName, days });
       const res = await fetch(`/api/transcripts?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -824,7 +809,7 @@ async function loadCustomerTranscripts(container, customerName) {
   // Wire download buttons
   downloadBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const days = rangeSelect?.value ?? '30';
+      const days = rangeSelect?.value ?? 'all';
       const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}`;
       const a = document.createElement('a');
       a.href = url;

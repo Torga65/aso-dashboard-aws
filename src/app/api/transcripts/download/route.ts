@@ -1,9 +1,12 @@
 /**
- * GET /api/transcripts/download?company=&days=30|60|all&id=<single-id>&view=1
+ * GET /api/transcripts/download?company=&days=all|<N>&id=<single-id>&view=1
  *
  * Returns a combined VTT file for download.
  * If `id` is provided, returns just that single file.
  * Otherwise returns all transcripts for the date range combined into one VTT.
+ *
+ * `days` defaults to `all` (no date filter). Pass a positive integer for
+ * rolling last N days by meetingDate.
  *
  * ?view=1  — returns plain text/plain with no Content-Disposition header so
  *            the content renders directly in a browser or can be fetched by
@@ -12,11 +15,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerClient } from "@/lib/amplify-server-utils";
+import {
+  listAllMeetingTranscriptsForCompany,
+  meetingDateCutoffFromDaysParam,
+} from "@/lib/meeting-transcripts";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const company   = searchParams.get("company")?.trim();
-  const daysParam = searchParams.get("days") ?? "30";
+  const daysParam = searchParams.get("days") ?? "all";
   const singleId  = searchParams.get("id")?.trim();
   const viewMode  = searchParams.get("view") === "1";
 
@@ -43,32 +50,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Range download
-    let cutoffDate: string | null = null;
-    if (daysParam !== "all") {
-      const days = parseInt(daysParam, 10);
-      if (!Number.isNaN(days) && days > 0) {
-        const d = new Date();
-        d.setDate(d.getDate() - days);
-        cutoffDate = d.toISOString().slice(0, 10);
-      }
-    }
-
-    const { data, errors } =
-      await client.models.MeetingTranscript.listMeetingTranscriptByCompanyNameAndMeetingDate(
-        { companyName: company },
-        {
-          sortDirection: "DESC",
-          limit: 200,
-          ...(cutoffDate ? { filter: { meetingDate: { ge: cutoffDate } } } : {}),
-        }
-      );
-
-    if (errors?.length) {
-      return NextResponse.json({ error: errors[0].message }, { status: 500 });
-    }
-
-    const records = data ?? [];
+    // Range download (paginated — no 200-row cap)
+    const cutoffDate = meetingDateCutoffFromDaysParam(daysParam);
+    const records = await listAllMeetingTranscriptsForCompany(client, company, cutoffDate);
     if (records.length === 0) {
       return NextResponse.json({ error: "No transcripts found for this range" }, { status: 404 });
     }
