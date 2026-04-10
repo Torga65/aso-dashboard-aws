@@ -80,6 +80,10 @@ export function toCustomer(snap: SnapshotRecord): Customer {
     lastUpdated:                snap.sourceLastUpdated ?? snap.ingestedAt ?? "",
     hidden:                     snap.hidden ?? false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    headless:                   (snap as any).headless ?? false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    preflightEnabled:           (snap as any).preflightEnabled ?? false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     customFields:               (snap as any).customFields ?? null,
   };
 }

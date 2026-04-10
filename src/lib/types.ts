@@ -36,6 +36,8 @@ export interface Customer {
   autoOptimizeButtonPressed: string;
   lastUpdated: string;
   hidden?: boolean;
+  headless?: boolean;
+  preflightEnabled?: boolean;
   customFields?: Record<string, { value: string; section: string } | string> | null;
 }
 

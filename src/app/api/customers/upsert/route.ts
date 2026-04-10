@@ -34,7 +34,7 @@ function currentWeekMonday(): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { companyName, week: rawWeek, customFields, hidden, ...rest } = body;
+    const { companyName, week: rawWeek, customFields, hidden, headless, preflightEnabled, ...rest } = body;
 
     if (!companyName || typeof companyName !== "string" || !companyName.trim()) {
       return NextResponse.json({ error: "companyName is required" }, { status: 400 });
@@ -65,10 +65,10 @@ export async function POST(request: Request) {
       input.customFields = customFields;
     }
 
-    // hidden — boolean flag; explicitly store false so it can be toggled off
-    if (typeof hidden === "boolean") {
-      input.hidden = hidden;
-    }
+    // boolean flags — explicitly store false so toggles work correctly
+    if (typeof hidden === "boolean") input.hidden = hidden;
+    if (typeof headless === "boolean") input.headless = headless;
+    if (typeof preflightEnabled === "boolean") input.preflightEnabled = preflightEnabled;
 
     const client = getServerClient();
 

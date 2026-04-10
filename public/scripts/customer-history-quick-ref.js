@@ -878,22 +878,32 @@ async function loadCustomerTranscripts(container, customerName) {
       const file = fileInput.files?.[0];
       const date = dateInput.value;
 
-      if (!file) { if (statusEl) { statusEl.textContent = 'Select a VTT file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
+      if (!file) { if (statusEl) { statusEl.textContent = 'Select a file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
       if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
 
       uploadBtn.disabled = true;
-      if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
+      if (statusEl) { statusEl.textContent = 'Processing…'; statusEl.className = 'qr-transcript-upload-status'; }
 
       try {
-        // Get current user info from IMS profile if available
+        // Extract text content client-side (handles PDF, DOCX, XLSX, etc.)
+        const { text, fileName } = await (window.extractFileText
+          ? window.extractFileText(file)
+          : { text: await file.text(), fileName: file.name });
+
         const profile = typeof getProfile === 'function' ? getProfile() : null;
         const uploadedBy = profile?.email || profile?.name || '';
+
+        // Upload extracted text as a plain file blob
+        const textBlob = new Blob([text], { type: 'text/plain' });
+        const textFile = new File([textBlob], fileName, { type: 'text/plain' });
+
+        if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
 
         const form = new FormData();
         form.append('company', customerName);
         form.append('meetingDate', date);
         form.append('uploadedBy', uploadedBy);
-        form.append('file', file);
+        form.append('file', textFile);
 
         const res = await fetch('/api/transcripts', { method: 'POST', body: form });
         const json = await res.json();
@@ -902,7 +912,7 @@ async function loadCustomerTranscripts(container, customerName) {
           throw new Error(json.error || `HTTP ${res.status}`);
         }
 
-        if (statusEl) { statusEl.textContent = `Uploaded: ${file.name}`; statusEl.className = 'qr-transcript-upload-status ok'; }
+        if (statusEl) { statusEl.textContent = `Uploaded: ${fileName}`; statusEl.className = 'qr-transcript-upload-status ok'; }
         fileInput.value = '';
         await fetchAndRenderList();
       } catch (err) {

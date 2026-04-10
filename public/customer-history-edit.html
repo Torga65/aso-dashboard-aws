@@ -162,6 +162,22 @@
         <label for="f-terminationReason">Termination Reason</label>
         <input type="text" id="f-terminationReason" name="terminationReason"/>
       </div>
+      <div class="form-field">
+        <label for="f-headless">Headless</label>
+        <select id="f-headless" name="headless">
+          <option value="">— select —</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-preflightEnabled">Preflight Enabled</label>
+        <select id="f-preflightEnabled" name="preflightEnabled">
+          <option value="">— select —</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -374,6 +390,7 @@
   const FIELDS = ['companyName','week','imsOrgId','tenantId','licenseType','status',
     'deploymentType','industry','eseLead','terminationReason','engagement',
     'healthScore','mau','ttiv','summary','blockers','feedback','comments'];
+  const BOOL_FIELDS = ['headless','preflightEnabled'];
 
   function prefillForm(data) {
     for (const key of FIELDS) {
@@ -382,6 +399,12 @@
       el.value = data[key] != null ? String(data[key]) : '';
     }
     if (!data.week) document.getElementById('f-week').value = currentMonday();
+    // Restore boolean select fields
+    for (const key of BOOL_FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      el.value = data[key] === true ? 'true' : data[key] === false ? 'false' : '';
+    }
     // Restore hidden flag
     document.getElementById('f-hidden').checked = !!data.hidden;
     // Restore any saved custom fields
@@ -417,6 +440,14 @@
       if (!el) continue;
       const val = el.value.trim();
       if (val !== '') payload[key] = key === 'healthScore' ? Number(val) : val;
+    }
+
+    // Boolean select fields
+    for (const key of BOOL_FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      if (el.value === 'true') payload[key] = true;
+      else if (el.value === 'false') payload[key] = false;
     }
 
     const customFields = getCustomFields();
