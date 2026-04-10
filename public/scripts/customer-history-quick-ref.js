@@ -650,62 +650,79 @@ async function loadCustomerComments(container, customerName) {
   const claudeBtn = container.querySelector('.qr-comments-claude-btn');
   if (!commentsEl) return;
 
-  async function fetchAndRender(days) {
-    commentsEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
-    try {
-      const params = new URLSearchParams({ company: customerName, days: String(days) });
-      const res = await fetch(`/api/comments?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
-      const comments = data || [];
-
-      // Update count badge on summary
-      const summary = commentsEl.closest('details')?.querySelector('summary');
-      const badge = summary?.querySelector('.qr-summary-count');
-      if (badge) badge.textContent = comments.length > 0 ? `(${comments.length})` : '';
-
-      if (comments.length === 0) {
-        commentsEl.innerHTML = '<p class="quick-ref-msg">No comments in this period.</p>';
-        return;
-      }
-
-      commentsEl.innerHTML = comments.map((c) => {
-        const dateLabel = c.commentDate || '';
-        const author = c.author ? escapeHtml(c.author) : '';
-        const body = c.body ? escapeHtml(c.body) : '';
-        return `
-          <div class="qr-comment-entry">
-            <div class="qr-comment-meta">
-              <strong>${dateLabel}</strong>${author ? ` &mdash; ${author}` : ''}
-            </div>
-            <div class="qr-comment-body">${body}</div>
-          </div>`;
-      }).join('');
-    } catch (err) {
-      commentsEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load comments.</p>';
-    }
+  // Fetch all comments once; filter client-side using the actual commentDate from ServiceNow
+  commentsEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
+  let allComments = [];
+  try {
+    const params = new URLSearchParams({ company: customerName, days: 'all' });
+    const res = await fetch(`/api/comments?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    allComments = data || [];
+  } catch (err) {
+    commentsEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load comments.</p>';
+    return;
   }
 
-  await fetchAndRender(rangeSelect?.value ?? '30');
+  function filterByRange(comments, range) {
+    if (range === 'latest') return comments.slice(0, 1);
+    if (range === 'all' || !range) return comments;
+    const days = parseInt(range, 10);
+    if (Number.isNaN(days)) return comments;
+    const cutoff = Date.now() - days * 86400000;
+    return comments.filter((c) => {
+      if (!c.commentDate) return false;
+      // commentDate is "YYYY-MM-DD HH:MM:SS" — parse as local or UTC
+      const ts = new Date(c.commentDate.replace(' ', 'T')).getTime();
+      return !Number.isNaN(ts) && ts >= cutoff;
+    });
+  }
+
+  function renderComments(range) {
+    const comments = filterByRange(allComments, range);
+
+    const summary = commentsEl.closest('details')?.querySelector('summary');
+    const badge = summary?.querySelector('.qr-summary-count');
+    if (badge) badge.textContent = allComments.length > 0 ? `(${allComments.length})` : '';
+
+    if (comments.length === 0) {
+      const msg = allComments.length === 0
+        ? 'No comments found.'
+        : 'No comments in this period.';
+      commentsEl.innerHTML = `<p class="quick-ref-msg">${msg}</p>`;
+      return;
+    }
+
+    commentsEl.innerHTML = comments.map((c) => {
+      const dateLabel = c.commentDate || '';
+      const author = c.author ? escapeHtml(c.author) : '';
+      const body = c.body ? escapeHtml(c.body) : '';
+      return `
+        <div class="qr-comment-entry">
+          <div class="qr-comment-meta">
+            <strong>${dateLabel}</strong>${author ? ` &mdash; ${author}` : ''}
+          </div>
+          <div class="qr-comment-body">${body}</div>
+        </div>`;
+    }).join('');
+  }
+
+  renderComments(rangeSelect?.value ?? 'latest');
 
   if (rangeSelect) {
-    rangeSelect.addEventListener('change', () => fetchAndRender(rangeSelect.value));
+    rangeSelect.addEventListener('change', () => renderComments(rangeSelect.value));
   }
 
   if (claudeBtn) {
     claudeBtn.addEventListener('click', async () => {
-      const days = rangeSelect?.value ?? 'latest';
+      const range = rangeSelect?.value ?? 'latest';
+      const comments = filterByRange(allComments, range);
       const orig = claudeBtn.textContent;
-      claudeBtn.textContent = 'Fetching…';
+      claudeBtn.textContent = 'Copying…';
       claudeBtn.disabled = true;
       try {
-        const params = new URLSearchParams({ company: customerName, days });
-        const res = await fetch(`/api/comments?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { data } = await res.json();
-        const comments = data || [];
         if (comments.length === 0) throw new Error('No comments in this range.');
-        const rangeLabel = days === 'latest' ? 'the most recent' : days === 'all' ? 'all' : `the last ${days} days of`;
+        const rangeLabel = range === 'latest' ? 'the most recent' : range === 'all' ? 'all' : `the last ${range} days of`;
         const body = comments.map((c) => `[${c.commentDate}]${c.author ? ` ${c.author}` : ''}\n${c.body}`).join('\n\n---\n\n');
         const prompt = `Below are ${rangeLabel} ServiceNow comments for ${customerName}. Please summarize the key themes, customer concerns, action items, and overall sentiment.\n\n${body}`;
         await navigator.clipboard.writeText(prompt);
@@ -761,18 +778,32 @@ async function loadCustomerTranscripts(container, customerName) {
         return;
       }
 
-      listEl.innerHTML = items.map((item) => {
+      const INITIAL_SHOW = 4;
+      listEl.innerHTML = items.map((item, idx) => {
         const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
         const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
         const viewUrl = `${dlUrl}&view=1`;
+        const hiddenClass = idx >= INITIAL_SHOW ? ' qr-transcript-hidden' : '';
         return `
-          <div class="qr-transcript-item">
+          <div class="qr-transcript-item${hiddenClass}">
             <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
             <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
             <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
             <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
           </div>`;
       }).join('');
+
+      if (items.length > INITIAL_SHOW) {
+        const remaining = items.length - INITIAL_SHOW;
+        const showMoreBtn = document.createElement('button');
+        showMoreBtn.className = 'qr-transcript-show-more';
+        showMoreBtn.textContent = `Show ${remaining} more…`;
+        showMoreBtn.addEventListener('click', () => {
+          listEl.querySelectorAll('.qr-transcript-hidden').forEach(el => el.classList.remove('qr-transcript-hidden'));
+          showMoreBtn.remove();
+        });
+        listEl.appendChild(showMoreBtn);
+      }
 
       // Wire per-item Claude link copy buttons
       listEl.querySelectorAll('.qr-transcript-claude-btn').forEach((btn) => {

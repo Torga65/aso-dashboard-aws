@@ -2,11 +2,15 @@
  * ASO Dashboard MCP Server
  *
  * Exposes customer data from the ASO Dashboard as Claude tools:
- *   - get_transcripts      — meeting VTT transcripts for a customer
+ *   - get_transcripts      — full meeting history + notes (no date window; always all records)
  *   - get_comments         — ServiceNow comments for a customer
  *   - get_customer_data    — latest snapshot + health data for a customer
  *   - list_customers       — list all customers (optionally filtered by status)
  *   - search_customers     — full-text search across customer fields
+ *   - list_headless_customers — customers marked headless (custom field / deployment type)
+ *
+ * Assistant convention: for any customer-specific answer (status, engagement, summary),
+ * also call get_transcripts and get_comments for that company unless the user declines.
  *
  * Requires the Next.js app to be running (defaults to http://localhost:3000).
  * Override with: ASO_BASE_URL=https://your-deployed-app.com node server.mjs
@@ -46,13 +50,12 @@ const server = new McpServer({
 /* ── 1. get_transcripts ─────────────────────────────────────────────── */
 server.tool(
   'get_transcripts',
-  'Fetch meeting transcripts for a customer. Returns the full VTT content of all meetings in the requested date range, combined into a single document.',
+  'Fetch ALL meeting transcripts and uploaded notes/emails for a customer (full history, not limited by date). Returns combined VTT-style text. Use alongside get_comments and get_customer_data when summarizing a customer.',
   {
-    company:  z.string().describe('Customer / company name (exact match used in the dashboard)'),
-    days:     z.enum(['30', '60', '90', 'all']).default('all').describe('Date range to fetch. Use "all" for everything.'),
+    company: z.string().describe('Customer / company name (exact match used in the dashboard)'),
   },
-  async ({ company, days }) => {
-    const qs = new URLSearchParams({ company, days, view: '1' });
+  async ({ company }) => {
+    const qs = new URLSearchParams({ company, days: 'all', view: '1' });
     const res = await apiFetch(`/api/transcripts/download?${qs}`);
     const content = await res.text();
 
@@ -64,7 +67,7 @@ server.tool(
     return {
       content: [{
         type: 'text',
-        text: `Meeting transcripts for ${company} (${days === 'all' ? 'all time' : `last ${days} days`}) — ${lineCount} lines:\n\n${content}`,
+        text: `Meeting transcripts and notes for ${company} (full history) — ${lineCount} lines:\n\n${content}`,
       }],
     };
   }
@@ -104,7 +107,7 @@ server.tool(
 /* ── 3. get_customer_data ───────────────────────────────────────────── */
 server.tool(
   'get_customer_data',
-  'Fetch the latest snapshot data for a specific customer: status, engagement, health score, blockers, feedback, license type, ESE lead, and more.',
+  'Fetch the latest snapshot data for a specific customer: status, engagement, health score, blockers, feedback, license type, ESE lead, and more. For a complete picture, also call get_transcripts and get_comments with the same company name.',
   {
     company: z.string().describe('Customer / company name'),
   },
@@ -161,7 +164,7 @@ server.tool(
 /* ── 4. list_customers ──────────────────────────────────────────────── */
 server.tool(
   'list_customers',
-  'List all customers in the dashboard with their current status, engagement, and health score. Optionally filter by status.',
+  'List all customers in the dashboard with their current status, engagement, and health score. Optionally filter by status. When drilling into one customer, use get_transcripts and get_comments for full context.',
   {
     status:     z.enum(['', 'Active', 'At-Risk', 'Onboarding', 'Pre-Production', 'Churned', 'On-Hold']).default('').describe('Filter by status, or leave empty for all.'),
     engagement: z.enum(['', 'High', 'Medium', 'Low', 'Unknown']).default('').describe('Filter by engagement level.'),
@@ -204,7 +207,7 @@ server.tool(
 /* ── 5. search_customers ────────────────────────────────────────────── */
 server.tool(
   'search_customers',
-  'Full-text search across all customer fields (company name, blockers, feedback, summary, ESE lead, industry). Returns matching customers with their latest snapshot.',
+  'Full-text search across all customer fields (company name, blockers, feedback, summary, ESE lead, industry). Returns matching customers with their latest snapshot. When summarizing a match, also call get_transcripts and get_comments for that company.',
   {
     query: z.string().describe('Search term — matches against any text field'),
   },
@@ -214,7 +217,20 @@ server.tool(
     const all = data ?? [];
 
     const needle = query.toLowerCase();
-    const TEXT_FIELDS = ['companyName', 'blockers', 'feedback', 'summary', 'eseLead', 'industry', 'licenseType', 'status'];
+    const TEXT_FIELDS = ['companyName', 'blockers', 'feedback', 'summary', 'eseLead', 'industry', 'licenseType', 'status', 'deploymentType'];
+
+    function rowSearchBlob(r) {
+      const parts = TEXT_FIELDS.map((f) => String(r[f] || ''));
+      const cf = r.customFields;
+      if (cf && typeof cf === 'object') {
+        for (const [k, v] of Object.entries(cf)) {
+          parts.push(k);
+          const val = typeof v === 'object' && v !== null && 'value' in v ? v.value : v;
+          parts.push(String(val));
+        }
+      }
+      return parts.join(' ').toLowerCase();
+    }
 
     const byCompany = new Map();
     all.forEach((r) => {
@@ -222,18 +238,26 @@ server.tool(
       if (!existing || r.week > existing.week) byCompany.set(r.companyName, r);
     });
 
-    const matches = [...byCompany.values()].filter((r) =>
-      TEXT_FIELDS.some((f) => (r[f] || '').toLowerCase().includes(needle))
-    );
+    const matches = [...byCompany.values()].filter((r) => rowSearchBlob(r).includes(needle));
 
     if (matches.length === 0) {
       return { content: [{ type: 'text', text: `No customers found matching "${query}".` }] };
     }
 
     const rows = matches.map((r) => {
-      const matched = TEXT_FIELDS
-        .filter((f) => (r[f] || '').toLowerCase().includes(needle))
-        .map((f) => `  ${f}: ${r[f]}`).join('\n');
+      const matchedFields = TEXT_FIELDS
+        .filter((f) => (String(r[f] || '')).toLowerCase().includes(needle))
+        .map((f) => `  ${f}: ${r[f]}`);
+      const cf = r.customFields;
+      const matchedCf = [];
+      if (cf && typeof cf === 'object') {
+        for (const [k, v] of Object.entries(cf)) {
+          const val = typeof v === 'object' && v !== null && 'value' in v ? v.value : v;
+          const blob = `${k} ${val}`.toLowerCase();
+          if (blob.includes(needle)) matchedCf.push(`  customFields.${k}: ${val}`);
+        }
+      }
+      const matched = [...matchedFields, ...matchedCf].join('\n');
       return `${r.companyName} (${r.status || '—'}, health ${r.healthScore ?? '—'}):\n${matched}`;
     });
 
@@ -241,6 +265,31 @@ server.tool(
       content: [{
         type: 'text',
         text: `${matches.length} match${matches.length !== 1 ? 'es' : ''} for "${query}":\n\n${rows.join('\n\n')}`,
+      }],
+    };
+  }
+);
+
+/* ── 6. list_headless_customers ─────────────────────────────────────── */
+server.tool(
+  'list_headless_customers',
+  'List customers whose latest snapshot is marked headless: deploymentType contains "headless" and/or customFields.headless is true/yes. Uses GET /api/reports/headless-customers.',
+  {},
+  async () => {
+    const res = await apiFetch('/api/reports/headless-customers');
+    const json = await res.json();
+    const list = json.customers ?? [];
+    if (list.length === 0) {
+      return { content: [{ type: 'text', text: 'No headless customers found (latest snapshot per company).' }] };
+    }
+    const lines = list.map(
+      (c) =>
+        `• ${c.companyName} | ${c.status || '—'} | ${c.licenseType || '—'} | deployment: ${c.deploymentType || '—'} | ESE: ${c.eseLead || '—'} | week: ${c.week || '—'}`
+    );
+    return {
+      content: [{
+        type: 'text',
+        text: `${json.count} headless customer${json.count !== 1 ? 's' : ''} (latest snapshot):\n\n${lines.join('\n')}\n\n${json.definition || ''}`,
       }],
     };
   }
