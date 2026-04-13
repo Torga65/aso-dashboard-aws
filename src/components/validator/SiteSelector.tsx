@@ -74,7 +74,7 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
     let cancelled = false;
     setError(null);
     setLoading(true);
-    fetch('/api/validator/sites', {
+    fetch('/api/spacecat/sites', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((res) => {
@@ -87,7 +87,7 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
       })
       .then((data) => {
         if (cancelled) return;
-        const list = Array.isArray(data) ? data : [];
+        const list = Array.isArray(data) ? data : (data?.data ?? []);
         setSites(list);
         // Auto-select if a baseURL was passed via query param
         if (preloadBaseURL && list.length > 0) {

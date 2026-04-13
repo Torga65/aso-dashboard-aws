@@ -30,6 +30,11 @@ export type ValidationResultItem = {
   fixExplanation?: string;
 };
 
+function isLlmoByTag(opportunity: { isElmo?: boolean; tags?: string[]; [key: string]: unknown }): boolean {
+  if (opportunity.isElmo === true) return true;
+  return opportunity.tags?.includes('isElmo') === true;
+}
+
 export default function ValidatorPage() {
   return (
     <Suspense>
@@ -66,20 +71,50 @@ function ValidatorPageInner() {
       setSelectedOpportunity(null);
       setSuggestions([]);
       try {
-        const params = new URLSearchParams({
-          origin,
-          includePendingFlag: 'true',
-        });
         const res = await fetch(
-          `/api/validator/sites/${siteId}/opportunities?${params.toString()}`,
+          `/api/spacecat/sites/${siteId}/opportunities`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || `HTTP ${res.status}`);
         }
-        const data = await res.json();
-        setOpportunities(Array.isArray(data) ? data : []);
+        const raw = await res.json();
+        let opps: Opportunity[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+
+        // Filter: only NEW status
+        opps = opps.filter((o) => o.status === 'NEW');
+
+        // Filter: origin (aso = not isElmo, llmo = isElmo)
+        if (origin === 'aso') {
+          opps = opps.filter((o) => !isLlmoByTag(o));
+        } else if (origin === 'llmo') {
+          opps = opps.filter((o) => isLlmoByTag(o));
+        }
+
+        // Enrich with hasPendingValidation (parallel fetch of suggestions per opportunity)
+        if (opps.length > 0) {
+          const enriched = await Promise.all(
+            opps.map(async (opp) => {
+              try {
+                const sRes = await fetch(
+                  `/api/spacecat/sites/${siteId}/opportunities/${opp.id}/suggestions`,
+                  { headers: { Authorization: `Bearer ${accessToken}` } }
+                );
+                if (!sRes.ok) return opp;
+                const sRaw = await sRes.json();
+                const suggs: Array<{ status: string }> = Array.isArray(sRaw) ? sRaw : (sRaw?.data ?? []);
+                const pendingCount = suggs.filter((s) => s.status === 'PENDING_VALIDATION').length;
+                return { ...opp, hasPendingValidation: pendingCount > 0, pendingValidationCount: pendingCount };
+              } catch {
+                return opp;
+              }
+            })
+          );
+          setOpportunities(enriched);
+        } else {
+          setOpportunities(opps);
+        }
       } catch (e) {
         setOpportunitiesError(e instanceof Error ? e.message : 'Failed to load opportunities');
         setOpportunities([]);
@@ -95,15 +130,15 @@ function ValidatorPageInner() {
     setSuggestionsError(null);
     try {
       const res = await fetch(
-        `/api/validator/sites/${siteId}/opportunities/${opportunityId}/suggestions`,
+        `/api/spacecat/sites/${siteId}/opportunities/${opportunityId}/suggestions`,
         { cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      const data = await res.json();
-      setSuggestions(Array.isArray(data) ? data : []);
+      const raw = await res.json();
+      setSuggestions(Array.isArray(raw) ? raw : (raw?.data ?? []));
     } catch (e) {
       setSuggestionsError(e instanceof Error ? e.message : 'Failed to load suggestions');
       setSuggestions([]);
@@ -225,14 +260,14 @@ function ValidatorPageInner() {
     setUpdatingStatus(true);
     try {
       const res = await fetch(
-        `/api/validator/sites/${site.id}/opportunities/${selectedOpportunity.id}/suggestions/status`,
+        `/api/spacecat/sites/${site.id}/opportunities/${selectedOpportunity.id}/suggestions/status`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ suggestionIds, status }),
+          body: JSON.stringify(suggestionIds.map((id) => ({ id, status }))),
         }
       );
       if (!res.ok) {

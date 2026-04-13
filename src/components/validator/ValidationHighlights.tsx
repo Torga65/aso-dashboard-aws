@@ -875,12 +875,12 @@ export function ValidationHighlights({ opportunities, onSelect, siteId, accessTo
     setExpandedSuggestions([]);
     try {
       const res = await fetch(
-        `/api/validator/sites/${siteId}/opportunities/${opp.id}/suggestions`,
+        `/api/spacecat/sites/${siteId}/opportunities/${opp.id}/suggestions`,
         { cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const pendingSuggestions = (Array.isArray(data) ? data as Suggestion[] : []).filter(
+      const pendingSuggestions = (Array.isArray(data) ? data as Suggestion[] : ((data as { data?: Suggestion[] }).data ?? [])).filter(
         (s) => s.status === 'PENDING_VALIDATION'
       );
       setExpandedSuggestions(pendingSuggestions);
@@ -935,11 +935,11 @@ export function ValidationHighlights({ opportunities, onSelect, siteId, accessTo
     setUpdatingStatus(true);
     try {
       const res = await fetch(
-        `/api/validator/sites/${siteId}/opportunities/${expandedOpp.id}/suggestions/status`,
+        `/api/spacecat/sites/${siteId}/opportunities/${expandedOpp.id}/suggestions/status`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ suggestionIds, status }),
+          body: JSON.stringify(suggestionIds.map((id) => ({ id, status }))),
         }
       );
       if (!res.ok) {
@@ -948,16 +948,13 @@ export function ValidationHighlights({ opportunities, onSelect, siteId, accessTo
       }
       // Re-fetch and re-filter so moved-out suggestions disappear from the list
       const res2 = await fetch(
-        `/api/validator/sites/${siteId}/opportunities/${expandedOpp.id}/suggestions`,
+        `/api/spacecat/sites/${siteId}/opportunities/${expandedOpp.id}/suggestions`,
         { cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (res2.ok) {
         const data = await res2.json();
-        setExpandedSuggestions(
-          (Array.isArray(data) ? (data as Suggestion[]) : []).filter(
-            (s) => s.status === 'PENDING_VALIDATION'
-          )
-        );
+        const allSuggs: Suggestion[] = Array.isArray(data) ? data : ((data as { data?: Suggestion[] }).data ?? []);
+        setExpandedSuggestions(allSuggs.filter((s) => s.status === 'PENDING_VALIDATION'));
       }
     } catch {
       // leave suggestions as-is on error
