@@ -15,6 +15,7 @@ import {
 import { SiteSelector, type Site } from '@/components/validator/SiteSelector';
 import { OpportunityList, type Opportunity } from '@/components/validator/OpportunityList';
 import { SuggestionList, type Suggestion } from '@/components/validator/SuggestionList';
+import { ValidationHighlights } from '@/components/validator/ValidationHighlights';
 import type { OriginFilter } from '@/components/validator/CategoryFilters';
 import type { Opportunity as SharedOpportunity } from '@validator-shared/types';
 import { mapOpportunityToTypeId } from '@validator-shared/validation/map-opportunity-type';
@@ -45,7 +46,7 @@ function ValidatorPageInner() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
   const [opportunitiesError, setOpportunitiesError] = useState<string | null>(null);
-  const [originFilter, setOriginFilter] = useState<OriginFilter>('all');
+  const [originFilter, setOriginFilter] = useState<OriginFilter>('aso');
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -370,7 +371,7 @@ function ValidatorPageInner() {
   }
 
   return (
-    <Flex direction="column" maxWidth="1200px" marginStart="auto" marginEnd="auto" minHeight="100vh">
+    <Flex direction="column" maxWidth="1800px" marginStart="auto" marginEnd="auto" minHeight="100vh">
       <Flex
         direction="column"
         gap="size-100"
@@ -383,6 +384,15 @@ function ValidatorPageInner() {
         <Well>
           <Flex direction="column" gap="size-300">
             <SiteSelector onSelect={handleSelectSite} selectedSite={site} preloadBaseURL={preloadBaseURL} />
+
+            {site && !opportunitiesLoading && (
+              <ValidationHighlights
+                opportunities={opportunities}
+                onSelect={handleSelectOpportunity}
+                siteId={site.id}
+                accessToken={accessToken ?? ''}
+              />
+            )}
 
             {site && (
               <OpportunityList
