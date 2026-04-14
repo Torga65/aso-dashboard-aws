@@ -10,15 +10,22 @@ export interface Site {
   [key: string]: unknown;
 }
 
+interface Org {
+  id: string;
+  name?: string;
+  imsOrgId?: string;
+  [key: string]: unknown;
+}
+
 const RECENT_SITES_KEY = 'aso-validator-recent-sites';
 const RECENT_SITES_MAX = 5;
 
 interface SiteSelectorProps {
   onSelect: (site: Site) => void;
-  /** Currently loaded site; its name is shown to the right of the search bar. */
+  /** Currently loaded site; its name is shown next to the site picker. */
   selectedSite?: Site | null;
   disabled?: boolean;
-  /** If provided, auto-select the site matching this baseURL once sites load. */
+  /** If provided, pre-fills the URL input and attempts an auto-find on load. */
   preloadBaseURL?: string;
 }
 
@@ -26,7 +33,11 @@ function siteLabel(site: Site): string {
   return (site.baseURL as string) || site.id;
 }
 
-function getRecentSites(): Array<{ id: string; label: string }> {
+function orgLabel(org: Org): string {
+  return org.name || org.id;
+}
+
+function getRecentSites(): Array<{ id: string; label: string; orgId?: string }> {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(RECENT_SITES_KEY);
@@ -38,10 +49,10 @@ function getRecentSites(): Array<{ id: string; label: string }> {
   }
 }
 
-function saveRecentSite(site: Site): void {
+function saveRecentSite(site: Site, orgId?: string | null): void {
   const label = siteLabel(site);
   const prev = getRecentSites().filter((r) => r.id !== site.id);
-  const next = [{ id: site.id, label }, ...prev].slice(0, RECENT_SITES_MAX);
+  const next = [{ id: site.id, label, ...(orgId ? { orgId } : {}) }, ...prev].slice(0, RECENT_SITES_MAX);
   try {
     localStorage.setItem(RECENT_SITES_KEY, JSON.stringify(next));
   } catch {
@@ -55,15 +66,26 @@ function normalizeUrl(url: string): string {
 
 export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL }: SiteSelectorProps) {
   const { accessToken } = useIMSAuth();
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState('');
-  const [recentSites, setRecentSites] = useState<Array<{ id: string; label: string }>>([]);
 
-  // URL input fallback state
-  const [urlInput, setUrlInput] = useState('');
+  // ── Org picker ──────────────────────────────────────────────────────────────
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
+  const [orgsError, setOrgsError] = useState<string | null>(null);
+  const [selectedOrgKey, setSelectedOrgKey] = useState<string | null>(null);
+  const [orgInputValue, setOrgInputValue] = useState('');
+
+  // ── Site picker (scoped to selected org) ────────────────────────────────────
+  const [sites, setSites] = useState<Site[]>([]);
+  const [sitesLoading, setSitesLoading] = useState(false);
+  const [sitesError, setSitesError] = useState<string | null>(null);
+  const [selectedSiteKey, setSelectedSiteKey] = useState<string | null>(null);
+  const [siteInputValue, setSiteInputValue] = useState('');
+
+  // ── Recent sites ────────────────────────────────────────────────────────────
+  const [recentSites, setRecentSites] = useState<Array<{ id: string; label: string; orgId?: string }>>([]);
+
+  // ── URL fallback ────────────────────────────────────────────────────────────
+  const [urlInput, setUrlInput] = useState(preloadBaseURL ?? '');
   const [findingSite, setFindingSite] = useState(false);
   const [findError, setFindError] = useState<string | null>(null);
 
@@ -71,115 +93,192 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
     setRecentSites(getRecentSites());
   }, []);
 
+  // Sync selectedSite back to UI state
   useEffect(() => {
     if (selectedSite) {
-      setSelectedKey(selectedSite.id);
-      setInputValue(siteLabel(selectedSite));
+      setSelectedSiteKey(selectedSite.id);
+      setSiteInputValue(siteLabel(selectedSite));
     }
   }, [selectedSite]);
 
+  // ── Load organizations ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!accessToken) return;
     let cancelled = false;
-    setError(null);
-    setLoading(true);
-    fetch('/api/spacecat/sites', {
+    setOrgsError(null);
+    setOrgsLoading(true);
+    fetch('/api/spacecat/organizations', {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((res) => {
         if (!res.ok) {
           return res.json().catch(() => ({})).then((data) => {
-            throw new Error(data.error || `HTTP ${res.status}`);
+            throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
           });
         }
         return res.json();
       })
       .then((data) => {
         if (cancelled) return;
-        const list = Array.isArray(data) ? data : (data?.data ?? []);
-        setSites(list);
-        // Auto-select if a baseURL was passed via query param
-        if (preloadBaseURL && list.length > 0) {
-          const normalized = normalizeUrl(preloadBaseURL);
-          const match = list.find(
-            (s: Site) => normalizeUrl((s.baseURL as string) ?? '') === normalized
-          );
-          if (match) {
-            onSelect(match);
-            saveRecentSite(match);
-          }
-        }
-        if (list.length === 0) setError('No sites returned.');
+        const list: Org[] = Array.isArray(data)
+          ? data
+          : ((data as { organizations?: Org[]; data?: Org[] })?.organizations ?? (data as { data?: Org[] })?.data ?? []);
+        setOrgs(list);
+        if (list.length === 0) setOrgsError('No organizations found.');
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load sites');
+        if (!cancelled) setOrgsError(e instanceof Error ? e.message : 'Failed to load organizations');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setOrgsLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [accessToken]);
 
-  const siteItems = useMemo(
-    () => sites.map((s) => ({ id: s.id, label: siteLabel(s), site: s })),
-    [sites]
-  );
+  // ── Load sites for selected org ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!accessToken || !selectedOrgKey) {
+      setSites([]);
+      setSitesError(null);
+      return;
+    }
+    let cancelled = false;
+    setSitesError(null);
+    setSitesLoading(true);
+    setSites([]);
+    fetch(`/api/spacecat/organizations/${selectedOrgKey}/sites`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().catch(() => ({})).then((data) => {
+            throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
+          });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        const list: Site[] = Array.isArray(data)
+          ? data
+          : ((data as { sites?: Site[]; data?: Site[] })?.sites ?? (data as { data?: Site[] })?.data ?? []);
+        setSites(list);
+        if (list.length === 0) setSitesError('No sites found for this organization.');
+        // Auto-select if preloadBaseURL matches a site in this org
+        if (preloadBaseURL && list.length > 0) {
+          const normalized = normalizeUrl(preloadBaseURL);
+          const match = list.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
+          if (match) {
+            onSelect(match);
+            saveRecentSite(match, selectedOrgKey);
+          }
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setSitesError(e instanceof Error ? e.message : 'Failed to load sites');
+      })
+      .finally(() => {
+        if (!cancelled) setSitesLoading(false);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, selectedOrgKey]);
+
+  // ── Derived lists ────────────────────────────────────────────────────────────
+  const filteredOrgItems = useMemo(() => {
+    const items = orgs.map((o) => ({ id: o.id, label: orgLabel(o) }));
+    if (!orgInputValue.trim()) return items;
+    const q = orgInputValue.trim().toLowerCase();
+    return items.filter((item) => item.label.toLowerCase().includes(q));
+  }, [orgs, orgInputValue]);
 
   const filteredSiteItems = useMemo(() => {
-    if (!inputValue.trim()) return siteItems;
-    const q = inputValue.trim().toLowerCase();
-    return siteItems.filter((item) => item.label.toLowerCase().includes(q));
-  }, [siteItems, inputValue]);
+    const items = sites.map((s) => ({ id: s.id, label: siteLabel(s) }));
+    if (!siteInputValue.trim()) return items;
+    const q = siteInputValue.trim().toLowerCase();
+    return items.filter((item) => item.label.toLowerCase().includes(q));
+  }, [sites, siteInputValue]);
 
-  const recentMatchingSites = useMemo(() => {
-    if (recentSites.length === 0 || sites.length === 0) return [];
-    return recentSites
-      .map((r) => sites.find((s) => s.id === r.id))
-      .filter((s): s is Site => s != null);
-  }, [recentSites, sites]);
-
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const selectSite = useCallback(
-    (site: Site) => {
+    (site: Site, orgId?: string | null) => {
       onSelect(site);
-      saveRecentSite(site);
+      saveRecentSite(site, orgId ?? selectedOrgKey);
       setRecentSites(getRecentSites());
-      setSelectedKey(site.id);
-      setInputValue(siteLabel(site));
+      setSelectedSiteKey(site.id);
+      setSiteInputValue(siteLabel(site));
     },
-    [onSelect]
+    [onSelect, selectedOrgKey]
   );
 
-  const handleSelectionChange = useCallback(
+  const handleOrgSelectionChange = useCallback(
     (key: string | number | null) => {
       const keyStr = key != null ? String(key) : null;
-      setSelectedKey(keyStr);
+      setSelectedOrgKey(keyStr);
+      setSelectedSiteKey(null);
+      setSiteInputValue('');
       if (keyStr != null) {
-        const site = sites.find((s) => s.id === keyStr);
-        if (site) {
-          onSelect(site);
-          saveRecentSite(site);
-          setRecentSites(getRecentSites());
-          setInputValue(siteLabel(site));
-        }
+        const org = orgs.find((o) => o.id === keyStr);
+        if (org) setOrgInputValue(orgLabel(org));
       }
     },
-    [sites, onSelect]
+    [orgs]
   );
 
-  const handleInputChange = useCallback((value: string) => {
-    setInputValue(value);
-    if (!value.trim()) setSelectedKey(null);
+  const handleOrgInputChange = useCallback((value: string) => {
+    setOrgInputValue(value);
+    if (!value.trim()) {
+      setSelectedOrgKey(null);
+      setSites([]);
+      setSelectedSiteKey(null);
+      setSiteInputValue('');
+    }
   }, []);
 
-  /** Find a site by URL — works independently of the preloaded sites list. */
+  const handleSiteSelectionChange = useCallback(
+    (key: string | number | null) => {
+      const keyStr = key != null ? String(key) : null;
+      setSelectedSiteKey(keyStr);
+      if (keyStr != null) {
+        const site = sites.find((s) => s.id === keyStr);
+        if (site) selectSite(site);
+      }
+    },
+    [sites, selectSite]
+  );
+
+  const handleSiteInputChange = useCallback((value: string) => {
+    setSiteInputValue(value);
+    if (!value.trim()) setSelectedSiteKey(null);
+  }, []);
+
+  const handleRecentSitePress = useCallback(
+    (recent: { id: string; label: string; orgId?: string }) => {
+      // Immediately unblock the validator with what we know about this site
+      const site: Site = { id: recent.id, baseURL: recent.label };
+      onSelect(site);
+      saveRecentSite(site, recent.orgId);
+      setRecentSites(getRecentSites());
+      setSelectedSiteKey(recent.id);
+      setSiteInputValue(recent.label);
+
+      // Also restore the org so the site picker populates correctly
+      if (recent.orgId && recent.orgId !== selectedOrgKey) {
+        setSelectedOrgKey(recent.orgId);
+        const org = orgs.find((o) => o.id === recent.orgId);
+        if (org) setOrgInputValue(orgLabel(org));
+      }
+    },
+    [onSelect, selectedOrgKey, orgs]
+  );
+
+  /** Search within loaded org sites by URL, or try global lookup as a fallback. */
   const handleFindByUrl = useCallback(async () => {
     const url = urlInput.trim();
     if (!url || !accessToken) return;
     const normalized = normalizeUrl(url);
 
-    // Check already-loaded sites first (instant)
+    // Check already-loaded org sites first
     if (sites.length > 0) {
       const match = sites.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
       if (match) {
@@ -192,7 +291,7 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
     setFindingSite(true);
     setFindError(null);
     try {
-      // SpaceCat may support baseURL filtering — if not, it returns all sites and we filter
+      // Try SpaceCat's baseURL filter — may or may not be supported
       const res = await fetch(
         `/api/spacecat/sites?baseURL=${encodeURIComponent(url)}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -202,17 +301,15 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
         throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
       }
       const raw = await res.json();
-      const all: Site[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
-      const match = all.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
-      if (match) {
-        selectSite(match);
-        // Also populate the sites list if it wasn't loaded
-        if (sites.length === 0) setSites(all);
+      const all: Site[] = Array.isArray(raw) ? raw : ((raw as { data?: Site[] })?.data ?? []);
+      const found = all.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
+      if (found) {
+        selectSite(found);
       } else {
-        setFindError(`No site found for: ${url}`);
+        setFindError(`No site found for: ${url}. Select an organization first to search within its sites.`);
       }
-    } catch (e) {
-      setFindError(e instanceof Error ? e.message : 'Failed to find site');
+    } catch {
+      setFindError('Could not look up site by URL. Please select an organization above to browse its sites.');
     } finally {
       setFindingSite(false);
     }
@@ -222,92 +319,114 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
     <Flex direction="column" gap="size-150" marginBottom="size-200">
       <Heading level={2} margin={0}>Select a site</Heading>
 
+      {/* Step 1 — Organization */}
       <Flex direction="row" alignItems="end" gap="size-200" wrap>
         <ComboBox
-          label="Search sites"
-          placeholder={loading ? 'Loading sites…' : 'Type to search by URL or site ID…'}
-          items={filteredSiteItems}
-          selectedKey={selectedKey}
-          onSelectionChange={handleSelectionChange}
-          inputValue={inputValue}
-          onInputChange={handleInputChange}
-          isDisabled={disabled || loading}
+          label="Organization"
+          placeholder={orgsLoading ? 'Loading organizations…' : 'Search by org name…'}
+          items={filteredOrgItems}
+          selectedKey={selectedOrgKey}
+          onSelectionChange={handleOrgSelectionChange}
+          inputValue={orgInputValue}
+          onInputChange={handleOrgInputChange}
+          isDisabled={disabled || orgsLoading}
           width="size-6000"
           menuTrigger="input"
-          loadingState={loading ? 'loading' : 'idle'}
-          validationState={error ? 'invalid' : undefined}
-          errorMessage={error ?? undefined}
+          loadingState={orgsLoading ? 'loading' : 'idle'}
+          validationState={orgsError ? 'invalid' : undefined}
+          errorMessage={orgsError ?? undefined}
           allowsCustomValue={false}
         >
           {(item) => <Item key={item.id} textValue={item.label}>{item.label}</Item>}
         </ComboBox>
-        {selectedSite && (
-          <Text
-            UNSAFE_style={{
-              fontSize: 'var(--spectrum-global-dimension-font-size-100)',
-              color: 'var(--spectrum-global-color-gray-700)',
-              fontWeight: 600,
-              paddingBottom: 6,
-            }}
-          >
-            {siteLabel(selectedSite)}
-          </Text>
-        )}
       </Flex>
 
-      {/* Recent sites — always visible, even while the full list is loading */}
+      {/* Step 2 — Site (visible once an org is chosen) */}
+      {selectedOrgKey && (
+        <Flex direction="row" alignItems="end" gap="size-200" wrap>
+          <ComboBox
+            label="Site"
+            placeholder={sitesLoading ? 'Loading sites…' : 'Type to search by URL or site ID…'}
+            items={filteredSiteItems}
+            selectedKey={selectedSiteKey}
+            onSelectionChange={handleSiteSelectionChange}
+            inputValue={siteInputValue}
+            onInputChange={handleSiteInputChange}
+            isDisabled={disabled || sitesLoading}
+            width="size-6000"
+            menuTrigger="input"
+            loadingState={sitesLoading ? 'loading' : 'idle'}
+            validationState={sitesError ? 'invalid' : undefined}
+            errorMessage={sitesError ?? undefined}
+            allowsCustomValue={false}
+          >
+            {(item) => <Item key={item.id} textValue={item.label}>{item.label}</Item>}
+          </ComboBox>
+          {selectedSite && (
+            <Text
+              UNSAFE_style={{
+                fontSize: 'var(--spectrum-global-dimension-font-size-100)',
+                color: 'var(--spectrum-global-color-gray-700)',
+                fontWeight: 600,
+                paddingBottom: 6,
+              }}
+            >
+              {siteLabel(selectedSite)}
+            </Text>
+          )}
+        </Flex>
+      )}
+
+      {/* Recent sites — always visible */}
       <Flex gap="size-100" wrap alignItems="center">
-        <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>Recent:</Text>
-        {recentMatchingSites.length > 0 ? (
-          recentMatchingSites.map((site) => (
+        <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>
+          Recent:
+        </Text>
+        {recentSites.length > 0 ? (
+          recentSites.map((recent) => (
             <Button
-              key={site.id}
+              key={recent.id}
               variant="secondary"
-              onPress={() => selectSite(site)}
+              onPress={() => handleRecentSitePress(recent)}
               isDisabled={disabled}
               UNSAFE_style={{ padding: '4px 10px', fontSize: '13px' }}
             >
-              {siteLabel(site)}
+              {recent.label}
             </Button>
           ))
-        ) : loading ? (
-          <Flex alignItems="center" gap="size-100">
-            <ProgressCircle size="S" isIndeterminate aria-label="Loading sites" />
-            <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>Loading…</Text>
-          </Flex>
         ) : (
-          <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>None yet</Text>
+          <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>
+            None yet
+          </Text>
         )}
       </Flex>
 
-      {/* Direct URL entry — usable while sites list is still loading */}
-      {loading && (
-        <Flex direction="column" gap="size-75">
-          <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-75)', color: 'var(--spectrum-global-color-gray-600)' }}>
-            Sites list loading… Enter a site URL directly to continue:
-          </Text>
-          <Flex direction="row" gap="size-150" alignItems="end" wrap>
-            <TextField
-              label="Site URL"
-              placeholder="https://example.com"
-              value={urlInput}
-              onChange={setUrlInput}
-              width="size-6000"
-              isDisabled={disabled || findingSite}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleFindByUrl(); }}
-              validationState={findError ? 'invalid' : undefined}
-              errorMessage={findError ?? undefined}
-            />
-            <Button
-              variant="primary"
-              onPress={handleFindByUrl}
-              isDisabled={disabled || !urlInput.trim() || findingSite}
-            >
-              {findingSite ? <ProgressCircle size="S" isIndeterminate aria-label="Finding" /> : 'Find site'}
-            </Button>
-          </Flex>
+      {/* URL fallback — always available */}
+      <Flex direction="column" gap="size-75">
+        <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-75)', color: 'var(--spectrum-global-color-gray-600)' }}>
+          Or enter a site URL directly:
+        </Text>
+        <Flex direction="row" gap="size-150" alignItems="end" wrap>
+          <TextField
+            label="Site URL"
+            placeholder="https://example.com"
+            value={urlInput}
+            onChange={setUrlInput}
+            width="size-6000"
+            isDisabled={disabled || findingSite}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleFindByUrl(); }}
+            validationState={findError ? 'invalid' : undefined}
+            errorMessage={findError ?? undefined}
+          />
+          <Button
+            variant="primary"
+            onPress={handleFindByUrl}
+            isDisabled={disabled || !urlInput.trim() || findingSite}
+          >
+            {findingSite ? <ProgressCircle size="S" isIndeterminate aria-label="Finding site" /> : 'Find site'}
+          </Button>
         </Flex>
-      )}
+      </Flex>
     </Flex>
   );
 }
