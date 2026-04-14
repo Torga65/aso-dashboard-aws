@@ -114,6 +114,15 @@
     @media (max-width: 700px) { .quick-ref-grid { grid-template-columns: 1fr; } }
     .quick-ref-pv-count { font-size: 28px; font-weight: 700; color: #d97706; line-height: 1; margin-bottom: 2px; }
     .quick-ref-pv-label { margin: 0; font-size: 12px; color: #666; }
+    .pv-opps-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .pv-opps-table th { text-align: left; padding: 4px 8px; font-size: 11px; font-weight: 600; color: #667eea; border-bottom: 1px solid #e0e0e0; white-space: nowrap; }
+    .pv-opps-table td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .pv-opps-table tr:last-child td { border-bottom: none; }
+    .pv-status-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .pv-status-NEW { background: #e7f1ff; color: #004085; }
+    .pv-status-IN_PROGRESS { background: #fff3cd; color: #856404; }
+    .pv-status-RESOLVED { background: #d4edda; color: #155724; }
+    .pv-status-PENDING_VALIDATION { background: #fef3c7; color: #92400e; }
     .quick-ref-backoffice-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #667eea; text-decoration: none; font-weight: 600; }
     .quick-ref-backoffice-link:hover { text-decoration: underline; }
     .quick-ref-box {
@@ -669,6 +678,36 @@
       font-size: 14px;
     }
     .btn-edit-customer:hover { background: #0d66d0; color: white !important; }
+    .ese-filter-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #f0f4ff;
+      color: #1a56b0;
+      border: 1.5px solid #a8c0f0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ese-filter-btn:hover { background: #dce8ff; border-color: #6a9ee8; }
+    .ese-filter-btn--active { background: #1a56b0; color: #fff; border-color: #1a56b0; }
+    .ese-filter-btn--active:hover { background: #1045a0; border-color: #1045a0; }
+    .ese-welcome-banner {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0 4px;
+      padding: 8px 14px;
+      background: #f0f4ff;
+      border-left: 4px solid #1a56b0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1a3a6b;
+    }
 
     /* ── Dark mode ───────────────────────────────────────────────────── */
     [data-theme="dark"] body { background: #1a1a1a; color: #e8e8e8; }
@@ -692,6 +731,10 @@
     [data-theme="dark"] .qr-prog-field input,
     [data-theme="dark"] .qr-prog-field textarea,
     [data-theme="dark"] .quick-ref-autofix-select { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .ese-filter-btn { background: #1e2a3a; color: #93c5fd; border-color: #3a5a8a; }
+    [data-theme="dark"] .ese-filter-btn:hover { background: #243450; }
+    [data-theme="dark"] .ese-filter-btn--active { background: #1a56b0; color: #fff; border-color: #1a56b0; }
+    [data-theme="dark"] .ese-welcome-banner { background: #1a2540; border-left-color: #4a8adc; color: #93c5fd; }
     [data-theme="dark"] .controls .customer-select-dropdown { border-color: #4a4a4a; }
     [data-theme="dark"] .controls .customer-select-dropdown li { border-bottom-color: #3a3a3a; color: #d0d0d0; }
     [data-theme="dark"] .controls .customer-select-dropdown li:hover { background: #2a3a5a; }
@@ -719,6 +762,8 @@
     [data-theme="dark"] .qr-progression-meta,
     [data-theme="dark"] .qr-progression-days,
     [data-theme="dark"] .quick-ref-pv-label { color: #999; }
+    [data-theme="dark"] .pv-opps-table th { color: #a0a8f0; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .pv-opps-table td { border-bottom-color: #2a2a2a; color: #d0d0d0; }
     [data-theme="dark"] .qr-comment-meta strong,
     [data-theme="dark"] .qr-comment-body,
     [data-theme="dark"] .qr-notes-item-title,
@@ -892,8 +937,12 @@
           <option value="">All</option>
         </select>
       </div>
+      <button type="button" id="ese-filter-toggle" class="ese-filter-btn" style="display:none;">My Customers</button>
     </div>
     
+    <!-- ESE welcome banner (shown after login if user is identified as an ESE) -->
+    <div id="ese-welcome-banner" class="ese-welcome-banner" style="display:none;"></div>
+
     <!-- Timeline Display -->
     <div id="timeline-display"></div>
   </main>
@@ -903,6 +952,10 @@
     let allData = [];
     let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
+    // ESE filter: when non-null, only show customers whose eseLead matches this value.
+    // Set automatically on login when the signed-in user appears as an ESE.
+    let eseFilter = null;       // the active eseLead string being filtered on, or null = all
+    let eseIdentity = null;     // the eseLead value matched to the signed-in user (persists across toggle)
 
     function escapeHtml(s) {
       const div = document.createElement('div');
@@ -1092,7 +1145,12 @@
 
     function getFilteredCustomers() {
       const licenseType = document.getElementById('license-type-select')?.value;
-      const visible = allData.filter((c) => !c.hidden);
+      let visible = allData.filter((c) => !c.hidden);
+      // ESE filter: narrow to customers assigned to the signed-in ESE
+      if (eseFilter) {
+        const ese = eseFilter.trim().toLowerCase();
+        visible = visible.filter((c) => (c.eseLead || '').trim().toLowerCase() === ese);
+      }
       let customers;
       if (!licenseType) {
         customers = [...new Set(visible.map((c) => c.companyName))].sort();
@@ -1100,6 +1158,69 @@
         customers = [...new Set(visible.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
       }
       return applyQueryFilters(customers);
+    }
+
+    /**
+     * Update the "My Customers / All Customers" toggle button visibility and label
+     * to reflect the current eseFilter state.
+     */
+    function updateEseToggle() {
+      const btn = document.getElementById('ese-filter-toggle');
+      if (!btn) return;
+      if (!eseIdentity) { btn.style.display = 'none'; return; }
+      btn.style.display = 'inline-flex';
+      if (eseFilter) {
+        btn.textContent = 'All Customers';
+        btn.title = 'Showing only your assigned customers — click to view all';
+        btn.classList.add('ese-filter-btn--active');
+      } else {
+        btn.textContent = 'My Customers';
+        btn.title = 'Click to show only your assigned customers';
+        btn.classList.remove('ese-filter-btn--active');
+      }
+    }
+
+    /**
+     * Show or clear the welcome banner for the signed-in user.
+     */
+    function updateWelcomeBanner(profile, customerCount) {
+      let banner = document.getElementById('ese-welcome-banner');
+      if (!banner) return;
+      if (!profile) { banner.style.display = 'none'; return; }
+      const displayName = profile.displayName || profile.name || profile.email || '';
+      if (eseIdentity) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `Welcome back, <strong>${escapeHtml(displayName)}</strong>! Showing your ${customerCount} assigned customer${customerCount !== 1 ? 's' : ''}.`;
+      } else {
+        banner.style.display = 'flex';
+        banner.innerHTML = `Welcome back, <strong>${escapeHtml(displayName)}</strong>! No customers are assigned to you — showing all customers.`;
+      }
+    }
+
+    /**
+     * Given an IMS profile, check whether the user appears as an eseLead on any
+     * customer record. If so, activate the ESE filter automatically and show a
+     * welcome message. If no match, show all customers with a welcome message.
+     */
+    function detectAndApplyEseFilter(profile) {
+      if (!profile || !allData.length) return;
+      // Build name candidates from every variant the profile exposes
+      const candidates = [
+        profile.displayName,
+        profile.name,
+        profile.email ? profile.email.split('@')[0].replace(/[._]/g, ' ') : null,
+      ].filter(Boolean).map((s) => s.trim().toLowerCase());
+
+      const matched = allData
+        .map((c) => (c.eseLead || '').trim())
+        .find((ese) => ese && candidates.some((c) => ese.toLowerCase() === c));
+
+      eseIdentity = matched || null;
+      eseFilter = eseIdentity; // auto-activate "My Customers" view on login
+      showAllCustomers();
+      updateEseToggle();
+      const count = getFilteredCustomers().length;
+      updateWelcomeBanner(profile, count);
     }
 
     async function loadHistoricalData() {
@@ -1279,6 +1400,33 @@
         // Show controls
         document.getElementById('loading').style.display = 'none';
         document.getElementById('controls').style.display = 'flex';
+
+        // Wire the ESE toggle button (only visible when the user is an identified ESE)
+        const eseToggleBtn = document.getElementById('ese-filter-toggle');
+        if (eseToggleBtn) {
+          eseToggleBtn.addEventListener('click', () => {
+            eseFilter = eseFilter ? null : eseIdentity;
+            updateEseToggle();
+            showAllCustomers();
+          });
+        }
+
+        // onAuthReady fires immediately if the IMS token is already present, otherwise
+        // fires once when the token arrives — covers both fast and slow postMessage delivery.
+        if (typeof window.onAuthReady === 'function') {
+          window.onAuthReady((profile) => detectAndApplyEseFilter(profile));
+        }
+
+        // Re-detect on subsequent sign-in / sign-out events
+        if (typeof window.onAuthStateChange === 'function') {
+          window.onAuthStateChange((profile) => {
+            eseIdentity = null;
+            eseFilter = null;
+            updateEseToggle();
+            updateWelcomeBanner(null, 0);
+            detectAndApplyEseFilter(profile);
+          });
+        }
 
         // Check for ?customer= URL param and auto-select that customer
         const urlParams = new URLSearchParams(window.location.search);
