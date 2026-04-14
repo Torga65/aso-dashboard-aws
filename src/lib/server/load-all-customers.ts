@@ -7,6 +7,15 @@ import { getServerClient } from "@/lib/amplify-server-utils";
 import { toCustomer } from "@/lib/mappers";
 import type { Customer } from "@/lib/types";
 
+/** Returns true if the raw snapshot should be hidden from the UI (terminated or churned). */
+function isHidden(snap: { licenseType?: string | null; terminationReason?: string | null; status?: string | null }): boolean {
+  if ((snap.terminationReason ?? "").trim()) return true;
+  if ((snap.licenseType ?? "").trim().toLowerCase() === "terminated") return true;
+  const status = (snap.status ?? "").trim().toLowerCase();
+  if (status === "churned" || status === "dead") return true;
+  return false;
+}
+
 export async function loadAllCustomers(): Promise<Customer[]> {
   const client = getServerClient();
 
@@ -36,7 +45,7 @@ export async function loadAllCustomers(): Promise<Customer[]> {
     });
 
     const allRecords = weekResults.flatMap(({ data }) =>
-      (data ?? []).map(toCustomer)
+      (data ?? []).filter((snap) => !isHidden(snap)).map(toCustomer)
     );
 
     if (allRecords.length > 0) return allRecords;
@@ -57,7 +66,7 @@ export async function loadAllCustomers(): Promise<Customer[]> {
       break;
     }
 
-    allRecords.push(...(data ?? []).map(toCustomer));
+    allRecords.push(...(data ?? []).filter((snap) => !isHidden(snap)).map(toCustomer));
     nextToken = next ?? undefined;
   } while (nextToken);
 
