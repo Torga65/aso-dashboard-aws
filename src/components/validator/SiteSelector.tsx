@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ComboBox, Item, Flex, Heading, Button, ProgressCircle, Text } from '@adobe/react-spectrum';
+import { ComboBox, Item, Flex, Heading, Button, ProgressCircle, Text, TextField } from '@adobe/react-spectrum';
 import { useIMSAuth } from '@/contexts/IMSAuthContext';
 
 export interface Site {
@@ -49,6 +49,10 @@ function saveRecentSite(site: Site): void {
   }
 }
 
+function normalizeUrl(url: string): string {
+  return url.trim().replace(/\/$/, '').toLowerCase();
+}
+
 export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL }: SiteSelectorProps) {
   const { accessToken } = useIMSAuth();
   const [sites, setSites] = useState<Site[]>([]);
@@ -57,6 +61,11 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [recentSites, setRecentSites] = useState<Array<{ id: string; label: string }>>([]);
+
+  // URL input fallback state
+  const [urlInput, setUrlInput] = useState('');
+  const [findingSite, setFindingSite] = useState(false);
+  const [findError, setFindError] = useState<string | null>(null);
 
   useEffect(() => {
     setRecentSites(getRecentSites());
@@ -91,9 +100,9 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
         setSites(list);
         // Auto-select if a baseURL was passed via query param
         if (preloadBaseURL && list.length > 0) {
-          const normalized = preloadBaseURL.trim().replace(/\/$/, '').toLowerCase();
+          const normalized = normalizeUrl(preloadBaseURL);
           const match = list.find(
-            (s: Site) => ((s.baseURL as string) ?? '').trim().replace(/\/$/, '').toLowerCase() === normalized
+            (s: Site) => normalizeUrl((s.baseURL as string) ?? '') === normalized
           );
           if (match) {
             onSelect(match);
@@ -164,6 +173,51 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
     if (!value.trim()) setSelectedKey(null);
   }, []);
 
+  /** Find a site by URL — works independently of the preloaded sites list. */
+  const handleFindByUrl = useCallback(async () => {
+    const url = urlInput.trim();
+    if (!url || !accessToken) return;
+    const normalized = normalizeUrl(url);
+
+    // Check already-loaded sites first (instant)
+    if (sites.length > 0) {
+      const match = sites.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
+      if (match) {
+        selectSite(match);
+        setFindError(null);
+        return;
+      }
+    }
+
+    setFindingSite(true);
+    setFindError(null);
+    try {
+      // SpaceCat may support baseURL filtering — if not, it returns all sites and we filter
+      const res = await fetch(
+        `/api/spacecat/sites?baseURL=${encodeURIComponent(url)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || `HTTP ${res.status}`);
+      }
+      const raw = await res.json();
+      const all: Site[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      const match = all.find((s) => normalizeUrl((s.baseURL as string) ?? '') === normalized);
+      if (match) {
+        selectSite(match);
+        // Also populate the sites list if it wasn't loaded
+        if (sites.length === 0) setSites(all);
+      } else {
+        setFindError(`No site found for: ${url}`);
+      }
+    } catch (e) {
+      setFindError(e instanceof Error ? e.message : 'Failed to find site');
+    } finally {
+      setFindingSite(false);
+    }
+  }, [urlInput, accessToken, sites, selectSite]);
+
   return (
     <Flex direction="column" gap="size-150" marginBottom="size-200">
       <Heading level={2} margin={0}>Select a site</Heading>
@@ -201,15 +255,10 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
         )}
       </Flex>
 
-      {/* Recent sites row: show loading spinner or chips */}
+      {/* Recent sites — always visible, even while the full list is loading */}
       <Flex gap="size-100" wrap alignItems="center">
         <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>Recent:</Text>
-        {loading ? (
-          <Flex alignItems="center" gap="size-100">
-            <ProgressCircle size="S" isIndeterminate aria-label="Loading recent sites" />
-            <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>Loading…</Text>
-          </Flex>
-        ) : (
+        {recentMatchingSites.length > 0 ? (
           recentMatchingSites.map((site) => (
             <Button
               key={site.id}
@@ -221,8 +270,44 @@ export function SiteSelector({ onSelect, selectedSite, disabled, preloadBaseURL 
               {siteLabel(site)}
             </Button>
           ))
+        ) : loading ? (
+          <Flex alignItems="center" gap="size-100">
+            <ProgressCircle size="S" isIndeterminate aria-label="Loading sites" />
+            <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>Loading…</Text>
+          </Flex>
+        ) : (
+          <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-100)', color: 'var(--spectrum-global-color-gray-600)' }}>None yet</Text>
         )}
       </Flex>
+
+      {/* Direct URL entry — usable while sites list is still loading */}
+      {loading && (
+        <Flex direction="column" gap="size-75">
+          <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-75)', color: 'var(--spectrum-global-color-gray-600)' }}>
+            Sites list loading… Enter a site URL directly to continue:
+          </Text>
+          <Flex direction="row" gap="size-150" alignItems="end" wrap>
+            <TextField
+              label="Site URL"
+              placeholder="https://example.com"
+              value={urlInput}
+              onChange={setUrlInput}
+              width="size-6000"
+              isDisabled={disabled || findingSite}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleFindByUrl(); }}
+              validationState={findError ? 'invalid' : undefined}
+              errorMessage={findError ?? undefined}
+            />
+            <Button
+              variant="primary"
+              onPress={handleFindByUrl}
+              isDisabled={disabled || !urlInput.trim() || findingSite}
+            >
+              {findingSite ? <ProgressCircle size="S" isIndeterminate aria-label="Finding" /> : 'Find site'}
+            </Button>
+          </Flex>
+        </Flex>
+      )}
     </Flex>
   );
 }
