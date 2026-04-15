@@ -1054,69 +1054,78 @@ async function loadCustomerNotes(container, customerName) {
   }
 
   // Upload / save
-  if (uploadBtn) {
-    uploadBtn.addEventListener('click', async () => {
-      const date  = dateInput?.value;
-      const title = titleInput?.value.trim();
-      const text  = textarea?.value.trim();
-      const file  = fileInput?.files?.[0];
+  async function doSave() {
+    const date  = dateInput?.value;
+    const title = titleInput?.value.trim();
+    const text  = textarea?.value.trim();
+    const file  = fileInput?.files?.[0];
 
-      if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
-      if (!text && !file) { if (statusEl) { statusEl.textContent = 'Enter notes or choose a file.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
+    if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
+    if (!text && !file) { if (statusEl) { statusEl.textContent = 'Enter notes or choose a file.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
 
-      uploadBtn.disabled = true;
-      if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'qr-notes-upload-status'; }
+    if (uploadBtn) uploadBtn.disabled = true;
+    if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'qr-notes-upload-status'; }
 
-      try {
-        const profile = typeof getProfile === 'function' ? getProfile() : null;
-        const uploadedBy = profile?.email || profile?.name || '';
+    try {
+      const profile = typeof getProfile === 'function' ? getProfile() : null;
+      const uploadedBy = profile?.email || profile?.name || '';
 
-        let uploadFile;
-        if (file) {
-          uploadFile = file;
-        } else {
-          // Wrap typed text as a .txt file named after the title or date
-          const filename = `${(title || date).replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
-          uploadFile = new File([text], filename, { type: 'text/plain' });
+      let uploadFile;
+      if (file) {
+        // Extract text content client-side (handles PDF, DOCX, XLSX, etc.)
+        if (statusEl) { statusEl.textContent = 'Extracting text…'; statusEl.className = 'qr-notes-upload-status'; }
+        const { text: extracted, fileName: extractedName } = window.extractFileText
+          ? await window.extractFileText(file)
+          : { text: await file.text(), fileName: file.name };
+        const contentText = (extracted || text || '').trim();
+        if (!contentText) {
+          if (statusEl) { statusEl.textContent = 'Could not extract text from file.'; statusEl.className = 'qr-notes-upload-status err'; }
+          if (uploadBtn) uploadBtn.disabled = false;
+          return;
         }
-
-        const form = new FormData();
-        form.append('company', customerName);
-        form.append('meetingDate', date);
-        form.append('fileType', 'notes');
-        form.append('uploadedBy', uploadedBy);
-        // Use title as filename if provided
-        const finalFilename = title
-          ? `${title.replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`
-          : uploadFile.name;
-        form.append('file', uploadFile, finalFilename);
-
-        const res = await fetch('/api/transcripts', { method: 'POST', body: form });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-
-        if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-notes-upload-status ok'; }
-        if (textarea) textarea.value = '';
-        if (titleInput) titleInput.value = '';
-        if (fileInput) fileInput.value = '';
-        await fetchAndRenderList();
-      } catch (err) {
-        if (statusEl) { statusEl.textContent = `Failed: ${err.message}`; statusEl.className = 'qr-notes-upload-status err'; }
-      } finally {
-        uploadBtn.disabled = false;
+        const baseName = (title || (extractedName || file.name).replace(/\.[^.]+$/, ''));
+        const filename = `${baseName.replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
+        uploadFile = new File([contentText], filename, { type: 'text/plain' });
+      } else {
+        // Wrap typed text as a .txt file named after the title or date
+        const filename = `${(title || date).replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
+        uploadFile = new File([text], filename, { type: 'text/plain' });
       }
-    });
 
-    // Auto-populate textarea when file is selected
-    if (fileInput) {
-      fileInput.addEventListener('change', async () => {
-        const file = fileInput.files?.[0];
-        if (!file) return;
-        const text = await file.text();
-        if (textarea) textarea.value = text;
-        if (titleInput && !titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
-      });
+      const form = new FormData();
+      form.append('company', customerName);
+      form.append('meetingDate', date);
+      form.append('fileType', 'notes');
+      form.append('uploadedBy', uploadedBy);
+      form.append('file', uploadFile, uploadFile.name);
+
+      const res = await fetch('/api/transcripts', { method: 'POST', body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+      if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-notes-upload-status ok'; }
+      if (textarea) textarea.value = '';
+      if (titleInput) titleInput.value = '';
+      if (fileInput) fileInput.value = '';
+      await fetchAndRenderList();
+    } catch (err) {
+      if (statusEl) { statusEl.textContent = `Failed: ${err.message}`; statusEl.className = 'qr-notes-upload-status err'; }
+    } finally {
+      if (uploadBtn) uploadBtn.disabled = false;
     }
+  }
+
+  if (uploadBtn) uploadBtn.addEventListener('click', doSave);
+
+  // Auto-upload when a file is selected (no extra click needed)
+  if (fileInput) {
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      if (titleInput && !titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
+      if (statusEl) { statusEl.textContent = `File selected: ${file.name} — saving…`; statusEl.className = 'qr-notes-upload-status'; }
+      await doSave();
+    });
   }
 
   await fetchAndRenderList();
