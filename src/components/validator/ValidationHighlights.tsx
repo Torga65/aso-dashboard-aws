@@ -37,8 +37,6 @@ import {
   Badge,
   Picker,
   Item,
-  TooltipTrigger,
-  Tooltip,
   type Selection,
 } from '@adobe/react-spectrum';
 import Info from '@spectrum-icons/workflow/Info';
@@ -303,6 +301,108 @@ function SuggestionInfoDialog({ suggestion }: { suggestion: Suggestion }) {
   );
 }
 
+// ─── Validation result detail dialog ─────────────────────────────────────────
+
+function parseCheckLines(raw: string | undefined): Array<{ text: string; pass: boolean | null }> {
+  if (!raw) return [];
+  return raw.split('|').reduce<Array<{ text: string; pass: boolean | null }>>((acc, part) => {
+    const t = part.trim();
+    if (!t) return acc;
+    const pass = t.startsWith('✓') ? true : t.startsWith('✗') ? false : null;
+    acc.push({ text: pass !== null ? t.slice(1).trim() : t, pass });
+    return acc;
+  }, []);
+}
+
+function CheckLine({ line }: { line: { text: string; pass: boolean | null } }) {
+  const color = line.pass === true
+    ? 'var(--spectrum-semantic-positive-color-default)'
+    : line.pass === false
+      ? 'var(--spectrum-semantic-negative-color-default)'
+      : 'var(--spectrum-global-color-gray-700)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderBottom: '1px solid var(--spectrum-alias-border-color-extralight)' }}>
+      {line.pass !== null && (
+        <span style={{ color, flexShrink: 0, display: 'flex', alignItems: 'center', marginTop: 1 }}>
+          {line.pass ? <CheckmarkCircle size="S" aria-hidden /> : <CloseCircle size="S" aria-hidden />}
+        </span>
+      )}
+      <span style={{ fontSize: 13, lineHeight: '1.5', color: line.pass === null ? 'var(--spectrum-global-color-gray-700)' : color }}>
+        {line.text}
+      </span>
+    </div>
+  );
+}
+
+function ValidationResultDialog({ result }: { result: ValidationResultItem }) {
+  const dialog = useDialogContainer();
+  const label = RESULT_LABEL[result.validation_status] ?? result.validation_status;
+  const isPass = result.validation_status === 'real_issue' || result.validation_status === 'gate_passed';
+  const isFail = ['false_positive', 'invalid_data', 'error'].includes(result.validation_status);
+  const statusColor = isPass
+    ? 'var(--spectrum-semantic-positive-color-default)'
+    : isFail
+      ? 'var(--spectrum-semantic-negative-color-default)'
+      : 'var(--spectrum-global-color-gray-600)';
+  const StatusIcon = isPass ? CheckmarkCircle : isFail ? CloseCircle : AlertCircle;
+
+  const checkLines = parseCheckLines(result.explanation);
+  const fixLines   = parseCheckLines(result.fixExplanation);
+
+  return (
+    <>
+      <Heading>Validation Result</Heading>
+      <Divider size="S" />
+      <Content>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Overall status */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 14px', borderRadius: 6,
+            background: isPass ? 'rgba(38,142,108,0.08)' : isFail ? 'rgba(227,72,80,0.08)' : 'rgba(0,0,0,0.04)',
+            border: `1px solid ${statusColor}`,
+          }}>
+            <span style={{ color: statusColor, display: 'flex' }}>
+              <StatusIcon size="M" aria-hidden />
+            </span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: statusColor }}>{label}</span>
+          </div>
+
+          {/* Validation checks */}
+          {checkLines.length > 0 && (
+            <div>
+              <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Validation Checks</p>
+              <div>
+                {checkLines.map((line, i) => <CheckLine key={i} line={line} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Fix validation */}
+          {fixLines.length > 0 && (
+            <div>
+              <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Fix Validation</p>
+              <div>
+                {fixLines.map((line, i) => <CheckLine key={i} line={line} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback: raw explanation when no structured lines were parsed */}
+          {checkLines.length === 0 && fixLines.length === 0 && result.explanation && (
+            <p style={{ margin: 0, fontSize: 13, whiteSpace: 'pre-wrap' }}>{result.explanation}</p>
+          )}
+
+        </div>
+      </Content>
+      <ButtonGroup>
+        <Button variant="secondary" onPress={() => dialog.dismiss()}>Close</Button>
+      </ButtonGroup>
+    </>
+  );
+}
+
 // ─── Type-specific column definitions ────────────────────────────────────────
 
 interface TypeColDef {
@@ -382,10 +482,41 @@ const TYPE_COLS: Record<string, TypeColDef[]> = {
     AI_SUGG('Suggested Fix'),
   ],
   'a11y-assistive': [
-    PAGE_URL(),
-    { uid: 'checkType', name: 'Issue Type', width: 240, extract: (s) => pick(s, 'checkType', 'issueType', 'type', 'errorType') },
-    { uid: 'element',   name: 'Element',               extract: (s) => pick(s, 'element', 'elementText', 'selector') },
-    AI_SUGG('Suggested Fix'),
+    // data.url is the page URL (same axe-core shape as a11y-color-contrast)
+    { uid: 'pageUrl', name: 'Page URL', mono: true, extract: (s) => str(dat(s).url ?? dat(s).pageUrl) },
+    // data.issues[].id — axe-core rule id, e.g. "aria-label", "button-name", "image-alt"
+    {
+      uid: 'issueId',
+      name: 'Issue',
+      width: 220,
+      extract: (s) => {
+        const issues = dat(s).issues as Array<{ id?: string; description?: string }> | undefined ?? [];
+        const ids = issues.map((i) => i.id ?? i.description ?? '').filter(Boolean);
+        return ids.length > 0 ? ids : '—';
+      },
+    },
+    // data.issues[].htmlWithIssues[].target_selector — CSS selectors of affected elements
+    {
+      uid: 'selectors',
+      name: 'Selectors',
+      extract: (s) => {
+        const issues = dat(s).issues as Array<{ htmlWithIssues?: Array<{ target_selector?: string }> }> | undefined ?? [];
+        const selectors = issues.flatMap((i) =>
+          (i.htmlWithIssues ?? []).map((h) => h.target_selector ?? '').filter(Boolean)
+        );
+        return selectors.length > 0 ? selectors : '—';
+      },
+    },
+    // data.issues[].failureSummary — human-readable description
+    {
+      uid: 'failureSummary',
+      name: 'Failure Summary',
+      extract: (s) => {
+        const issues = dat(s).issues as Array<{ failureSummary?: string }> | undefined ?? [];
+        const summaries = issues.map((i) => i.failureSummary ?? '').filter(Boolean);
+        return summaries.length > 0 ? summaries : '—';
+      },
+    },
   ],
   'a11y-color-contrast': [
     // data.url is the page URL
@@ -509,8 +640,8 @@ function ValidationResultCell({
 
   const label = RESULT_LABEL[result.validation_status] ?? result.validation_status;
   const isPass = result.validation_status === 'real_issue' || result.validation_status === 'gate_passed';
-  const isFail = result.validation_status === 'false_positive' || result.validation_status === 'invalid_data' || result.validation_status === 'error';
-  const color  = isPass
+  const isFail = ['false_positive', 'invalid_data', 'error'].includes(result.validation_status);
+  const color = isPass
     ? 'var(--spectrum-semantic-positive-color-default)'
     : isFail
       ? 'var(--spectrum-semantic-negative-color-default)'
@@ -522,65 +653,32 @@ function ValidationResultCell({
       ? <CloseCircle size="S" aria-hidden />
       : <AlertCircle size="S" aria-hidden />;
 
-  const explanation = result.explanation?.trim();
-  const fixExplanation = result.fixExplanation?.trim();
-  const hasTooltip = !!(explanation || fixExplanation);
+  const hasDetails = !!(result.explanation?.trim() || result.fixExplanation?.trim());
 
-  // Build structured lines: split explanation on |, append fixExplanation
-  const tooltipLines: Array<{ text: string; pass: boolean | null }> = [];
-  if (explanation) {
-    for (const part of explanation.split('|')) {
-      const t = part.trim();
-      if (!t) continue;
-      const pass = t.startsWith('✓') ? true : t.startsWith('✗') ? false : null;
-      tooltipLines.push({ text: pass !== null ? t.slice(1).trim() : t, pass });
-    }
-  }
-  if (fixExplanation) {
-    const pass = fixExplanation.startsWith('✓') ? true : fixExplanation.startsWith('✗') ? false : null;
-    tooltipLines.push({ text: pass !== null ? fixExplanation.slice(1).trim() : fixExplanation, pass });
-  }
+  const inner = (
+    <Flex alignItems="center" gap="size-75">
+      <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-75)', color }}>{label}</Text>
+    </Flex>
+  );
 
-  const tooltipContent = tooltipLines.length > 0 ? (
-    <div style={{ padding: '4px 2px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {tooltipLines.map((line, i) => {
-        const symbolColor = line.pass === true
-          ? '#1a7f46'   // dark green — readable on light tooltip bg
-          : line.pass === false
-            ? '#c83b35'  // dark red — readable on light tooltip bg
-            : 'inherit';
-        return (
-          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-            {line.pass !== null && (
-              <span style={{ color: symbolColor, flexShrink: 0, fontWeight: 900, lineHeight: '1.2', fontSize: 17 }}>
-                {line.pass ? '✓' : '✗'}
-              </span>
-            )}
-            <span style={{ lineHeight: '1.4' }}>{line.text}</span>
-          </div>
-        );
-      })}
-    </div>
-  ) : null;
+  if (!hasDetails) return inner;
 
   return (
-    <Flex alignItems="center" gap="size-75">
-      {hasTooltip ? (
-        <TooltipTrigger delay={200}>
-          <ActionButton
-            isQuiet
-            aria-label={`${label}${explanation ? `: ${explanation}` : ''}`}
-            UNSAFE_style={{ color, minWidth: 0, width: 20, height: 20, padding: 0 }}
-          >
-            {icon}
-          </ActionButton>
-          <Tooltip maxWidth={480}>{tooltipContent ?? explanation}</Tooltip>
-        </TooltipTrigger>
-      ) : (
-        <span style={{ color }}>{icon}</span>
+    <DialogTrigger isDismissable>
+      <ActionButton
+        isQuiet
+        aria-label={`View validation details: ${label}`}
+        UNSAFE_style={{ padding: '2px 4px', height: 'auto', minWidth: 0, cursor: 'pointer' }}
+      >
+        {inner}
+      </ActionButton>
+      {() => (
+        <Dialog width="size-5000">
+          <ValidationResultDialog result={result} />
+        </Dialog>
       )}
-      <Text UNSAFE_style={{ fontSize: 'var(--spectrum-global-dimension-font-size-75)' }}>{label}</Text>
-    </Flex>
+    </DialogTrigger>
   );
 }
 
