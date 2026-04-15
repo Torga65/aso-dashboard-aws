@@ -16,11 +16,25 @@ export function mapOpportunityToTypeId(opportunity: Opportunity): string {
   if (type === 'a11y-color-contrast' || title.includes('color contrast')) return 'a11y-color-contrast';
 
   if (
+    type === 'a11y-assistive' ||
+    type === 'a11y_assistive' ||
+    title.includes('aria') ||
+    title.includes('assistive') ||
+    title.includes('aria label') ||
+    (title.includes('a11y') && !title.includes('color'))
+  ) return 'a11y-assistive';
+
+  if (
     type === 'broken-internal-links' ||
     type === 'broken_internal_links' ||
     type === 'broken-links' ||
     type === 'broken_links' ||
+    type === 'broken-backlinks' ||
+    type === 'broken_backlinks' ||
+    type === 'backlinks' ||
     title.includes('broken internal link') ||
+    title.includes('broken backlink') ||
+    (title.includes('broken') && title.includes('backlink')) ||
     (title.includes('broken') && title.includes('internal') && title.includes('link'))
   ) {
     return 'broken-internal-links';
