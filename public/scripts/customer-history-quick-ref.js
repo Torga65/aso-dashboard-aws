@@ -969,6 +969,9 @@ async function loadCustomerNotes(container, customerName) {
       const { data } = await res.json();
       const items = (data || []).filter(i => i.fileType === 'notes');
 
+      // Newest first
+      items.sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+
       if (countBadge) countBadge.textContent = items.length > 0 ? `(${items.length})` : '';
 
       if (items.length === 0) {
@@ -976,21 +979,74 @@ async function loadCustomerNotes(container, customerName) {
         return;
       }
 
-      listEl.innerHTML = items.map(item => {
+      listEl.innerHTML = items.map((item, idx) => {
+        const isLatest = idx === 0;
         const byLabel = item.uploadedBy ? `<span class="qr-notes-item-by">· ${escapeHtml(item.uploadedBy)}</span>` : '';
         const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
+        const title = escapeHtml(item.fileName.replace(/\.[^.]+$/, ''));
+        const descRow = item.description ? `<div class="qr-notes-item-desc">${escapeHtml(item.description)}</div>` : '';
         return `
-          <div class="qr-notes-item" data-id="${escapeHtml(item.id)}" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">
+          <div class="qr-notes-item" data-id="${escapeHtml(item.id)}" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}" data-loaded="${isLatest ? 'pending' : 'no'}">
             <div class="qr-notes-item-header">
               <span class="qr-notes-item-date">${escapeHtml(item.meetingDate)}</span>
-              <span class="qr-notes-item-title" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName.replace(/\.txt$|\.md$/i, ''))}</span>
+              <span class="qr-notes-item-title" title="${escapeHtml(item.fileName)}">${title}</span>
               ${byLabel}
               <div class="qr-notes-item-actions">
+                <button class="qr-notes-item-toggle">${isLatest ? 'Hide' : 'Show content'}</button>
                 <button class="qr-notes-ai-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
               </div>
             </div>
+            ${descRow}
+            <div class="qr-notes-item-body${isLatest ? '' : ' qr-notes-item-body--hidden'}">${isLatest ? '<em class="qr-notes-loading">Loading…</em>' : ''}</div>
           </div>`;
       }).join('');
+
+      // Auto-load content for the latest note
+      const latestEl = listEl.querySelector('.qr-notes-item');
+      if (latestEl) {
+        const bodyEl = latestEl.querySelector('.qr-notes-item-body');
+        const viewUrl = latestEl.dataset.viewUrl;
+        try {
+          const r = await fetch(viewUrl);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const content = await r.text();
+          bodyEl.textContent = content.trim() || '(empty)';
+          latestEl.dataset.loaded = 'yes';
+        } catch {
+          bodyEl.textContent = 'Could not load note content.';
+          latestEl.dataset.loaded = 'error';
+        }
+      }
+
+      // Wire toggle buttons (lazy-load content for non-latest notes)
+      listEl.querySelectorAll('.qr-notes-item-toggle').forEach(toggle => {
+        toggle.addEventListener('click', async () => {
+          const itemEl = toggle.closest('.qr-notes-item');
+          const bodyEl = itemEl?.querySelector('.qr-notes-item-body');
+          if (!bodyEl) return;
+          const isHidden = bodyEl.classList.contains('qr-notes-item-body--hidden');
+          if (isHidden) {
+            bodyEl.classList.remove('qr-notes-item-body--hidden');
+            toggle.textContent = 'Hide';
+            if (itemEl.dataset.loaded === 'no') {
+              bodyEl.innerHTML = '<em class="qr-notes-loading">Loading…</em>';
+              try {
+                const r = await fetch(itemEl.dataset.viewUrl);
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const content = await r.text();
+                bodyEl.textContent = content.trim() || '(empty)';
+                itemEl.dataset.loaded = 'yes';
+              } catch {
+                bodyEl.textContent = 'Could not load content.';
+                itemEl.dataset.loaded = 'error';
+              }
+            }
+          } else {
+            bodyEl.classList.add('qr-notes-item-body--hidden');
+            toggle.textContent = 'Show content';
+          }
+        });
+      });
 
       // Wire per-item AI buttons
       listEl.querySelectorAll('.qr-notes-ai-btn').forEach(btn => {
@@ -1000,9 +1056,12 @@ async function loadCustomerNotes(container, customerName) {
           const orig = btn.textContent;
           btn.textContent = 'Fetching…'; btn.disabled = true;
           try {
-            const r = await fetch(viewUrl);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const content = await r.text();
+            const itemEl = btn.closest('.qr-notes-item');
+            const bodyEl = itemEl?.querySelector('.qr-notes-item-body');
+            // Re-use already-loaded content if available
+            const content = (itemEl?.dataset.loaded === 'yes' && bodyEl?.textContent)
+              ? bodyEl.textContent
+              : await fetch(viewUrl).then(r => r.ok ? r.text() : Promise.reject(r.status));
             const prompt = `Please analyze these meeting notes for ${customerName} (${date}) and summarize key discussion points, decisions, action items, and any customer concerns:\n\n${content}`;
             await navigator.clipboard.writeText(prompt);
             btn.textContent = 'Copied!';
