@@ -217,9 +217,11 @@
     .qr-notes-item-actions { display: flex; gap: 6px; }
     .qr-notes-item-view { padding: 2px 8px; font-size: 11px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #333; white-space: nowrap; }
     .qr-notes-item-view:hover { background: #e9ecef; }
-    .qr-notes-item-body { font-size: 12px; color: #555; white-space: pre-wrap; line-height: 1.5; max-height: 120px; overflow: hidden; position: relative; }
-    .qr-notes-item-body.expanded { max-height: none; }
-    .qr-notes-item-toggle { font-size: 11px; color: #667eea; cursor: pointer; background: none; border: none; padding: 2px 0; }
+    .qr-notes-item-desc { font-size: 11px; color: #888; font-style: italic; margin: 2px 0 4px; }
+    .qr-notes-item-body { font-size: 12px; color: #555; white-space: pre-wrap; line-height: 1.5; margin-top: 6px; max-height: 200px; overflow-y: auto; }
+    .qr-notes-item-body--hidden { display: none; }
+    .qr-notes-loading { font-style: italic; color: #999; }
+    .qr-notes-item-toggle { font-size: 11px; color: #667eea; cursor: pointer; background: none; border: none; padding: 0; white-space: nowrap; }
     .qr-notes-ai-btn { padding: 2px 8px; font-size: 11px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; white-space: nowrap; }
     .qr-notes-ai-btn:hover { background: #fde68a; }
     .qr-notes-ai-range { padding: 4px 12px; font-size: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; font-weight: 600; }
@@ -772,6 +774,7 @@
     [data-theme="dark"] .qr-comment-body,
     [data-theme="dark"] .qr-notes-item-title,
     [data-theme="dark"] .qr-notes-item-body,
+    [data-theme="dark"] .qr-notes-item-desc,
     [data-theme="dark"] .qr-transcript-item-date,
     [data-theme="dark"] .qr-notes-item-date,
     [data-theme="dark"] .qr-progression-stage-name { color: #e0e0e0; }
