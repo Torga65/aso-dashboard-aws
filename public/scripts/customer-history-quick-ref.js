@@ -949,6 +949,7 @@ async function loadCustomerNotes(container, customerName) {
   const fileInput   = container.querySelector('.qr-notes-file');
   const dateInput   = container.querySelector('.qr-notes-date');
   const titleInput  = container.querySelector('.qr-notes-title');
+  const descInput   = container.querySelector('.qr-notes-desc');
   const textarea    = container.querySelector('.qr-notes-textarea');
   const aiRangeBtn  = container.querySelector('.qr-notes-ai-range');
   const countBadge  = container.querySelector('.qr-notes-count');
@@ -1057,6 +1058,7 @@ async function loadCustomerNotes(container, customerName) {
   async function doSave() {
     const date  = dateInput?.value;
     const title = titleInput?.value.trim();
+    const desc  = descInput?.value.trim() ?? '';
     const text  = textarea?.value.trim();
     const file  = fileInput?.files?.[0];
 
@@ -1096,6 +1098,7 @@ async function loadCustomerNotes(container, customerName) {
       form.append('company', customerName);
       form.append('meetingDate', date);
       form.append('fileType', 'notes');
+      form.append('description', desc);
       form.append('uploadedBy', uploadedBy);
       form.append('file', uploadFile, uploadFile.name);
 
@@ -1106,6 +1109,7 @@ async function loadCustomerNotes(container, customerName) {
       if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-notes-upload-status ok'; }
       if (textarea) textarea.value = '';
       if (titleInput) titleInput.value = '';
+      if (descInput) descInput.value = '';
       if (fileInput) fileInput.value = '';
       await fetchAndRenderList();
     } catch (err) {
