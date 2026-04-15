@@ -195,6 +195,9 @@
     .qr-notes-upload-form input[type="text"] { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; min-width: 200px; }
     .qr-notes-textarea { width: 100%; font-size: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5; }
     .qr-notes-textarea:focus { outline: none; border-color: #667eea; }
+    .qr-notes-desc { width: 100%; font-size: 12px; padding: 5px 7px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; color: #444; background: #fffdf0; }
+    .qr-notes-desc:focus { outline: none; border-color: #667eea; }
+    .qr-notes-desc::placeholder { color: #bbb; }
     .qr-notes-or { font-size: 11px; color: #999; text-align: center; margin: 2px 0; }
     .qr-notes-upload-btn { padding: 5px 14px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .qr-notes-upload-btn:hover { background: #5568d3; }
@@ -724,6 +727,7 @@
     [data-theme="dark"] .qr-notes-controls select,
     [data-theme="dark"] .qr-notes-upload-form input,
     [data-theme="dark"] .qr-notes-upload-form select,
+    [data-theme="dark"] .qr-notes-desc,
     [data-theme="dark"] .qr-transcript-upload-form select,
     [data-theme="dark"] .qr-transcript-upload-form input[type="date"],
     [data-theme="dark"] .qr-notes-textarea,
@@ -1573,6 +1577,7 @@
                     <label>Title<input type="text" class="qr-notes-title" placeholder="e.g. Kickoff call, QBR…"/></label>
                   </div>
                   <textarea class="qr-notes-textarea" placeholder="Paste or type meeting notes here…"></textarea>
+                  <input type="text" class="qr-notes-desc" placeholder="Description / tags for search (e.g. Q1 QBR, blockers, API feedback, action items)…"/>
                   <div class="qr-notes-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md) —</div>
                   <div class="qr-notes-upload-row">
                     <input type="file" class="qr-notes-file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>
@@ -1919,6 +1924,7 @@
                         <label>Title<input type="text" class="qr-notes-title" placeholder="e.g. Kickoff call, QBR…"/></label>
                       </div>
                       <textarea class="qr-notes-textarea" placeholder="Paste or type meeting notes here…"></textarea>
+                      <input type="text" class="qr-notes-desc" placeholder="Description / tags for search (e.g. Q1 QBR, blockers, API feedback, action items)…"/>
                       <div class="qr-notes-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md) —</div>
                       <div class="qr-notes-upload-row">
                         <input type="file" class="qr-notes-file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>

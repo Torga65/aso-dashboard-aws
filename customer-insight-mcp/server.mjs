@@ -50,7 +50,7 @@ const server = new McpServer({
 /* ── 1. get_transcripts ─────────────────────────────────────────────── */
 server.tool(
   'get_transcripts',
-  'Fetch ALL meeting transcripts and uploaded notes/emails for a customer (full history, not limited by date). Returns combined VTT-style text. Use alongside get_comments and get_customer_data when summarizing a customer.',
+  'Fetch ALL meeting transcripts and uploaded notes for a customer (full history). Each file includes a NOTE header with date, type, filename, and description/tags. Returns combined text. Use alongside get_comments and get_customer_data for a complete picture. Call list_notes first to preview available files and their descriptions before downloading everything.',
   {
     company: z.string().describe('Customer / company name (exact match used in the dashboard)'),
   },
@@ -68,6 +68,52 @@ server.tool(
       content: [{
         type: 'text',
         text: `Meeting transcripts and notes for ${company} (full history) — ${lineCount} lines:\n\n${content}`,
+      }],
+    };
+  }
+);
+
+/* ── 1b. list_notes ─────────────────────────────────────────────────── */
+server.tool(
+  'list_notes',
+  'List meeting notes and transcripts for a customer showing metadata only (date, filename, description/tags, type, uploader) — no content downloaded. Use this first to understand what is available and find relevant files by description before calling get_transcripts for full content.',
+  {
+    company:   z.string().describe('Customer / company name'),
+    fileType:  z.enum(['all', 'notes', 'transcript']).default('all').describe('"notes" for meeting notes, "transcript" for VTT transcripts, "all" for both'),
+    query:     z.string().optional().describe('Optional keyword to filter by — matches against filename and description'),
+  },
+  async ({ company, fileType, query }) => {
+    const qs = new URLSearchParams({ company, days: 'all' });
+    const res = await apiFetch(`/api/transcripts?${qs}`);
+    const { data } = await res.json();
+    let items = data ?? [];
+
+    if (fileType !== 'all') items = items.filter((i) => i.fileType === fileType);
+    if (query) {
+      const needle = query.toLowerCase();
+      items = items.filter((i) =>
+        (i.fileName || '').toLowerCase().includes(needle) ||
+        (i.description || '').toLowerCase().includes(needle)
+      );
+    }
+
+    if (items.length === 0) {
+      const scope = fileType !== 'all' ? fileType : 'files';
+      return { content: [{ type: 'text', text: `No ${scope} found for "${company}"${query ? ` matching "${query}"` : ''}.` }] };
+    }
+
+    items.sort((a, b) => a.meetingDate.localeCompare(b.meetingDate));
+    const lines = items.map((i) => {
+      const parts = [`• [${i.meetingDate}] ${i.fileName} (${i.fileType})`];
+      if (i.description) parts.push(`  Description: ${i.description}`);
+      if (i.uploadedBy)  parts.push(`  Uploaded by: ${i.uploadedBy}`);
+      return parts.join('\n');
+    });
+
+    return {
+      content: [{
+        type: 'text',
+        text: `${items.length} file${items.length !== 1 ? 's' : ''} for ${company}${query ? ` matching "${query}"` : ''}:\n\n${lines.join('\n\n')}`,
       }],
     };
   }

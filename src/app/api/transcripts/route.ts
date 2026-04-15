@@ -18,11 +18,12 @@ const MAX_BYTES = 350 * 1024; // 350 KB — DynamoDB 400 KB item limit with head
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
-    const company   = (form.get("company")   as string | null)?.trim();
+    const company     = (form.get("company")     as string | null)?.trim();
     const meetingDate = (form.get("meetingDate") as string | null)?.trim();
-    const fileType  = (form.get("fileType")  as string | null)?.trim();
-    const uploadedBy = (form.get("uploadedBy") as string | null)?.trim() ?? "";
-    const file      = form.get("file") as File | null;
+    const fileType    = (form.get("fileType")    as string | null)?.trim();
+    const description = (form.get("description") as string | null)?.trim() ?? "";
+    const uploadedBy  = (form.get("uploadedBy")  as string | null)?.trim() ?? "";
+    const file        = form.get("file") as File | null;
 
     if (!company || !meetingDate || !file) {
       return NextResponse.json({ error: "company, meetingDate, and file are required" }, { status: 400 });
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       meetingDate,
       fileType: fileType === "notes" ? "notes" : "transcript",
       fileName: file.name,
+      description: description || undefined,
       content,
       uploadedBy,
       uploadedAt: new Date().toISOString(),
@@ -85,6 +87,7 @@ export async function GET(req: NextRequest) {
       meetingDate: r.meetingDate,
       fileType: r.fileType,
       fileName: r.fileName,
+      description: r.description ?? "",
       uploadedBy: r.uploadedBy ?? "",
       uploadedAt: r.uploadedAt,
     }));
