@@ -226,6 +226,63 @@
     .qr-notes-ai-btn:hover { background: #fde68a; }
     .qr-notes-ai-range { padding: 4px 12px; font-size: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; font-weight: 600; }
     .qr-notes-ai-range:hover { background: #fde68a; }
+    /* Unified Meeting Files section */
+    .quick-ref-box--files { grid-column: 1 / -1; }
+    .qr-files-upload-form { padding: 8px 0 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .qr-files-upload-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .qr-files-upload-form label { font-size: 12px; font-weight: 600; color: #555; display: flex; flex-direction: column; gap: 3px; }
+    .qr-files-upload-form input[type="date"],
+    .qr-files-upload-form input[type="text"] { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-files-upload-form input[type="text"] { min-width: 180px; }
+    .qr-files-upload-form select { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-files-textarea { width: 100%; font-size: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 70px; font-family: inherit; line-height: 1.5; }
+    .qr-files-textarea:focus { outline: none; border-color: #667eea; }
+    .qr-files-desc { width: 100%; font-size: 12px; padding: 5px 7px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; color: #444; background: #fffdf0; }
+    .qr-files-desc:focus { outline: none; border-color: #667eea; }
+    .qr-files-desc::placeholder { color: #bbb; }
+    .qr-files-or { font-size: 11px; color: #999; text-align: center; margin: 2px 0; }
+    .qr-files-upload-btn { padding: 5px 14px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .qr-files-upload-btn:hover { background: #5568d3; }
+    .qr-files-upload-btn:disabled { background: #aaa; cursor: not-allowed; }
+    .qr-files-upload-status { font-size: 12px; margin: 0; }
+    .qr-files-upload-status.ok  { color: #16a34a; }
+    .qr-files-upload-status.err { color: #dc2626; }
+    .qr-files-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .qr-files-controls select { font-size: 12px; padding: 3px 6px; border: 1px solid #ddd; border-radius: 4px; background: white; }
+    .qr-files-download-btn { padding: 4px 10px; font-size: 11px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #333; white-space: nowrap; }
+    .qr-files-download-btn:hover { background: #e9ecef; }
+    .qr-files-ai-range { padding: 4px 12px; font-size: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; font-weight: 600; }
+    .qr-files-ai-range:hover { background: #fde68a; }
+    .qr-files-list { font-size: 12px; }
+    .qr-files-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+    .qr-files-item:last-child { border-bottom: none; }
+    .qr-files-item-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .qr-files-type-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; white-space: nowrap; text-transform: uppercase; letter-spacing: .03em; }
+    .qr-files-type-badge--notes      { background: #dbeafe; color: #1e40af; }
+    .qr-files-type-badge--transcript { background: #dcfce7; color: #166534; }
+    .qr-files-item-date { font-size: 11px; color: #666; white-space: nowrap; }
+    .qr-files-item-view-btn { background: none; border: none; padding: 0; font-size: 12px; font-weight: 600; color: #667eea; cursor: pointer; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qr-files-item-view-btn:hover { text-decoration: underline; }
+    .qr-files-item-by { font-size: 11px; color: #999; }
+    .qr-files-item-actions { display: flex; gap: 6px; margin-left: auto; }
+    .qr-files-item-desc { font-size: 11px; color: #888; font-style: italic; margin: 2px 0 2px 2px; }
+    .qr-files-ai-btn { padding: 2px 8px; font-size: 11px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; white-space: nowrap; }
+    .qr-files-ai-btn:hover { background: #fde68a; }
+    /* File content viewer modal */
+    #qr-file-viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .qr-file-viewer { background: white; border-radius: 8px; max-width: 860px; width: 100%; max-height: 82vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .qr-file-viewer-header { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #eee; }
+    .qr-file-viewer-meta { flex: 1; font-size: 13px; line-height: 1.5; }
+    .qr-file-viewer-meta strong { font-size: 14px; color: #222; }
+    .qr-file-viewer-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; margin-left: 8px; vertical-align: middle; }
+    .qr-file-viewer-badge--notes      { background: #dbeafe; color: #1e40af; }
+    .qr-file-viewer-badge--transcript { background: #dcfce7; color: #166534; }
+    .qr-file-viewer-date { font-size: 12px; color: #666; margin-left: 10px; }
+    .qr-file-viewer-by   { font-size: 12px; color: #999; }
+    .qr-file-viewer-desc { font-size: 12px; color: #888; font-style: italic; margin-top: 4px; }
+    .qr-file-viewer-close { background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #666; padding: 0 4px; flex-shrink: 0; }
+    .qr-file-viewer-close:hover { color: #222; }
+    .qr-file-viewer-body { flex: 1; overflow-y: auto; padding: 16px; font-size: 12px; white-space: pre-wrap; line-height: 1.7; color: #333; font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace; }
     .quick-ref-table { width: 100%; font-size: 12px; border-collapse: collapse; }
     .quick-ref-table th, .quick-ref-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid #eee; }
     .quick-ref-table th { background: #e9ecef; font-weight: 600; }
@@ -730,6 +787,11 @@
     [data-theme="dark"] .qr-notes-upload-form input,
     [data-theme="dark"] .qr-notes-upload-form select,
     [data-theme="dark"] .qr-notes-desc,
+    [data-theme="dark"] .qr-files-controls select,
+    [data-theme="dark"] .qr-files-upload-form input,
+    [data-theme="dark"] .qr-files-upload-form select,
+    [data-theme="dark"] .qr-files-textarea,
+    [data-theme="dark"] .qr-files-desc,
     [data-theme="dark"] .qr-transcript-upload-form select,
     [data-theme="dark"] .qr-transcript-upload-form input[type="date"],
     [data-theme="dark"] .qr-notes-textarea,
@@ -777,11 +839,25 @@
     [data-theme="dark"] .qr-notes-item-desc,
     [data-theme="dark"] .qr-transcript-item-date,
     [data-theme="dark"] .qr-notes-item-date,
+    [data-theme="dark"] .qr-files-item-date,
+    [data-theme="dark"] .qr-files-item-desc,
+    [data-theme="dark"] .qr-files-item-view-btn,
     [data-theme="dark"] .qr-progression-stage-name { color: #e0e0e0; }
+    [data-theme="dark"] .qr-files-item { border-color: #333; }
     [data-theme="dark"] .qr-transcript-item-dl,
-    [data-theme="dark"] .qr-notes-item-view { background: #2a2a2a; border-color: #4a4a4a; color: #d0d0d0; }
+    [data-theme="dark"] .qr-notes-item-view,
+    [data-theme="dark"] .qr-files-download-btn { background: #2a2a2a; border-color: #4a4a4a; color: #d0d0d0; }
     [data-theme="dark"] .qr-transcript-item-dl:hover,
-    [data-theme="dark"] .qr-notes-item-view:hover { background: #333; }
+    [data-theme="dark"] .qr-notes-item-view:hover,
+    [data-theme="dark"] .qr-files-download-btn:hover { background: #333; }
+    [data-theme="dark"] .qr-file-viewer { background: #1e1e1e; }
+    [data-theme="dark"] .qr-file-viewer-header { border-color: #333; }
+    [data-theme="dark"] .qr-file-viewer-meta strong { color: #e8e8e8; }
+    [data-theme="dark"] .qr-file-viewer-date,
+    [data-theme="dark"] .qr-file-viewer-by,
+    [data-theme="dark"] .qr-file-viewer-desc { color: #aaa; }
+    [data-theme="dark"] .qr-file-viewer-close { color: #aaa; }
+    [data-theme="dark"] .qr-file-viewer-body { color: #d0d0d0; }
     [data-theme="dark"] .qr-prog-modal-box h3,
     [data-theme="dark"] .qr-prog-field label { color: #d0d0d0; }
     [data-theme="dark"] .qr-prog-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
@@ -1549,55 +1625,40 @@
                 <div class="quick-ref-comments"></div>
               </details>
             </div>
-            <div class="quick-ref-box quick-ref-box--transcripts">
+            <div class="quick-ref-box quick-ref-box--files">
               <details class="quick-ref-disabled-details" open>
-                <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
-                <div class="qr-transcript-upload-form">
-                  <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                  <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
-                  <button type="button" class="qr-transcript-upload-btn">Upload</button>
-                  <p class="qr-transcript-upload-status"></p>
+                <summary>Meeting files <span class="qr-files-count"></span></summary>
+                <div class="qr-files-upload-form">
+                  <div class="qr-files-upload-row">
+                    <label>Date<input type="date" class="qr-files-date"/></label>
+                    <label>Title<input type="text" class="qr-files-title" placeholder="e.g. Q1 QBR, Kickoff call…"/></label>
+                    <label>Type<select class="qr-files-type"><option value="notes">Note</option><option value="transcript">Transcript</option></select></label>
+                  </div>
+                  <textarea class="qr-files-textarea" placeholder="Paste or type notes here…"></textarea>
+                  <input type="text" class="qr-files-desc" placeholder="Description / tags (e.g. Q1 QBR, blockers, action items)…"/>
+                  <div class="qr-files-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md, .vtt) —</div>
+                  <div class="qr-files-upload-row">
+                    <input type="file" class="qr-files-file" accept=".vtt,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>
+                    <button type="button" class="qr-files-upload-btn">Save</button>
+                    <p class="qr-files-upload-status"></p>
+                  </div>
                 </div>
-                <div class="qr-transcript-controls">
-                  <select class="qr-transcript-range">
+                <div class="qr-files-controls">
+                  <select class="qr-files-range">
                     <option value="all" selected>All time</option>
                     <option value="90">Last 90 days</option>
                     <option value="60">Last 60 days</option>
                     <option value="30">Last 30 days</option>
                   </select>
-                  <button type="button" class="qr-transcript-download-btn">Download all</button>
-                  <button type="button" class="qr-transcript-claude-range">Copy AI prompt</button>
-                </div>
-                <div class="qr-transcript-list"></div>
-              </details>
-            </div>
-            <div class="quick-ref-box quick-ref-box--notes">
-              <details class="quick-ref-disabled-details" open>
-                <summary>Meeting notes <span class="qr-notes-count"></span></summary>
-                <div class="qr-notes-upload-form">
-                  <div class="qr-notes-upload-row">
-                    <label>Meeting date<input type="date" class="qr-notes-date"/></label>
-                    <label>Title<input type="text" class="qr-notes-title" placeholder="e.g. Kickoff call, QBR…"/></label>
-                  </div>
-                  <textarea class="qr-notes-textarea" placeholder="Paste or type meeting notes here…"></textarea>
-                  <input type="text" class="qr-notes-desc" placeholder="Description / tags for search (e.g. Q1 QBR, blockers, API feedback, action items)…"/>
-                  <div class="qr-notes-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md) —</div>
-                  <div class="qr-notes-upload-row">
-                    <input type="file" class="qr-notes-file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>
-                    <button type="button" class="qr-notes-upload-btn">Save note</button>
-                    <p class="qr-notes-upload-status"></p>
-                  </div>
-                </div>
-                <div class="qr-notes-controls">
-                  <select class="qr-notes-range">
-                    <option value="all" selected>All time</option>
-                    <option value="90">Last 90 days</option>
-                    <option value="60">Last 60 days</option>
-                    <option value="30">Last 30 days</option>
+                  <select class="qr-files-filter">
+                    <option value="all" selected>All types</option>
+                    <option value="notes">Notes only</option>
+                    <option value="transcript">Transcripts only</option>
                   </select>
-                  <button type="button" class="qr-notes-ai-range">Copy AI prompt</button>
+                  <button type="button" class="qr-files-download-btn">Download all</button>
+                  <button type="button" class="qr-files-ai-range">Copy AI prompt</button>
                 </div>
-                <div class="qr-notes-list"></div>
+                <div class="qr-files-list"></div>
               </details>
             </div>
           </div>
@@ -1896,55 +1957,40 @@
                     <div class="quick-ref-comments"></div>
                   </details>
                 </div>
-                <div class="quick-ref-box quick-ref-box--transcripts">
+                <div class="quick-ref-box quick-ref-box--files">
                   <details class="quick-ref-disabled-details" open>
-                    <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
-                    <div class="qr-transcript-upload-form">
-                      <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                      <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
-                      <button type="button" class="qr-transcript-upload-btn">Upload</button>
-                      <p class="qr-transcript-upload-status"></p>
+                    <summary>Meeting files <span class="qr-files-count"></span></summary>
+                    <div class="qr-files-upload-form">
+                      <div class="qr-files-upload-row">
+                        <label>Date<input type="date" class="qr-files-date"/></label>
+                        <label>Title<input type="text" class="qr-files-title" placeholder="e.g. Q1 QBR, Kickoff call…"/></label>
+                        <label>Type<select class="qr-files-type"><option value="notes">Note</option><option value="transcript">Transcript</option></select></label>
+                      </div>
+                      <textarea class="qr-files-textarea" placeholder="Paste or type notes here…"></textarea>
+                      <input type="text" class="qr-files-desc" placeholder="Description / tags (e.g. Q1 QBR, blockers, action items)…"/>
+                      <div class="qr-files-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md, .vtt) —</div>
+                      <div class="qr-files-upload-row">
+                        <input type="file" class="qr-files-file" accept=".vtt,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>
+                        <button type="button" class="qr-files-upload-btn">Save</button>
+                        <p class="qr-files-upload-status"></p>
+                      </div>
                     </div>
-                    <div class="qr-transcript-controls">
-                      <select class="qr-transcript-range">
+                    <div class="qr-files-controls">
+                      <select class="qr-files-range">
                         <option value="all" selected>All time</option>
                         <option value="90">Last 90 days</option>
                         <option value="60">Last 60 days</option>
                         <option value="30">Last 30 days</option>
                       </select>
-                      <button type="button" class="qr-transcript-download-btn">Download all</button>
-                      <button type="button" class="qr-transcript-claude-range">Copy AI prompt</button>
-                    </div>
-                    <div class="qr-transcript-list"></div>
-                  </details>
-                </div>
-                <div class="quick-ref-box quick-ref-box--notes">
-                  <details class="quick-ref-disabled-details" open>
-                    <summary>Meeting notes <span class="qr-notes-count"></span></summary>
-                    <div class="qr-notes-upload-form">
-                      <div class="qr-notes-upload-row">
-                        <label>Meeting date<input type="date" class="qr-notes-date"/></label>
-                        <label>Title<input type="text" class="qr-notes-title" placeholder="e.g. Kickoff call, QBR…"/></label>
-                      </div>
-                      <textarea class="qr-notes-textarea" placeholder="Paste or type meeting notes here…"></textarea>
-                      <input type="text" class="qr-notes-desc" placeholder="Description / tags for search (e.g. Q1 QBR, blockers, API feedback, action items)…"/>
-                      <div class="qr-notes-or">— or upload a file (.pdf, .docx, .xlsx, .csv, .txt, .md) —</div>
-                      <div class="qr-notes-upload-row">
-                        <input type="file" class="qr-notes-file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.rtf"/>
-                        <button type="button" class="qr-notes-upload-btn">Save note</button>
-                        <p class="qr-notes-upload-status"></p>
-                      </div>
-                    </div>
-                    <div class="qr-notes-controls">
-                      <select class="qr-notes-range">
-                        <option value="all" selected>All time</option>
-                        <option value="90">Last 90 days</option>
-                        <option value="60">Last 60 days</option>
-                        <option value="30">Last 30 days</option>
+                      <select class="qr-files-filter">
+                        <option value="all" selected>All types</option>
+                        <option value="notes">Notes only</option>
+                        <option value="transcript">Transcripts only</option>
                       </select>
-                      <button type="button" class="qr-notes-ai-range">Copy AI prompt</button>
+                      <button type="button" class="qr-files-download-btn">Download all</button>
+                      <button type="button" class="qr-files-ai-range">Copy AI prompt</button>
                     </div>
-                    <div class="qr-notes-list"></div>
+                    <div class="qr-files-list"></div>
                   </details>
                 </div>
               </div>
@@ -2266,5 +2312,16 @@
     });
   })();
   </script>
+
+  <!-- File content viewer modal (shared across all customer panels) -->
+  <div id="qr-file-viewer-overlay" style="display:none">
+    <div class="qr-file-viewer">
+      <div class="qr-file-viewer-header">
+        <div class="qr-file-viewer-meta"></div>
+        <button class="qr-file-viewer-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="qr-file-viewer-body"></div>
+    </div>
+  </div>
 </body>
 </html>
