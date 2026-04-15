@@ -1,0 +1,33 @@
+{
+  "title": "A11y Color Contrast Suggestion Data",
+  "description": "Shape of suggestion.data for a11y-color-contrast opportunities (axe-core source).",
+  "type": "object",
+  "required": ["url", "issues"],
+  "properties": {
+    "url": { "type": "string", "minLength": 1 },
+    "issues": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "htmlWithIssues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target_selector": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          },
+          "failureSummary": { "type": "string" },
+          "wcagLevel": { "type": "string" },
+          "wcagRule": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

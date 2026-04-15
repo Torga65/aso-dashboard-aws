@@ -8,6 +8,9 @@ import { validate as validateSitemap } from './sitemap/validator';
 import { validate as validateHeading } from './heading/validator';
 import { validate as validateHreflang } from './hreflang/validator';
 import { validate as validateBrokenInternalLinks } from './broken-internal-links/validator';
+import { validate as validateA11yColorContrast } from './a11y-color-contrast/validator';
+import { validate as validateA11yAssistive } from './a11y-assistive/validator';
+import { validate as validateMetaTags } from './meta-tags/validator';
 
 export interface OpportunityTypeMeta {
   id: string;
@@ -67,4 +70,19 @@ registerOpportunityType({
 registerOpportunityType({
   meta: { id: 'broken-internal-links', label: 'Broken internal links' },
   validate: validateBrokenInternalLinks,
+});
+
+registerOpportunityType({
+  meta: { id: 'a11y-color-contrast', label: 'Accessibility — Color Contrast' },
+  validate: validateA11yColorContrast,
+});
+
+registerOpportunityType({
+  meta: { id: 'a11y-assistive', label: 'Accessibility — Assistive Technology (ARIA)' },
+  validate: validateA11yAssistive,
+});
+
+registerOpportunityType({
+  meta: { id: 'meta-tags', label: 'Meta Tags' },
+  validate: validateMetaTags,
 });

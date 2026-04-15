@@ -1,10 +1,17 @@
 /**
  * POST /api/transcripts        — upload a VTT file for a customer meeting
- * GET  /api/transcripts?company=&days=30|60|all  — list metadata (no content)
+ * GET  /api/transcripts?company=&days=all|<N>  — list metadata (no content)
+ *
+ * `days` defaults to `all` (no date filter). Pass a positive integer for
+ * rolling last N days by meetingDate.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerClient } from "@/lib/amplify-server-utils";
+import {
+  listAllMeetingTranscriptsForCompany,
+  meetingDateCutoffFromDaysParam,
+} from "@/lib/meeting-transcripts";
 
 const MAX_BYTES = 350 * 1024; // 350 KB — DynamoDB 400 KB item limit with headroom
 
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const company  = searchParams.get("company")?.trim();
-  const daysParam = searchParams.get("days") ?? "30";
+  const daysParam = searchParams.get("days") ?? "all";
 
   if (!company) {
     return NextResponse.json({ error: "company param required" }, { status: 400 });
@@ -67,33 +74,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const client = getServerClient();
+    const cutoffDate = meetingDateCutoffFromDaysParam(daysParam);
 
-    let cutoffDate: string | null = null;
-    if (daysParam !== "all") {
-      const days = parseInt(daysParam, 10);
-      if (!Number.isNaN(days) && days > 0) {
-        const d = new Date();
-        d.setDate(d.getDate() - days);
-        cutoffDate = d.toISOString().slice(0, 10);
-      }
-    }
-
-    const { data, errors } =
-      await client.models.MeetingTranscript.listMeetingTranscriptByCompanyNameAndMeetingDate(
-        { companyName: company },
-        {
-          sortDirection: "DESC",
-          limit: 200,
-          ...(cutoffDate ? { filter: { meetingDate: { ge: cutoffDate } } } : {}),
-        }
-      );
-
-    if (errors?.length) {
-      return NextResponse.json({ error: errors[0].message }, { status: 500 });
-    }
+    const rows = await listAllMeetingTranscriptsForCompany(client, company, cutoffDate);
 
     // Return metadata only (omit content to keep response small)
-    const items = (data ?? []).map((r) => ({
+    const items = rows.map((r) => ({
       id: r.id,
       companyName: r.companyName,
       meetingDate: r.meetingDate,

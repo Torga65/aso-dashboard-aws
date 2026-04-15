@@ -12,6 +12,7 @@ import {
   signOut,
   isAuthenticated,
   getProfile,
+  onAuthReady,
   onAuthStateChange,
 } from './auth/imslib-adapter.js';
 import { setGlobalToken } from './services/spacecat-api.js';
@@ -450,21 +451,6 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       if (usersChip) usersChip.textContent = `${activeUsers30d} active users`;
     }
 
-    // ── Populate lifecycle stats section ─────────────────────────────────────
-    const lifecycleEl = container.querySelector('.acc-lifecycle-stats');
-    if (lifecycleEl) {
-      const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
-      const lifecycleUrl = `/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}`;
-      lifecycleEl.innerHTML = `
-        <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
-        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></a>
-        <a class="acc-ls-item acc-ls-item--open" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></a>
-        <a class="acc-ls-item acc-ls-item--resolved" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></a>
-        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></a>
-        <a class="acc-ls-item acc-ls-item--fixed" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></a>
-      `;
-    }
-
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
       const pickerHtml = `
         <p class="quick-ref-msg">No automatic match for this customer. Type to search and select the SpaceCat organization:</p>
@@ -544,8 +530,9 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     }
 
     if (pendingEl) {
-      const pvCount = pendingValidationOpps.count || 0;
-      const pvTypes = Array.isArray(pendingValidationOpps.types) ? pendingValidationOpps.types : [];
+      const pvOpps = (Array.isArray(pendingValidationOpps.opps) ? pendingValidationOpps.opps : [])
+        .filter((o) => (o.status || '').toUpperCase() !== 'IGNORED');
+      const pvCount = pvOpps.length;
       const backOfficeLink = currentSiteId
         ? `<a class="quick-ref-backoffice-link" href="https://experience.adobe.com/#/@sitesinternal/custom-apps/245265-EssDeveloperUI/#/sites/${encodeURIComponent(currentSiteId)}/opportunities?showPendingValidation=true" target="_blank" rel="noopener noreferrer">Open in back office</a>`
         : '';
@@ -556,14 +543,22 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       if (pvCount === 0) {
         pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}${linkSeparator}${validatorLink}`;
       } else {
-        const typeItems = pvTypes
-          .map((t) => `<li>${escapeHtml((t || '').replace(/-/g, ' '))}</li>`)
-          .join('');
+        const rows = pvOpps.map((o) => {
+          const typeLabel = escapeHtml((o.type || '').replace(/-/g, ' '));
+          const statusVal = (o.status || '').toUpperCase();
+          const created = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+          return `<tr>
+            <td>${typeLabel}</td>
+            <td><span class="pv-status-badge pv-status-${statusVal}">${statusVal || '—'}</span></td>
+            <td>${created}</td>
+          </tr>`;
+        }).join('');
         pendingEl.innerHTML = `
-          <div class="quick-ref-pv-count">${pvCount}</div>
-          <p class="quick-ref-pv-label">suggestion${pvCount !== 1 ? 's' : ''} awaiting validation</p>
-          ${pvTypes.length > 0 ? `<ul class="quick-ref-list" style="margin:6px 0 0;padding-left:18px;">${typeItems}</ul>` : ''}
-          ${backOfficeLink}${linkSeparator}${validatorLink}
+          <table class="pv-opps-table">
+            <thead><tr><th>Type</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:8px;">${backOfficeLink}${linkSeparator}${validatorLink}</div>
         `;
       }
       setDetailsCount(pendingEl.closest('details'), pvCount);
@@ -665,62 +660,79 @@ async function loadCustomerComments(container, customerName) {
   const claudeBtn = container.querySelector('.qr-comments-claude-btn');
   if (!commentsEl) return;
 
-  async function fetchAndRender(days) {
-    commentsEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
-    try {
-      const params = new URLSearchParams({ company: customerName, days: String(days) });
-      const res = await fetch(`/api/comments?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
-      const comments = data || [];
-
-      // Update count badge on summary
-      const summary = commentsEl.closest('details')?.querySelector('summary');
-      const badge = summary?.querySelector('.qr-summary-count');
-      if (badge) badge.textContent = comments.length > 0 ? `(${comments.length})` : '';
-
-      if (comments.length === 0) {
-        commentsEl.innerHTML = '<p class="quick-ref-msg">No comments in this period.</p>';
-        return;
-      }
-
-      commentsEl.innerHTML = comments.map((c) => {
-        const dateLabel = c.commentDate || '';
-        const author = c.author ? escapeHtml(c.author) : '';
-        const body = c.body ? escapeHtml(c.body) : '';
-        return `
-          <div class="qr-comment-entry">
-            <div class="qr-comment-meta">
-              <strong>${dateLabel}</strong>${author ? ` &mdash; ${author}` : ''}
-            </div>
-            <div class="qr-comment-body">${body}</div>
-          </div>`;
-      }).join('');
-    } catch (err) {
-      commentsEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load comments.</p>';
-    }
+  // Fetch all comments once; filter client-side using the actual commentDate from ServiceNow
+  commentsEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
+  let allComments = [];
+  try {
+    const params = new URLSearchParams({ company: customerName, days: 'all' });
+    const res = await fetch(`/api/comments?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    allComments = data || [];
+  } catch (err) {
+    commentsEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load comments.</p>';
+    return;
   }
 
-  await fetchAndRender(rangeSelect?.value ?? '30');
+  function filterByRange(comments, range) {
+    if (range === 'latest') return comments.slice(0, 1);
+    if (range === 'all' || !range) return comments;
+    const days = parseInt(range, 10);
+    if (Number.isNaN(days)) return comments;
+    const cutoff = Date.now() - days * 86400000;
+    return comments.filter((c) => {
+      if (!c.commentDate) return false;
+      // commentDate is "YYYY-MM-DD HH:MM:SS" — parse as local or UTC
+      const ts = new Date(c.commentDate.replace(' ', 'T')).getTime();
+      return !Number.isNaN(ts) && ts >= cutoff;
+    });
+  }
+
+  function renderComments(range) {
+    const comments = filterByRange(allComments, range);
+
+    const summary = commentsEl.closest('details')?.querySelector('summary');
+    const badge = summary?.querySelector('.qr-summary-count');
+    if (badge) badge.textContent = allComments.length > 0 ? `(${allComments.length})` : '';
+
+    if (comments.length === 0) {
+      const msg = allComments.length === 0
+        ? 'No comments found.'
+        : 'No comments in this period.';
+      commentsEl.innerHTML = `<p class="quick-ref-msg">${msg}</p>`;
+      return;
+    }
+
+    commentsEl.innerHTML = comments.map((c) => {
+      const dateLabel = c.commentDate || '';
+      const author = c.author ? escapeHtml(c.author) : '';
+      const body = c.body ? escapeHtml(c.body) : '';
+      return `
+        <div class="qr-comment-entry">
+          <div class="qr-comment-meta">
+            <strong>${dateLabel}</strong>${author ? ` &mdash; ${author}` : ''}
+          </div>
+          <div class="qr-comment-body">${body}</div>
+        </div>`;
+    }).join('');
+  }
+
+  renderComments(rangeSelect?.value ?? 'latest');
 
   if (rangeSelect) {
-    rangeSelect.addEventListener('change', () => fetchAndRender(rangeSelect.value));
+    rangeSelect.addEventListener('change', () => renderComments(rangeSelect.value));
   }
 
   if (claudeBtn) {
     claudeBtn.addEventListener('click', async () => {
-      const days = rangeSelect?.value ?? 'latest';
+      const range = rangeSelect?.value ?? 'latest';
+      const comments = filterByRange(allComments, range);
       const orig = claudeBtn.textContent;
-      claudeBtn.textContent = 'Fetching…';
+      claudeBtn.textContent = 'Copying…';
       claudeBtn.disabled = true;
       try {
-        const params = new URLSearchParams({ company: customerName, days });
-        const res = await fetch(`/api/comments?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { data } = await res.json();
-        const comments = data || [];
         if (comments.length === 0) throw new Error('No comments in this range.');
-        const rangeLabel = days === 'latest' ? 'the most recent' : days === 'all' ? 'all' : `the last ${days} days of`;
+        const rangeLabel = range === 'latest' ? 'the most recent' : range === 'all' ? 'all' : `the last ${range} days of`;
         const body = comments.map((c) => `[${c.commentDate}]${c.author ? ` ${c.author}` : ''}\n${c.body}`).join('\n\n---\n\n');
         const prompt = `Below are ${rangeLabel} ServiceNow comments for ${customerName}. Please summarize the key themes, customer concerns, action items, and overall sentiment.\n\n${body}`;
         await navigator.clipboard.writeText(prompt);
@@ -759,7 +771,7 @@ async function loadCustomerTranscripts(container, customerName) {
     if (!listEl) return;
     listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
     try {
-      const days = rangeSelect?.value ?? '30';
+      const days = rangeSelect?.value ?? 'all';
       const params = new URLSearchParams({ company: customerName, days });
       const res = await fetch(`/api/transcripts?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -776,18 +788,32 @@ async function loadCustomerTranscripts(container, customerName) {
         return;
       }
 
-      listEl.innerHTML = items.map((item) => {
+      const INITIAL_SHOW = 4;
+      listEl.innerHTML = items.map((item, idx) => {
         const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
         const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
         const viewUrl = `${dlUrl}&view=1`;
+        const hiddenClass = idx >= INITIAL_SHOW ? ' qr-transcript-hidden' : '';
         return `
-          <div class="qr-transcript-item">
+          <div class="qr-transcript-item${hiddenClass}">
             <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
             <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
             <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
             <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
           </div>`;
       }).join('');
+
+      if (items.length > INITIAL_SHOW) {
+        const remaining = items.length - INITIAL_SHOW;
+        const showMoreBtn = document.createElement('button');
+        showMoreBtn.className = 'qr-transcript-show-more';
+        showMoreBtn.textContent = `Show ${remaining} more…`;
+        showMoreBtn.addEventListener('click', () => {
+          listEl.querySelectorAll('.qr-transcript-hidden').forEach(el => el.classList.remove('qr-transcript-hidden'));
+          showMoreBtn.remove();
+        });
+        listEl.appendChild(showMoreBtn);
+      }
 
       // Wire per-item Claude link copy buttons
       listEl.querySelectorAll('.qr-transcript-claude-btn').forEach((btn) => {
@@ -824,7 +850,7 @@ async function loadCustomerTranscripts(container, customerName) {
   // Wire download buttons
   downloadBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const days = rangeSelect?.value ?? '30';
+      const days = rangeSelect?.value ?? 'all';
       const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}`;
       const a = document.createElement('a');
       a.href = url;
@@ -862,22 +888,32 @@ async function loadCustomerTranscripts(container, customerName) {
       const file = fileInput.files?.[0];
       const date = dateInput.value;
 
-      if (!file) { if (statusEl) { statusEl.textContent = 'Select a VTT file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
+      if (!file) { if (statusEl) { statusEl.textContent = 'Select a file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
       if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
 
       uploadBtn.disabled = true;
-      if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
+      if (statusEl) { statusEl.textContent = 'Processing…'; statusEl.className = 'qr-transcript-upload-status'; }
 
       try {
-        // Get current user info from IMS profile if available
+        // Extract text content client-side (handles PDF, DOCX, XLSX, etc.)
+        const { text, fileName } = await (window.extractFileText
+          ? window.extractFileText(file)
+          : { text: await file.text(), fileName: file.name });
+
         const profile = typeof getProfile === 'function' ? getProfile() : null;
         const uploadedBy = profile?.email || profile?.name || '';
+
+        // Upload extracted text as a plain file blob
+        const textBlob = new Blob([text], { type: 'text/plain' });
+        const textFile = new File([textBlob], fileName, { type: 'text/plain' });
+
+        if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
 
         const form = new FormData();
         form.append('company', customerName);
         form.append('meetingDate', date);
         form.append('uploadedBy', uploadedBy);
-        form.append('file', file);
+        form.append('file', textFile);
 
         const res = await fetch('/api/transcripts', { method: 'POST', body: form });
         const json = await res.json();
@@ -886,7 +922,7 @@ async function loadCustomerTranscripts(container, customerName) {
           throw new Error(json.error || `HTTP ${res.status}`);
         }
 
-        if (statusEl) { statusEl.textContent = `Uploaded: ${file.name}`; statusEl.className = 'qr-transcript-upload-status ok'; }
+        if (statusEl) { statusEl.textContent = `Uploaded: ${fileName}`; statusEl.className = 'qr-transcript-upload-status ok'; }
         fileInput.value = '';
         await fetchAndRenderList();
       } catch (err) {
@@ -1088,4 +1124,8 @@ async function loadCustomerNotes(container, customerName) {
 
 if (typeof window !== 'undefined') {
   window.loadCustomerQuickRef = loadCustomerQuickRef;
+  // Expose auth helpers so the main page module can read identity without a separate import
+  window.getProfile = getProfile;
+  window.onAuthReady = onAuthReady;
+  window.onAuthStateChange = onAuthStateChange;
 }

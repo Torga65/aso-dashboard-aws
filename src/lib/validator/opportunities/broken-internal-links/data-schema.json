@@ -1,23 +1,12 @@
 {
-  "title": "Broken internal links suggestion data",
-  "description": "SpaceCat suggestion.data: need a referring page URL and a target link URL",
+  "title": "Broken internal/backlinks suggestion data",
+  "description": "SpaceCat suggestion.data: need a broken target link URL (urlFrom optional, used only to resolve relative urlTo)",
   "type": "object",
-  "allOf": [
-    {
-      "anyOf": [
-        { "required": ["pageUrl"] },
-        { "required": ["urlFrom"] },
-        { "required": ["url_from"] }
-      ]
-    },
-    {
-      "anyOf": [
-        { "required": ["urlTo"] },
-        { "required": ["url_to"] },
-        { "required": ["brokenUrl"] },
-        { "required": ["brokenHref"] }
-      ]
-    }
+  "anyOf": [
+    { "required": ["urlTo"] },
+    { "required": ["url_to"] },
+    { "required": ["brokenUrl"] },
+    { "required": ["brokenHref"] }
   ],
   "properties": {
     "pageUrl": {
@@ -26,7 +15,7 @@
     },
     "urlFrom": {
       "type": "string",
-      "description": "Source URL (ESS / SpaceCat camelCase); Referring domain column"
+      "description": "Source URL (ESS / SpaceCat camelCase); used to resolve relative urlTo"
     },
     "urlTo": {
       "type": "string",
@@ -34,7 +23,7 @@
     },
     "url_from": {
       "type": "string",
-      "description": "Source page or domain (snake_case); Referring domain column"
+      "description": "Source page or domain (snake_case); used to resolve relative urlTo"
     },
     "url_to": {
       "type": "string",
@@ -55,7 +44,12 @@
     "brokenLink": { "type": "string" },
     "statusCode": { "type": "integer" },
     "httpStatus": { "type": "integer" },
-    "suggestionValue": { "type": "string" }
+    "suggestionValue": { "type": "string" },
+    "urlsSuggested": { "type": "array", "items": { "type": "string" } },
+    "urlSuggested": { "type": "string" },
+    "url_suggested": { "type": "string" },
+    "aiSuggestion": { "type": "string" },
+    "replacementUrl": { "type": "string" }
   },
   "additionalProperties": true
 }

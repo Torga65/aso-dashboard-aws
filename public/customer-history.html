@@ -114,6 +114,15 @@
     @media (max-width: 700px) { .quick-ref-grid { grid-template-columns: 1fr; } }
     .quick-ref-pv-count { font-size: 28px; font-weight: 700; color: #d97706; line-height: 1; margin-bottom: 2px; }
     .quick-ref-pv-label { margin: 0; font-size: 12px; color: #666; }
+    .pv-opps-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .pv-opps-table th { text-align: left; padding: 4px 8px; font-size: 11px; font-weight: 600; color: #667eea; border-bottom: 1px solid #e0e0e0; white-space: nowrap; }
+    .pv-opps-table td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .pv-opps-table tr:last-child td { border-bottom: none; }
+    .pv-status-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .pv-status-NEW { background: #e7f1ff; color: #004085; }
+    .pv-status-IN_PROGRESS { background: #fff3cd; color: #856404; }
+    .pv-status-RESOLVED { background: #d4edda; color: #155724; }
+    .pv-status-PENDING_VALIDATION { background: #fef3c7; color: #92400e; }
     .quick-ref-backoffice-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #667eea; text-decoration: none; font-weight: 600; }
     .quick-ref-backoffice-link:hover { text-decoration: underline; }
     .quick-ref-box {
@@ -172,6 +181,11 @@
     .qr-transcript-claude-btn:hover { background: #fde68a; }
     .qr-transcript-claude-range { padding: 4px 12px; font-size: 12px; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 4px; cursor: pointer; color: #92400e; font-weight: 600; }
     .qr-transcript-claude-range:hover { background: #fde68a; }
+    .qr-transcript-item.qr-transcript-hidden { display: none; }
+    .qr-transcript-show-more { margin-top: 6px; width: 100%; padding: 5px; font-size: 12px; background: transparent; border: 1px dashed #ccc; border-radius: 4px; cursor: pointer; color: #555; }
+    .qr-transcript-show-more:hover { background: #f0f0f0; border-color: #aaa; }
+    [data-theme="dark"] .qr-transcript-show-more { color: #aaa; border-color: #444; }
+    [data-theme="dark"] .qr-transcript-show-more:hover { background: #2a2a2a; }
     /* Meeting Notes */
     .quick-ref-box--notes { grid-column: 1 / -1; }
     .qr-notes-upload-form { padding: 8px 0 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -314,7 +328,7 @@
     .acc-chip--live { background: #f1f3f4; color: #555; }
     .acc-chip--warn { background: #fef3c7 !important; color: #92400e !important; }
 
-    /* ── Accordion body lifecycle stats ─────────────────────────────── */
+    /* ── Accordion body info stats ───────────────────────────────────── */
     .acc-lifecycle-stats {
       display: flex;
       flex-wrap: wrap;
@@ -324,27 +338,21 @@
       border-radius: 6px;
       margin-bottom: 12px;
       border: 1px solid #c7d2fe;
+      align-items: center;
     }
     .acc-ls-item {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      min-width: 80px;
-      padding: 4px 10px;
+      align-items: flex-start;
+      padding: 5px 12px;
       background: white;
       border-radius: 6px;
       border: 1px solid #e0e7ff;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      min-width: 90px;
     }
-    a.acc-ls-item:hover { background: #e8f0fe; border-color: #a5b4fc; }
-    .acc-ls-val { font-size: 18px; font-weight: 700; color: #1e3a8a; line-height: 1.2; }
+    .acc-ls-val { font-size: 13px; font-weight: 700; color: #1e3a8a; line-height: 1.3; }
+    .acc-ls-val--num { font-size: 18px; }
     .acc-ls-label { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-    .acc-ls-item--open .acc-ls-val { color: #d97706; }
-    .acc-ls-item--resolved .acc-ls-val { color: #16a34a; }
-    .acc-ls-item--fixed .acc-ls-val { color: #7c3aed; }
-    .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
     .acc-ls-lifecycle-link {
       align-self: center;
       font-size: 12px;
@@ -360,6 +368,15 @@
     }
     .acc-ls-lifecycle-link:hover { background: #e8f0fe; }
 
+    /* ── Custom fields in accordion body ─────────────────────────────── */
+    .acc-custom-fields { margin-bottom: 12px; }
+    .acc-cf-group { margin-bottom: 6px; }
+    .acc-cf-group-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 4px; }
+    .acc-cf-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .acc-cf-item { display: flex; flex-direction: column; padding: 4px 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 5px; min-width: 80px; }
+    .acc-cf-key { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3px; }
+    .acc-cf-val { font-size: 13px; font-weight: 600; color: #111827; }
+
     [data-theme="dark"] .acc-ls-lifecycle-link { background: #1e2a3a; color: #93c5fd; border-color: #3a4a6a; }
     [data-theme="dark"] .acc-ls-lifecycle-link:hover { background: #253a5a; }
     [data-theme="dark"] .acc-chip { background: #2a2a2a; color: #ccc; }
@@ -370,8 +387,10 @@
     [data-theme="dark"] .acc-chip--warn { background: #78350f !important; color: #fde68a !important; }
     [data-theme="dark"] .acc-lifecycle-stats { background: #1e2235; border-color: #3a4a6a; }
     [data-theme="dark"] .acc-ls-item { background: #252f4a; border-color: #3a4a6a; }
-    [data-theme="dark"] a.acc-ls-item:hover { background: #2e3f6a; border-color: #5a7aaa; }
     [data-theme="dark"] .acc-ls-val { color: #93c5fd; }
+    [data-theme="dark"] .acc-cf-item { background: #1e2235; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-cf-key { color: #9ca3af; }
+    [data-theme="dark"] .acc-cf-val { color: #e5e7eb; }
     [data-theme="dark"] .acc-ls-label { color: #9ca3af; }
 
     .view-all-accordion {
@@ -659,6 +678,36 @@
       font-size: 14px;
     }
     .btn-edit-customer:hover { background: #0d66d0; color: white !important; }
+    .ese-filter-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #f0f4ff;
+      color: #1a56b0;
+      border: 1.5px solid #a8c0f0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .ese-filter-btn:hover { background: #dce8ff; border-color: #6a9ee8; }
+    .ese-filter-btn--active { background: #1a56b0; color: #fff; border-color: #1a56b0; }
+    .ese-filter-btn--active:hover { background: #1045a0; border-color: #1045a0; }
+    .ese-welcome-banner {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0 4px;
+      padding: 8px 14px;
+      background: #f0f4ff;
+      border-left: 4px solid #1a56b0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1a3a6b;
+    }
 
     /* ── Dark mode ───────────────────────────────────────────────────── */
     [data-theme="dark"] body { background: #1a1a1a; color: #e8e8e8; }
@@ -682,6 +731,10 @@
     [data-theme="dark"] .qr-prog-field input,
     [data-theme="dark"] .qr-prog-field textarea,
     [data-theme="dark"] .quick-ref-autofix-select { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .ese-filter-btn { background: #1e2a3a; color: #93c5fd; border-color: #3a5a8a; }
+    [data-theme="dark"] .ese-filter-btn:hover { background: #243450; }
+    [data-theme="dark"] .ese-filter-btn--active { background: #1a56b0; color: #fff; border-color: #1a56b0; }
+    [data-theme="dark"] .ese-welcome-banner { background: #1a2540; border-left-color: #4a8adc; color: #93c5fd; }
     [data-theme="dark"] .controls .customer-select-dropdown { border-color: #4a4a4a; }
     [data-theme="dark"] .controls .customer-select-dropdown li { border-bottom-color: #3a3a3a; color: #d0d0d0; }
     [data-theme="dark"] .controls .customer-select-dropdown li:hover { background: #2a3a5a; }
@@ -709,6 +762,8 @@
     [data-theme="dark"] .qr-progression-meta,
     [data-theme="dark"] .qr-progression-days,
     [data-theme="dark"] .quick-ref-pv-label { color: #999; }
+    [data-theme="dark"] .pv-opps-table th { color: #a0a8f0; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .pv-opps-table td { border-bottom-color: #2a2a2a; color: #d0d0d0; }
     [data-theme="dark"] .qr-comment-meta strong,
     [data-theme="dark"] .qr-comment-body,
     [data-theme="dark"] .qr-notes-item-title,
@@ -745,6 +800,80 @@
     [data-theme="dark"] .pl-col-count { background: #3a3a3a; color: #d0d0d0; }
     [data-theme="dark"] .quick-ref-logins-chart-wrap { border-top-color: #3a3a3a; }
   </style>
+  <!-- File extraction libraries (lazy-loaded on first binary upload) -->
+  <script>
+    // Extracts plain text from a File object. Returns { text, fileName } where
+    // fileName may be renamed to .txt for binary formats.
+    window.extractFileText = async function(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (['vtt','txt','csv'].includes(ext)) {
+        return { text: await file.text(), fileName: file.name };
+      }
+
+      if (ext === 'pdf') {
+        const pdfjsLib = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+          'pdfjsLib'
+        );
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const bytes = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const tc = await page.getTextContent();
+          pages.push(tc.items.map(s => s.str).join(' '));
+        }
+        return { text: pages.join('\n\n'), fileName: file.name.replace(/\.pdf$/i, '.txt') };
+      }
+
+      if (ext === 'docx') {
+        const mammoth = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+          'mammoth'
+        );
+        const bytes = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: bytes });
+        return { text: result.value, fileName: file.name.replace(/\.docx$/i, '.txt') };
+      }
+
+      if (['xlsx','xls'].includes(ext)) {
+        const XLSX = await loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+          'XLSX'
+        );
+        const bytes = await file.arrayBuffer();
+        const wb = XLSX.read(bytes, { type: 'array' });
+        const lines = [];
+        wb.SheetNames.forEach(name => {
+          lines.push(`=== Sheet: ${name} ===`);
+          const ws = wb.Sheets[name];
+          lines.push(XLSX.utils.sheet_to_csv(ws));
+        });
+        return { text: lines.join('\n\n'), fileName: file.name.replace(/\.(xlsx|xls)$/i, '.txt') };
+      }
+
+      // Fallback — try reading as text
+      return { text: await file.text(), fileName: file.name };
+    };
+
+    // Load a script by URL and return the global it exposes
+    const _scriptCache = {};
+    function loadScript(url, globalName) {
+      if (window[globalName]) return Promise.resolve(window[globalName]);
+      if (_scriptCache[url]) return _scriptCache[url];
+      _scriptCache[url] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url;
+        s.onload = () => resolve(window[globalName]);
+        s.onerror = () => reject(new Error(`Failed to load ${url}`));
+        document.head.appendChild(s);
+      });
+      return _scriptCache[url];
+    }
+  </script>
 </head>
 <body>
   <header></header>
@@ -808,8 +937,12 @@
           <option value="">All</option>
         </select>
       </div>
+      <button type="button" id="ese-filter-toggle" class="ese-filter-btn" style="display:none;">My Customers</button>
     </div>
     
+    <!-- ESE welcome banner (shown after login if user is identified as an ESE) -->
+    <div id="ese-welcome-banner" class="ese-welcome-banner" style="display:none;"></div>
+
     <!-- Timeline Display -->
     <div id="timeline-display"></div>
   </main>
@@ -819,6 +952,10 @@
     let allData = [];
     let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
+    // ESE filter: when non-null, only show customers whose eseLead matches this value.
+    // Set automatically on login when the signed-in user appears as an ESE.
+    let eseFilter = null;       // the active eseLead string being filtered on, or null = all
+    let eseIdentity = null;     // the eseLead value matched to the signed-in user (persists across toggle)
 
     function escapeHtml(s) {
       const div = document.createElement('div');
@@ -1008,13 +1145,82 @@
 
     function getFilteredCustomers() {
       const licenseType = document.getElementById('license-type-select')?.value;
+      let visible = allData.filter((c) => !c.hidden);
+      // ESE filter: narrow to customers assigned to the signed-in ESE
+      if (eseFilter) {
+        const ese = eseFilter.trim().toLowerCase();
+        visible = visible.filter((c) => (c.eseLead || '').trim().toLowerCase() === ese);
+      }
       let customers;
       if (!licenseType) {
-        customers = [...new Set(allData.map((c) => c.companyName))].sort();
+        customers = [...new Set(visible.map((c) => c.companyName))].sort();
       } else {
-        customers = [...new Set(allData.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
+        customers = [...new Set(visible.filter((c) => (c.licenseType || '').trim() === licenseType).map((c) => c.companyName))].sort();
       }
       return applyQueryFilters(customers);
+    }
+
+    /**
+     * Update the "My Customers / All Customers" toggle button visibility and label
+     * to reflect the current eseFilter state.
+     */
+    function updateEseToggle() {
+      const btn = document.getElementById('ese-filter-toggle');
+      if (!btn) return;
+      if (!eseIdentity) { btn.style.display = 'none'; return; }
+      btn.style.display = 'inline-flex';
+      if (eseFilter) {
+        btn.textContent = 'All Customers';
+        btn.title = 'Showing only your assigned customers — click to view all';
+        btn.classList.add('ese-filter-btn--active');
+      } else {
+        btn.textContent = 'My Customers';
+        btn.title = 'Click to show only your assigned customers';
+        btn.classList.remove('ese-filter-btn--active');
+      }
+    }
+
+    /**
+     * Show or clear the welcome banner for the signed-in user.
+     */
+    function updateWelcomeBanner(profile, customerCount) {
+      let banner = document.getElementById('ese-welcome-banner');
+      if (!banner) return;
+      if (!profile) { banner.style.display = 'none'; return; }
+      const displayName = profile.displayName || profile.name || profile.email || '';
+      if (eseIdentity) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `Welcome back, <strong>${escapeHtml(displayName)}</strong>! Showing your ${customerCount} assigned customer${customerCount !== 1 ? 's' : ''}.`;
+      } else {
+        banner.style.display = 'flex';
+        banner.innerHTML = `Welcome back, <strong>${escapeHtml(displayName)}</strong>! No customers are assigned to you — showing all customers.`;
+      }
+    }
+
+    /**
+     * Given an IMS profile, check whether the user appears as an eseLead on any
+     * customer record. If so, activate the ESE filter automatically and show a
+     * welcome message. If no match, show all customers with a welcome message.
+     */
+    function detectAndApplyEseFilter(profile) {
+      if (!profile || !allData.length) return;
+      // Build name candidates from every variant the profile exposes
+      const candidates = [
+        profile.displayName,
+        profile.name,
+        profile.email ? profile.email.split('@')[0].replace(/[._]/g, ' ') : null,
+      ].filter(Boolean).map((s) => s.trim().toLowerCase());
+
+      const matched = allData
+        .map((c) => (c.eseLead || '').trim())
+        .find((ese) => ese && candidates.some((c) => ese.toLowerCase() === c));
+
+      eseIdentity = matched || null;
+      eseFilter = eseIdentity; // auto-activate "My Customers" view on login
+      showAllCustomers();
+      updateEseToggle();
+      const count = getFilteredCustomers().length;
+      updateWelcomeBanner(profile, count);
     }
 
     async function loadHistoricalData() {
@@ -1195,6 +1401,33 @@
         document.getElementById('loading').style.display = 'none';
         document.getElementById('controls').style.display = 'flex';
 
+        // Wire the ESE toggle button (only visible when the user is an identified ESE)
+        const eseToggleBtn = document.getElementById('ese-filter-toggle');
+        if (eseToggleBtn) {
+          eseToggleBtn.addEventListener('click', () => {
+            eseFilter = eseFilter ? null : eseIdentity;
+            updateEseToggle();
+            showAllCustomers();
+          });
+        }
+
+        // onAuthReady fires immediately if the IMS token is already present, otherwise
+        // fires once when the token arrives — covers both fast and slow postMessage delivery.
+        if (typeof window.onAuthReady === 'function') {
+          window.onAuthReady((profile) => detectAndApplyEseFilter(profile));
+        }
+
+        // Re-detect on subsequent sign-in / sign-out events
+        if (typeof window.onAuthStateChange === 'function') {
+          window.onAuthStateChange((profile) => {
+            eseIdentity = null;
+            eseFilter = null;
+            updateEseToggle();
+            updateWelcomeBanner(null, 0);
+            detectAndApplyEseFilter(profile);
+          });
+        }
+
         // Check for ?customer= URL param and auto-select that customer
         const urlParams = new URLSearchParams(window.location.search);
         const preCustomer = urlParams.get('customer');
@@ -1314,7 +1547,7 @@
                 <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
                 <div class="qr-transcript-upload-form">
                   <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                  <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                  <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
                   <button type="button" class="qr-transcript-upload-btn">Upload</button>
                   <p class="qr-transcript-upload-status"></p>
                 </div>
@@ -1542,6 +1775,49 @@
         const eseLead = record.eseLead || '—';
         const licenseType = record.licenseType || '—';
         const statusLabel = record.status || '—';
+        const deploymentType = record.deploymentType || '—';
+        const engagement = record.engagement || '—';
+
+        // Build custom fields HTML grouped by section
+        let customFieldsHtml = '';
+        const cf = record.customFields;
+        if (cf && typeof cf === 'object') {
+          const sections = { Identity: [], Classification: [], Engagement: [], '': [] };
+          Object.entries(cf).forEach(([k, v]) => {
+            let val, section;
+            if (v && typeof v === 'object' && !Array.isArray(v)) {
+              val = String(v.value ?? ''); section = v.section || '';
+            } else {
+              val = String(v ?? ''); section = '';
+            }
+            const sec = sections.hasOwnProperty(section) ? section : '';
+            sections[sec].push({ k, val });
+          });
+          const allItems = [
+            ...sections['Identity'].map(f => ({ ...f, section: 'Identity' })),
+            ...sections['Classification'].map(f => ({ ...f, section: 'Classification' })),
+            ...sections['Engagement'].map(f => ({ ...f, section: 'Engagement' })),
+            ...sections[''].map(f => ({ ...f, section: '' })),
+          ];
+          if (allItems.length > 0) {
+            const grouped = {};
+            allItems.forEach(({ k, val, section }) => {
+              const g = section || 'Other';
+              if (!grouped[g]) grouped[g] = [];
+              grouped[g].push({ k, val });
+            });
+            customFieldsHtml = '<div class="acc-custom-fields">' +
+              Object.entries(grouped).map(([grp, fields]) =>
+                `<div class="acc-cf-group"><span class="acc-cf-group-label">${escapeHtml(grp)}</span><div class="acc-cf-items">${
+                  fields.map(({ k, val }) =>
+                    `<div class="acc-cf-item"><span class="acc-cf-key">${escapeHtml(k)}</span><span class="acc-cf-val">${escapeHtml(val)}</span></div>`
+                  ).join('')
+                }</div></div>`
+              ).join('') +
+              '</div>';
+          }
+        }
+
         html += `
           <div class="view-all-accordion-item" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
             <div class="view-all-accordion-header">
@@ -1558,7 +1834,16 @@
               </div>
             </div>
             <div class="view-all-accordion-body">
-              <div class="acc-lifecycle-stats"><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a><span class="acc-ls-loading">Loading opportunity stats…</span></div>
+              <div class="acc-lifecycle-stats">
+                <a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
+                <div class="acc-ls-item"><span class="acc-ls-label">CSE</span><span class="acc-ls-val">${escapeHtml(eseLead)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">License Type</span><span class="acc-ls-val">${escapeHtml(licenseType)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Status</span><span class="acc-ls-val">${escapeHtml(statusLabel)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Deployment</span><span class="acc-ls-val">${escapeHtml(deploymentType)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Engagement</span><span class="acc-ls-val">${escapeHtml(engagement)}</span></div>
+                <div class="acc-ls-item"><span class="acc-ls-label">Health Score</span><span class="acc-ls-val acc-ls-val--num">${healthScore}</span></div>
+              </div>
+              ${customFieldsHtml}
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>
               </div>
@@ -1608,7 +1893,7 @@
                     <summary>Meeting transcripts <span class="qr-summary-count"></span></summary>
                     <div class="qr-transcript-upload-form">
                       <label>Meeting date<input type="date" class="qr-transcript-date"/></label>
-                      <label>VTT file<input type="file" class="qr-transcript-file" accept=".vtt,text/vtt"/></label>
+                      <label>File<input type="file" class="qr-transcript-file" accept=".vtt,.txt,.csv,.pdf,.docx,.xlsx"/></label>
                       <button type="button" class="qr-transcript-upload-btn">Upload</button>
                       <p class="qr-transcript-upload-status"></p>
                     </div>

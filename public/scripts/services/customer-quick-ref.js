@@ -8,9 +8,10 @@
 import { ASO_ENDPOINTS, ASO_OPPORTUNITY_TYPES } from '../constants/api.js';
 import { apiGet, isApiError } from './spacecat-api.js';
 import { fetchSpaceCatOrgs, fetchOrgSites } from './org-site-service.js';
+import { isLlmoOnly, isExcludedOpportunity } from '../utils/llmo-classification.js';
 
 /** localStorage key for the quick-ref cache */
-const CACHE_KEY = 'asoCustomerQuickRefCache';
+const CACHE_KEY = 'asoCustomerQuickRefCache_v2';
 
 /** Cache TTL: 24 hours — audits, pending validation, and user data change infrequently */
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -180,7 +181,7 @@ async function fetchAudits(siteId, orgId, token) {
   ]);
 
   if (isApiError(oppsResponse)) {
-    return { audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } };
+    return { audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [], opps: [] } };
   }
 
   // Build a map of auditType → last run date string
@@ -213,7 +214,7 @@ async function fetchAudits(siteId, orgId, token) {
 
   const audits = [];
   const disabledAudits = [];
-  const pendingTypes = [];
+  const pendingOpps = [];
 
   await Promise.all(opportunities.map(async (opp) => {
     const auditType = opp.type || opp.opportunityType || 'unknown';
@@ -237,8 +238,9 @@ async function fetchAudits(siteId, orgId, token) {
       audits.push(row);
     }
 
-    // Count suggestions with PENDING_VALIDATION/FIXED status — ASO opportunity types only
-    if (opp.id && ASO_OPPORTUNITY_TYPES.includes(auditType)) {
+    // Mirror the lifecycle page: check ASO opportunities (not LLMO-only, not excluded)
+    // for pending validation. Fixed count stays scoped to ASO_OPPORTUNITY_TYPES for opportunityStats.
+    if (opp.id && !isLlmoOnly(opp) && !isExcludedOpportunity(opp)) {
       const sugUrl = ASO_ENDPOINTS.OPPORTUNITY_SUGGESTIONS(siteId, opp.id);
       const suggestions = await apiGet(sugUrl, token);
       if (!isApiError(suggestions)) {
@@ -248,10 +250,13 @@ async function fetchAudits(siteId, orgId, token) {
         const hasPending = sugList.some(
           (s) => (s.status || '').toUpperCase() === 'PENDING_VALIDATION',
         );
-        if (hasPending) pendingTypes.push(auditType);
-        fixedSuggestionsCount += sugList.filter(
-          (s) => (s.status || '').toUpperCase() === 'FIXED',
-        ).length;
+        const oppStatus = (opp.status || '').toUpperCase();
+        if (hasPending && oppStatus !== 'IGNORED') pendingOpps.push({ type: auditType, status: opp.status || '', createdAt: opp.createdAt || '' });
+        if (ASO_OPPORTUNITY_TYPES.includes(auditType)) {
+          fixedSuggestionsCount += sugList.filter(
+            (s) => (s.status || '').toUpperCase() === 'FIXED',
+          ).length;
+        }
       }
     }
   }));
@@ -259,7 +264,7 @@ async function fetchAudits(siteId, orgId, token) {
   return {
     audits,
     disabledAudits,
-    pendingValidationOpps: { count: pendingTypes.length, types: pendingTypes },
+    pendingValidationOpps: { count: pendingOpps.length, types: pendingOpps.map((p) => p.type), opps: pendingOpps },
     opportunityStats: {
       total: asoOpps.length,
       open: openAsoCount,
@@ -382,7 +387,7 @@ async function fetchUsers(orgId, token, sites) {
  *   allOrgs: Array,
  *   audits: Array,
  *   disabledAudits: Array,
- *   pendingValidationOpps: { count: number, types: string[] },
+ *   pendingValidationOpps: { count: number, types: string[], opps: Array<{type:string,status:string,createdAt:string}> },
  *   users: Array,
  *   loginCountByDay: Object,
  *   usersByDay: Object,
@@ -409,7 +414,7 @@ export async function getCustomerQuickRef(customerName, token = null, options = 
       allOrgs,
       audits: [],
       disabledAudits: [],
-      pendingValidationOpps: { count: 0, types: [] },
+      pendingValidationOpps: { count: 0, types: [], opps: [] },
       users: [],
       loginCountByDay: {},
       usersByDay: {},
@@ -427,7 +432,7 @@ export async function getCustomerQuickRef(customerName, token = null, options = 
 
   // 3. Fetch audits + users in parallel (only if we have a site)
   const [auditData, userData] = await Promise.all([
-    siteId ? fetchAudits(siteId, org.orgId, token) : Promise.resolve({ audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [] } }),
+    siteId ? fetchAudits(siteId, org.orgId, token) : Promise.resolve({ audits: [], disabledAudits: [], pendingValidationOpps: { count: 0, types: [], opps: [] } }),
     fetchUsers(org.orgId, token, sites),
   ]);
 

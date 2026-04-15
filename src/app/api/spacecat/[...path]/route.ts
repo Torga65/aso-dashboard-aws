@@ -18,6 +18,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+// Allow up to 60 seconds for SpaceCat to respond (GET /sites returns all sites
+// and can take 15–20 s). Next.js / OpenNext propagates this to the Lambda timeout.
+export const maxDuration = 60;
+
 const SPACECAT_BASE = "https://spacecat.experiencecloud.live/api/v1";
 
 async function handleRequest(

@@ -15,6 +15,7 @@ import {
 import { SiteSelector, type Site } from '@/components/validator/SiteSelector';
 import { OpportunityList, type Opportunity } from '@/components/validator/OpportunityList';
 import { SuggestionList, type Suggestion } from '@/components/validator/SuggestionList';
+import { ValidationHighlights } from '@/components/validator/ValidationHighlights';
 import type { OriginFilter } from '@/components/validator/CategoryFilters';
 import type { Opportunity as SharedOpportunity } from '@validator-shared/types';
 import { mapOpportunityToTypeId } from '@validator-shared/validation/map-opportunity-type';
@@ -28,6 +29,11 @@ export type ValidationResultItem = {
   fixValidated?: boolean;
   fixExplanation?: string;
 };
+
+function isLlmoByTag(opportunity: { isElmo?: boolean; tags?: string[]; [key: string]: unknown }): boolean {
+  if (opportunity.isElmo === true) return true;
+  return opportunity.tags?.includes('isElmo') === true;
+}
 
 export default function ValidatorPage() {
   return (
@@ -45,7 +51,7 @@ function ValidatorPageInner() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
   const [opportunitiesError, setOpportunitiesError] = useState<string | null>(null);
-  const [originFilter, setOriginFilter] = useState<OriginFilter>('all');
+  const [originFilter, setOriginFilter] = useState<OriginFilter>('aso');
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -65,20 +71,50 @@ function ValidatorPageInner() {
       setSelectedOpportunity(null);
       setSuggestions([]);
       try {
-        const params = new URLSearchParams({
-          origin,
-          includePendingFlag: 'true',
-        });
         const res = await fetch(
-          `/api/validator/sites/${siteId}/opportunities?${params.toString()}`,
+          `/api/spacecat/sites/${siteId}/opportunities`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || `HTTP ${res.status}`);
         }
-        const data = await res.json();
-        setOpportunities(Array.isArray(data) ? data : []);
+        const raw = await res.json();
+        let opps: Opportunity[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+
+        // Filter: only NEW status
+        opps = opps.filter((o) => o.status === 'NEW');
+
+        // Filter: origin (aso = not isElmo, llmo = isElmo)
+        if (origin === 'aso') {
+          opps = opps.filter((o) => !isLlmoByTag(o));
+        } else if (origin === 'llmo') {
+          opps = opps.filter((o) => isLlmoByTag(o));
+        }
+
+        // Enrich with hasPendingValidation (parallel fetch of suggestions per opportunity)
+        if (opps.length > 0) {
+          const enriched = await Promise.all(
+            opps.map(async (opp) => {
+              try {
+                const sRes = await fetch(
+                  `/api/spacecat/sites/${siteId}/opportunities/${opp.id}/suggestions`,
+                  { headers: { Authorization: `Bearer ${accessToken}` } }
+                );
+                if (!sRes.ok) return opp;
+                const sRaw = await sRes.json();
+                const suggs: Array<{ status: string }> = Array.isArray(sRaw) ? sRaw : (sRaw?.data ?? []);
+                const pendingCount = suggs.filter((s) => s.status === 'PENDING_VALIDATION').length;
+                return { ...opp, hasPendingValidation: pendingCount > 0, pendingValidationCount: pendingCount };
+              } catch {
+                return opp;
+              }
+            })
+          );
+          setOpportunities(enriched);
+        } else {
+          setOpportunities(opps);
+        }
       } catch (e) {
         setOpportunitiesError(e instanceof Error ? e.message : 'Failed to load opportunities');
         setOpportunities([]);
@@ -94,15 +130,15 @@ function ValidatorPageInner() {
     setSuggestionsError(null);
     try {
       const res = await fetch(
-        `/api/validator/sites/${siteId}/opportunities/${opportunityId}/suggestions`,
+        `/api/spacecat/sites/${siteId}/opportunities/${opportunityId}/suggestions`,
         { cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      const data = await res.json();
-      setSuggestions(Array.isArray(data) ? data : []);
+      const raw = await res.json();
+      setSuggestions(Array.isArray(raw) ? raw : (raw?.data ?? []));
     } catch (e) {
       setSuggestionsError(e instanceof Error ? e.message : 'Failed to load suggestions');
       setSuggestions([]);
@@ -224,14 +260,14 @@ function ValidatorPageInner() {
     setUpdatingStatus(true);
     try {
       const res = await fetch(
-        `/api/validator/sites/${site.id}/opportunities/${selectedOpportunity.id}/suggestions/status`,
+        `/api/spacecat/sites/${site.id}/opportunities/${selectedOpportunity.id}/suggestions/status`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ suggestionIds, status }),
+          body: JSON.stringify(suggestionIds.map((id) => ({ id, status }))),
         }
       );
       if (!res.ok) {
@@ -370,7 +406,7 @@ function ValidatorPageInner() {
   }
 
   return (
-    <Flex direction="column" maxWidth="1200px" marginStart="auto" marginEnd="auto" minHeight="100vh">
+    <Flex direction="column" maxWidth="1800px" marginStart="auto" marginEnd="auto" minHeight="100vh">
       <Flex
         direction="column"
         gap="size-100"
@@ -383,6 +419,15 @@ function ValidatorPageInner() {
         <Well>
           <Flex direction="column" gap="size-300">
             <SiteSelector onSelect={handleSelectSite} selectedSite={site} preloadBaseURL={preloadBaseURL} />
+
+            {site && !opportunitiesLoading && (
+              <ValidationHighlights
+                opportunities={opportunities}
+                onSelect={handleSelectOpportunity}
+                siteId={site.id}
+                accessToken={accessToken ?? ''}
+              />
+            )}
 
             {site && (
               <OpportunityList

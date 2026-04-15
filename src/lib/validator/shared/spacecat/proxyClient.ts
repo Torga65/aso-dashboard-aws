@@ -27,9 +27,25 @@ export class SpaceCatProxyClient {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
-    const response = await fetch(url, { ...options, headers });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8_000);
+
+    let response: Response;
+    try {
+      response = await fetch(url, { ...options, headers, signal: controller.signal });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const friendly = msg.toLowerCase().includes('abort') ? 'Request timed out after 8s' : msg;
+      console.error(`[SpaceCatProxyClient] fetch failed for ${endpoint}:`, friendly);
+      throw new Error(`SpaceCat API Error: ${friendly}`);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[SpaceCatProxyClient] ${response.status} for ${endpoint}:`, text.slice(0, 200));
       throw new Error(`SpaceCat API Error: ${response.status} - ${text}`);
     }
     if (response.status === 204) {
