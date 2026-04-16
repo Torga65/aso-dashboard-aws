@@ -1,0 +1,36 @@
+{
+  "title": "A11y Assistive Technology Suggestion Data",
+  "description": "SpaceCat suggestion.data for a11y-assistive opportunities (axe-core source, same shape as a11y-color-contrast).",
+  "type": "object",
+  "required": ["url", "issues"],
+  "properties": {
+    "url":    { "type": "string", "minLength": 1, "description": "URL of the page containing the element" },
+    "issues": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id":             { "type": "string", "description": "axe-core rule id, e.g. aria-label, button-name, image-alt" },
+          "description":    { "type": "string" },
+          "help":           { "type": "string" },
+          "failureSummary": { "type": "string" },
+          "wcagLevel":      { "type": "string" },
+          "wcagRule":       { "type": "string" },
+          "htmlWithIssues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target_selector": { "type": "string", "description": "CSS selector for the element with the issue" }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

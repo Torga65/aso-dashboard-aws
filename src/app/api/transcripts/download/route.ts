@@ -62,10 +62,18 @@ export async function GET(req: NextRequest) {
 
     // Build combined VTT: one WEBVTT header, NOTE separators between meetings
     const parts = records.map((r) =>
-      `NOTE ────────────────────────────────────\nNOTE Meeting: ${r.companyName}\nNOTE Date: ${r.meetingDate}  Type: ${r.fileType}\nNOTE File: ${r.fileName}\nNOTE Uploaded by: ${r.uploadedBy ?? "unknown"}  at ${r.uploadedAt}\nNOTE ────────────────────────────────────\n\n${
-        // Strip the WEBVTT header from all but the first entry content
-        r.content.replace(/^WEBVTT[^\n]*\n/, "").trimStart()
-      }`
+      [
+        `NOTE ────────────────────────────────────`,
+        `NOTE Meeting: ${r.companyName}`,
+        `NOTE Date: ${r.meetingDate}  Type: ${r.fileType}`,
+        `NOTE File: ${r.fileName}`,
+        r.description ? `NOTE Description: ${r.description}` : null,
+        `NOTE Uploaded by: ${r.uploadedBy ?? "unknown"}  at ${r.uploadedAt}`,
+        `NOTE ────────────────────────────────────`,
+        ``,
+        // Strip the WEBVTT header from entry content
+        r.content.replace(/^WEBVTT[^\n]*\n/, "").trimStart(),
+      ].filter((line) => line !== null).join("\n")
     );
 
     const combined = `WEBVTT\nNOTE Combined transcript — ${company} — generated ${new Date().toISOString()}\n\n${parts.join("\n\n")}`;

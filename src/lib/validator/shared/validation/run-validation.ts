@@ -1,10 +1,9 @@
 /**
  * Run gate validation then optionally LLM validation.
  * - gate_passed → LLM classifies real_issue vs false_positive (sitemap, heading, etc.).
- * - Broken internal links: if the gate returns gate_passed, the target was already verified (anchor + HTTP 2xx); we map
- *   that to false_positive and skip LLM issue classification so SpaceCat/crawler metadata claiming 404 cannot override.
- * - real_issue → LLM suggestion validation (validateFix): for broken-internal-links, OpenAI checks AI-suggested URLs
- *   and rationale coherence; other types validate the suggested fix per their prompt.
+ * - Broken internal links / backlinks: gate directly fetches URL To; if 2xx → gate_passed → false_positive (link works);
+ *   if non-2xx → real_issue with fixValidated set by mechanical check (no LLM validateFix needed).
+ * - real_issue → LLM suggestion validation (validateFix) for other types; skipped when gate already set fixValidated.
  * Hreflang: gate fetches the page and returns gate_passed with pageSourceSnippet; the LLM decides real vs false positive
  * using that HTML, then validates the fix for real issues.
  */
@@ -40,8 +39,8 @@ function mergeRunbookForLlm(repoContext: string, opportunityRunbook?: string): s
 }
 
 /**
- * Gate already proved URL From contains an anchor to URL To and URL To returned 2xx — not a broken link.
- * Strip the legacy "Proceeding to AI review…" tail from the gate message.
+ * Gate fetched URL To directly and it returned 2xx — not a broken link.
+ * Wraps the gate explanation in a "Not a valid issue" message for display.
  */
 function brokenInternalLinksVerifiedNotAnIssueExplanation(gateExplanation?: string): string {
   const core = (gateExplanation ?? '')
@@ -137,8 +136,16 @@ export async function runValidation(
 
   if (realIssuesAfterLlm.length > 0 && llm.validateFix) {
     const realIssueSuggestions = suggestions
-      .filter((s) => byId.get(s.id)?.validation_status === 'real_issue')
+      .filter((s) => {
+        const r = byId.get(s.id);
+        // Skip LLM fix validation when the gate already performed a mechanical check
+        if (r?.validation_status === 'real_issue' && r.fixValidated !== undefined) return false;
+        return r?.validation_status === 'real_issue';
+      })
       .map((s) => enrichSuggestionWithGateArtifacts(s, byId.get(s.id)));
+    if (realIssueSuggestions.length === 0) {
+      return suggestions.map((s) => byId.get(s.id)!);
+    }
     const fixResults = await llm.validateFix(realIssueSuggestions, {
       opportunityTypeId: options.opportunityTypeId,
       opportunityTitle: options.opportunityTitle,

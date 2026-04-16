@@ -231,6 +231,7 @@ const schema = a.schema({
       meetingDate: a.string().required(), // "YYYY-MM-DD"
       fileType: a.string().required(),    // "transcript" | "attendance"
       fileName: a.string().required(),
+      description: a.string(),            // user-provided summary / tags for MCP search
       content: a.string().required(),     // raw VTT text (≤ 350 KB)
       uploadedBy: a.string(),
       uploadedAt: a.datetime().required(),
