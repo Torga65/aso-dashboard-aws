@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'SpaceCat API error';
     const status = httpStatusFromThrownError(err);
+    console.error('[/api/validator/sites] Error:', message);
     return NextResponse.json({ error: message }, { status });
   }
 }
