@@ -53,11 +53,22 @@ window.addEventListener('message', (event) => {
   // Only accept messages from the same origin
   if (event.origin !== window.location.origin) return;
 
-  const { type, token } = event.data || {};
+  const { type, token, profile: parentProfile } = event.data || {};
 
   if (type === 'ims-token') {
     _imsToken = token || null;
-    _profile = _imsToken ? parseJwtProfile(_imsToken) : null;
+    // Prefer the full profile sent by the parent (has displayName, first_name, last_name).
+    // Fall back to JWT-parsed profile if the parent didn't send one.
+    if (parentProfile && typeof parentProfile === 'object') {
+      _profile = {
+        userId: parentProfile.userId || null,
+        email: parentProfile.email || null,
+        name: parentProfile.displayName || `${parentProfile.first_name || ''} ${parentProfile.last_name || ''}`.trim() || parentProfile.name || null,
+        displayName: parentProfile.displayName || `${parentProfile.first_name || ''} ${parentProfile.last_name || ''}`.trim() || null,
+      };
+    } else {
+      _profile = _imsToken ? parseJwtProfile(_imsToken) : null;
+    }
 
     if (!_ready) {
       _ready = true;

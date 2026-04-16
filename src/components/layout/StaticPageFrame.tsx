@@ -23,38 +23,38 @@ interface Props {
 
 export default function StaticPageFrame({ src, title }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { accessToken, isReady, signIn, signOut } = useIMSAuth();
+  const { accessToken, profile, isReady, signIn, signOut } = useIMSAuth();
   const { colorScheme, fontSize } = useTheme();
 
   const postToIframe = useCallback((msg: object) => {
     iframeRef.current?.contentWindow?.postMessage(msg, window.location.origin);
   }, []);
 
-  // Send token whenever it changes — only post when we have a real token
+  // Send token + profile whenever they change — only post when we have a real token
   useEffect(() => {
     if (!isReady) return;
     if (accessToken) {
-      postToIframe({ type: "ims-token", token: accessToken });
+      postToIframe({ type: "ims-token", token: accessToken, profile });
     } else {
       postToIframe({ type: "ims-signout" });
     }
-  }, [isReady, accessToken, postToIframe]);
+  }, [isReady, accessToken, profile, postToIframe]);
 
   // Push theme into iframe whenever it changes
   useEffect(() => {
     postToIframe({ type: "theme", colorScheme, fontSize });
   }, [colorScheme, fontSize, postToIframe]);
 
-  // Also send token when the iframe finishes loading (it may load after token is set)
+  // Also send token + profile when the iframe finishes loading (it may load after token is set)
   const handleLoad = useCallback(() => {
     if (!isReady) return;
     if (accessToken) {
-      postToIframe({ type: "ims-token", token: accessToken });
+      postToIframe({ type: "ims-token", token: accessToken, profile });
     } else {
       postToIframe({ type: "ims-signout" });
     }
     postToIframe({ type: "theme", colorScheme, fontSize });
-  }, [isReady, accessToken, colorScheme, fontSize, postToIframe]);
+  }, [isReady, accessToken, profile, colorScheme, fontSize, postToIframe]);
 
   // Listen for sign-in / sign-out requests from the iframe
   useEffect(() => {

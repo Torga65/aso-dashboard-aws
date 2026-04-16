@@ -58,13 +58,13 @@ export async function GET(
       opportunities = opportunities.filter((o) => isLlmoByTag(o));
     }
 
-    // 2. Enrich with hasPendingValidation and/or filter by it
+    // 2. Enrich with hasPendingValidation / pendingValidationCount and/or filter by it
     if ((includePendingFlag || hasPendingValidation) && opportunities.length > 0) {
       const enriched = await Promise.all(
         opportunities.map(async (opp) => {
           const suggestions = await client.getSuggestionsForOpportunity(siteId, opp.id);
-          const hasPending = suggestions.some((s) => s.status === 'PENDING_VALIDATION');
-          return { ...opp, hasPendingValidation: hasPending };
+          const pendingCount = suggestions.filter((s) => s.status === 'PENDING_VALIDATION').length;
+          return { ...opp, hasPendingValidation: pendingCount > 0, pendingValidationCount: pendingCount };
         })
       );
       if (hasPendingValidation) {

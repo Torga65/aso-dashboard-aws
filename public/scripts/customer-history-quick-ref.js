@@ -12,6 +12,7 @@ import {
   signOut,
   isAuthenticated,
   getProfile,
+  onAuthReady,
   onAuthStateChange,
 } from './auth/imslib-adapter.js';
 import { setGlobalToken } from './services/spacecat-api.js';
@@ -529,8 +530,9 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     }
 
     if (pendingEl) {
-      const pvCount = pendingValidationOpps.count || 0;
-      const pvTypes = Array.isArray(pendingValidationOpps.types) ? pendingValidationOpps.types : [];
+      const pvOpps = (Array.isArray(pendingValidationOpps.opps) ? pendingValidationOpps.opps : [])
+        .filter((o) => (o.status || '').toUpperCase() !== 'IGNORED');
+      const pvCount = pvOpps.length;
       const backOfficeLink = currentSiteId
         ? `<a class="quick-ref-backoffice-link" href="https://experience.adobe.com/#/@sitesinternal/custom-apps/245265-EssDeveloperUI/#/sites/${encodeURIComponent(currentSiteId)}/opportunities?showPendingValidation=true" target="_blank" rel="noopener noreferrer">Open in back office</a>`
         : '';
@@ -541,14 +543,22 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       if (pvCount === 0) {
         pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}${linkSeparator}${validatorLink}`;
       } else {
-        const typeItems = pvTypes
-          .map((t) => `<li>${escapeHtml((t || '').replace(/-/g, ' '))}</li>`)
-          .join('');
+        const rows = pvOpps.map((o) => {
+          const typeLabel = escapeHtml((o.type || '').replace(/-/g, ' '));
+          const statusVal = (o.status || '').toUpperCase();
+          const created = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+          return `<tr>
+            <td>${typeLabel}</td>
+            <td><span class="pv-status-badge pv-status-${statusVal}">${statusVal || '—'}</span></td>
+            <td>${created}</td>
+          </tr>`;
+        }).join('');
         pendingEl.innerHTML = `
-          <div class="quick-ref-pv-count">${pvCount}</div>
-          <p class="quick-ref-pv-label">suggestion${pvCount !== 1 ? 's' : ''} awaiting validation</p>
-          ${pvTypes.length > 0 ? `<ul class="quick-ref-list" style="margin:6px 0 0;padding-left:18px;">${typeItems}</ul>` : ''}
-          ${backOfficeLink}${linkSeparator}${validatorLink}
+          <table class="pv-opps-table">
+            <thead><tr><th>Type</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:8px;">${backOfficeLink}${linkSeparator}${validatorLink}</div>
         `;
       }
       setDetailsCount(pendingEl.closest('details'), pvCount);
@@ -1114,4 +1124,8 @@ async function loadCustomerNotes(container, customerName) {
 
 if (typeof window !== 'undefined') {
   window.loadCustomerQuickRef = loadCustomerQuickRef;
+  // Expose auth helpers so the main page module can read identity without a separate import
+  window.getProfile = getProfile;
+  window.onAuthReady = onAuthReady;
+  window.onAuthStateChange = onAuthStateChange;
 }
