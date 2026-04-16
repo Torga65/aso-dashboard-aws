@@ -53,14 +53,20 @@
 
     /* Custom fields */
     .custom-fields-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .custom-field-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; }
-    .custom-field-row input { width: 100%; }
+    .custom-field-row { display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 8px; align-items: center; }
+    .custom-field-row input, .custom-field-row select { width: 100%; }
     .btn-remove-field { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--danger); cursor: pointer; font-size: 13px; line-height: 1; }
     .btn-remove-field:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
     .btn-add-field { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: transparent; border: 1px dashed var(--primary); border-radius: 6px; color: var(--primary); cursor: pointer; font-size: 13px; font-weight: 600; }
     .btn-add-field:hover { background: var(--primary); color: #fff; border-style: solid; }
-    .custom-field-header { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; margin-bottom: 4px; }
+    .custom-field-header { display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 8px; margin-bottom: 4px; }
     .custom-field-header span { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* Hide toggle */
+    .hide-customer-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px; }
+    .hide-customer-section label { font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0; }
+    .hide-customer-section input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--danger); }
+    .hide-customer-section .hide-desc { font-size: 12px; color: var(--text-muted); }
 
     /* Actions */
     .form-actions { display: flex; gap: 12px; align-items: center; padding: 16px 0 4px; }
@@ -156,6 +162,22 @@
         <label for="f-terminationReason">Termination Reason</label>
         <input type="text" id="f-terminationReason" name="terminationReason"/>
       </div>
+      <div class="form-field">
+        <label for="f-headless">Headless</label>
+        <select id="f-headless" name="headless">
+          <option value="">— select —</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-preflightEnabled">Preflight Enabled</label>
+        <select id="f-preflightEnabled" name="preflightEnabled">
+          <option value="">— select —</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -210,10 +232,20 @@
     <div class="custom-field-header">
       <span>Field Name</span>
       <span>Value</span>
+      <span>Section</span>
       <span></span>
     </div>
     <div class="custom-fields-list" id="custom-fields-list"></div>
-    <button type="button" class="btn-add-field" id="btn-add-field">+ Add column</button>
+    <button type="button" class="btn-add-field" id="btn-add-field">+ Add field</button>
+  </div>
+
+  <!-- Hide customer -->
+  <div class="hide-customer-section">
+    <label for="f-hidden">
+      <input type="checkbox" id="f-hidden" name="hidden"/>
+      Hide this customer
+    </label>
+    <span class="hide-desc">Hidden customers are excluded from all lists and views.</span>
   </div>
 
   <div class="form-actions">
@@ -247,14 +279,21 @@
   // ── Custom fields ─────────────────────────────────────────────────────────
   const customFieldsList = document.getElementById('custom-fields-list');
 
-  function addCustomFieldRow(key = '', value = '') {
+  function addCustomFieldRow(key = '', value = '', section = '') {
     const row = document.createElement('div');
     row.className = 'custom-field-row';
     row.innerHTML = `
       <input type="text" class="cf-key" placeholder="Field name" value="${key.replace(/"/g,'&quot;')}"/>
       <input type="text" class="cf-val" placeholder="Value" value="${value.replace(/"/g,'&quot;')}"/>
+      <select class="cf-section">
+        <option value="">— section —</option>
+        <option value="Identity">Identity</option>
+        <option value="Classification">Classification</option>
+        <option value="Engagement">Engagement</option>
+      </select>
       <button type="button" class="btn-remove-field" title="Remove">✕</button>
     `;
+    row.querySelector('.cf-section').value = section;
     row.querySelector('.btn-remove-field').addEventListener('click', () => row.remove());
     customFieldsList.appendChild(row);
     row.querySelector('.cf-key').focus();
@@ -267,7 +306,8 @@
     customFieldsList.querySelectorAll('.custom-field-row').forEach(row => {
       const k = row.querySelector('.cf-key').value.trim();
       const v = row.querySelector('.cf-val').value.trim();
-      if (k) result[k] = v;
+      const s = row.querySelector('.cf-section').value;
+      if (k) result[k] = { value: v, section: s };
     });
     return Object.keys(result).length ? result : null;
   }
@@ -275,7 +315,14 @@
   function setCustomFields(obj) {
     customFieldsList.innerHTML = '';
     if (!obj || typeof obj !== 'object') return;
-    Object.entries(obj).forEach(([k, v]) => addCustomFieldRow(k, String(v ?? '')));
+    Object.entries(obj).forEach(([k, v]) => {
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        addCustomFieldRow(k, String(v.value ?? ''), v.section ?? '');
+      } else {
+        // Backward compat: old format stored plain string values
+        addCustomFieldRow(k, String(v ?? ''), '');
+      }
+    });
   }
 
   // ── Customer autocomplete ─────────────────────────────────────────────────
@@ -343,6 +390,7 @@
   const FIELDS = ['companyName','week','imsOrgId','tenantId','licenseType','status',
     'deploymentType','industry','eseLead','terminationReason','engagement',
     'healthScore','mau','ttiv','summary','blockers','feedback','comments'];
+  const BOOL_FIELDS = ['headless','preflightEnabled'];
 
   function prefillForm(data) {
     for (const key of FIELDS) {
@@ -351,6 +399,14 @@
       el.value = data[key] != null ? String(data[key]) : '';
     }
     if (!data.week) document.getElementById('f-week').value = currentMonday();
+    // Restore boolean select fields
+    for (const key of BOOL_FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      el.value = data[key] === true ? 'true' : data[key] === false ? 'false' : '';
+    }
+    // Restore hidden flag
+    document.getElementById('f-hidden').checked = !!data.hidden;
     // Restore any saved custom fields
     let cf = data.customFields;
     if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch { cf = null; } }
@@ -362,6 +418,7 @@
   function clearForm() {
     document.getElementById('customer-form').reset();
     document.getElementById('f-week').value = currentMonday();
+    document.getElementById('f-hidden').checked = false;
     customFieldsList.innerHTML = '';
     document.getElementById('form-status').textContent = '';
   }
@@ -385,8 +442,17 @@
       if (val !== '') payload[key] = key === 'healthScore' ? Number(val) : val;
     }
 
+    // Boolean select fields
+    for (const key of BOOL_FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      if (el.value === 'true') payload[key] = true;
+      else if (el.value === 'false') payload[key] = false;
+    }
+
     const customFields = getCustomFields();
     if (customFields) payload.customFields = customFields;
+    payload.hidden = document.getElementById('f-hidden').checked;
 
     btn.disabled = true;
     btn.textContent = 'Saving…';
