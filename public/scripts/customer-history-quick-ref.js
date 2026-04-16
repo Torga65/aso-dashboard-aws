@@ -836,17 +836,16 @@ async function loadCustomerFiles(container, customerName) {
         return;
       }
 
+      // Store items by id so click handlers can retrieve the full object
+      const itemMap = new Map(items.map(i => [i.id, i]));
+
       listEl.innerHTML = items.map(item => {
         const typeLabel = item.fileType === 'notes' ? 'Note' : 'Transcript';
         const title = escapeHtml((item.fileName || '').replace(/\.[^.]+$/, ''));
         const byLabel = item.uploadedBy ? `<span class="qr-files-item-by">&nbsp;·&nbsp;${escapeHtml(item.uploadedBy)}</span>` : '';
         const descRow = item.description ? `<div class="qr-files-item-desc">${escapeHtml(item.description)}</div>` : '';
-        const itemJson = escapeHtml(JSON.stringify({
-          id: item.id, fileType: item.fileType, fileName: item.fileName || '',
-          meetingDate: item.meetingDate, uploadedBy: item.uploadedBy || '', description: item.description || ''
-        }));
         return `
-          <div class="qr-files-item" data-item="${itemJson}">
+          <div class="qr-files-item" data-id="${escapeHtml(item.id)}">
             <div class="qr-files-item-header">
               <span class="qr-files-type-badge qr-files-type-badge--${item.fileType}">${typeLabel}</span>
               <span class="qr-files-item-date">${escapeHtml(item.meetingDate)}</span>
@@ -863,8 +862,9 @@ async function loadCustomerFiles(container, customerName) {
       // Wire view buttons — open modal
       listEl.querySelectorAll('.qr-files-item-view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const itemEl = btn.closest('.qr-files-item');
-          try { openViewer(JSON.parse(itemEl.dataset.item)); } catch {}
+          const id = btn.closest('.qr-files-item')?.dataset.id;
+          const item = id && itemMap.get(id);
+          if (item) openViewer(item);
         });
       });
 
