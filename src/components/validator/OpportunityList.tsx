@@ -29,6 +29,8 @@ export interface Opportunity {
   status?: string;
   /** When true, this opportunity has at least one suggestion with status PENDING_VALIDATION (from API includePendingFlag). */
   hasPendingValidation?: boolean;
+  /** Count of suggestions with status PENDING_VALIDATION (from API includePendingFlag). */
+  pendingValidationCount?: number;
   [key: string]: unknown;
 }
 
@@ -74,7 +76,7 @@ export function OpportunityList({
   onOriginFilterChange,
   filtersDisabled = false,
 }: OpportunityListProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   if (loading) {
     return (

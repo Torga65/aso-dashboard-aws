@@ -1,0 +1,17 @@
+{
+  "title": "Meta-Tags Suggestion Data",
+  "description": "Shape of suggestion.data for meta-tags opportunities (SpaceCat / aso-validating-tools)",
+  "type": "object",
+  "properties": {
+    "url": { "type": "string" },
+    "pageUrl": { "type": "string" },
+    "page": { "type": "string" },
+    "issue": { "type": "string" },
+    "issueType": { "type": "string" },
+    "type": { "type": "string" },
+    "aiSuggestion": { "type": "string" },
+    "tagContent": { "type": "string" },
+    "currentValue": { "type": "string" }
+  },
+  "additionalProperties": true
+}
