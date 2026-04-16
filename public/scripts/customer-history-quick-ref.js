@@ -632,8 +632,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
 
     // Load ServiceNow comments (independent of SpaceCat — fetched from our own DB)
     loadCustomerComments(container, customerName);
-    loadCustomerTranscripts(container, customerName);
-    loadCustomerNotes(container, customerName);
+    loadCustomerFiles(container, customerName);
 
     // Load progression stage widget (no auth required — API key)
     if (window.loadCustomerProgression) window.loadCustomerProgression(container, customerName);
@@ -747,218 +746,74 @@ async function loadCustomerComments(container, customerName) {
 }
 
 /**
- * Wire the Meeting Transcripts panel for a customer.
- * Handles upload, list, and download.
+ * Wire the unified Meeting Files panel (transcripts + notes combined).
+ * Handles upload with type selector, filtered list, content viewer modal.
  */
-async function loadCustomerTranscripts(container, customerName) {
-  const listEl = container.querySelector('.qr-transcript-list');
-  const rangeSelect = container.querySelector('.qr-transcript-range');
-  const uploadBtn = container.querySelector('.qr-transcript-upload-btn');
-  const statusEl = container.querySelector('.qr-transcript-upload-status');
-  const fileInput = container.querySelector('.qr-transcript-file');
-  const dateInput = container.querySelector('.qr-transcript-date');
-  const downloadBtns = container.querySelectorAll('.qr-transcript-download-btn');
-  const claudeRangeBtn = container.querySelector('.qr-transcript-claude-range');
-
+async function loadCustomerFiles(container, customerName) {
+  const listEl       = container.querySelector('.qr-files-list');
+  const rangeSelect  = container.querySelector('.qr-files-range');
+  const filterSelect = container.querySelector('.qr-files-filter');
+  const uploadBtn    = container.querySelector('.qr-files-upload-btn');
+  const statusEl     = container.querySelector('.qr-files-upload-status');
+  const fileInput    = container.querySelector('.qr-files-file');
+  const dateInput    = container.querySelector('.qr-files-date');
+  const titleInput   = container.querySelector('.qr-files-title');
+  const typeSelect   = container.querySelector('.qr-files-type');
+  const descInput    = container.querySelector('.qr-files-desc');
+  const textarea     = container.querySelector('.qr-files-textarea');
+  const aiRangeBtn   = container.querySelector('.qr-files-ai-range');
+  const downloadBtn  = container.querySelector('.qr-files-download-btn');
+  const countBadge   = container.querySelector('.qr-files-count');
   if (!listEl) return;
 
-  // Default date input to today
   if (dateInput && !dateInput.value) {
     dateInput.value = new Date().toISOString().slice(0, 10);
   }
 
-  async function fetchAndRenderList() {
-    if (!listEl) return;
-    listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
-    try {
-      const days = rangeSelect?.value ?? 'all';
-      const params = new URLSearchParams({ company: customerName, days });
-      const res = await fetch(`/api/transcripts?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
-      const items = data || [];
-
-      // Update count badge
-      const summary = listEl.closest('details')?.querySelector('summary');
-      const badge = summary?.querySelector('.qr-summary-count');
-      if (badge) badge.textContent = items.length > 0 ? `(${items.length})` : '';
-
-      if (items.length === 0) {
-        listEl.innerHTML = '<p class="quick-ref-msg">No meeting files in this period.</p>';
-        return;
-      }
-
-      const INITIAL_SHOW = 4;
-      listEl.innerHTML = items.map((item, idx) => {
-        const byLabel = item.uploadedBy ? ` · ${escapeHtml(item.uploadedBy)}` : '';
-        const dlUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}`;
-        const viewUrl = `${dlUrl}&view=1`;
-        const hiddenClass = idx >= INITIAL_SHOW ? ' qr-transcript-hidden' : '';
-        return `
-          <div class="qr-transcript-item${hiddenClass}">
-            <span class="qr-transcript-item-date">${escapeHtml(item.meetingDate)}</span>
-            <span class="qr-transcript-item-name" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName)}${byLabel}</span>
-            <a class="qr-transcript-item-dl" href="${dlUrl}" download="${escapeHtml(item.fileName)}">Download</a>
-            <button class="qr-transcript-claude-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
-          </div>`;
-      }).join('');
-
-      if (items.length > INITIAL_SHOW) {
-        const remaining = items.length - INITIAL_SHOW;
-        const showMoreBtn = document.createElement('button');
-        showMoreBtn.className = 'qr-transcript-show-more';
-        showMoreBtn.textContent = `Show ${remaining} more…`;
-        showMoreBtn.addEventListener('click', () => {
-          listEl.querySelectorAll('.qr-transcript-hidden').forEach(el => el.classList.remove('qr-transcript-hidden'));
-          showMoreBtn.remove();
-        });
-        listEl.appendChild(showMoreBtn);
-      }
-
-      // Wire per-item Claude link copy buttons
-      listEl.querySelectorAll('.qr-transcript-claude-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const viewUrl = btn.dataset.viewUrl;
-          const date = btn.dataset.date;
-          const orig = btn.textContent;
-          btn.textContent = 'Fetching…';
-          btn.disabled = true;
-          try {
-            const res = await fetch(viewUrl);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const content = await res.text();
-            const prompt = `Please analyze this meeting transcript for ${customerName} (${date}):\n\n${content}`;
-            await navigator.clipboard.writeText(prompt);
-            btn.textContent = 'Copied!';
-            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
-          } catch (err) {
-            btn.textContent = 'Failed';
-            setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
-          }
-        });
+  // ── Modal viewer ───────────────────────────────────────────────────────────
+  if (!window._qrFileViewerWired) {
+    window._qrFileViewerWired = true;
+    const overlay = document.getElementById('qr-file-viewer-overlay');
+    if (overlay) {
+      overlay.querySelector('.qr-file-viewer-close')?.addEventListener('click', () => {
+        overlay.style.display = 'none';
       });
-    } catch (err) {
-      listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load files.</p>';
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.style.display = 'none';
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') overlay.style.display = 'none';
+      });
     }
   }
 
-  // Wire range selector
-  if (rangeSelect) {
-    rangeSelect.addEventListener('change', fetchAndRenderList);
+  async function openViewer(item) {
+    const overlay = document.getElementById('qr-file-viewer-overlay');
+    if (!overlay) return;
+    const metaEl = overlay.querySelector('.qr-file-viewer-meta');
+    const bodyEl = overlay.querySelector('.qr-file-viewer-body');
+    const typeLabel = item.fileType === 'notes' ? 'Note' : 'Transcript';
+    const title = (item.fileName || '').replace(/\.[^.]+$/, '');
+    if (metaEl) metaEl.innerHTML =
+      `<strong>${escapeHtml(title)}</strong>` +
+      `<span class="qr-file-viewer-badge qr-file-viewer-badge--${item.fileType}">${typeLabel}</span>` +
+      (item.meetingDate ? `<span class="qr-file-viewer-date">${escapeHtml(item.meetingDate)}</span>` : '') +
+      (item.uploadedBy  ? `<span class="qr-file-viewer-by">&nbsp;·&nbsp;${escapeHtml(item.uploadedBy)}</span>` : '') +
+      (item.description ? `<div class="qr-file-viewer-desc">${escapeHtml(item.description)}</div>` : '');
+    if (bodyEl) bodyEl.innerHTML = '<em style="color:#999">Loading…</em>';
+    overlay.style.display = 'flex';
+    try {
+      const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
+      const r = await fetch(viewUrl);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const content = await r.text();
+      if (bodyEl) bodyEl.textContent = content.trim() || '(empty)';
+    } catch {
+      if (bodyEl) bodyEl.textContent = 'Could not load content.';
+    }
   }
 
-  // Wire download buttons
-  downloadBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const days = rangeSelect?.value ?? 'all';
-      const url = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}`;
-      const a = document.createElement('a');
-      a.href = url;
-      a.click();
-    });
-  });
-
-  // Wire range-level AI prompt button — fetches all transcripts in range and embeds inline
-  if (claudeRangeBtn) {
-    claudeRangeBtn.addEventListener('click', async () => {
-      const days = rangeSelect?.value ?? 'all';
-      const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&view=1`;
-      const orig = claudeRangeBtn.textContent;
-      claudeRangeBtn.textContent = 'Fetching…';
-      claudeRangeBtn.disabled = true;
-      try {
-        const res = await fetch(viewUrl);
-        if (!res.ok) throw new Error(res.status === 404 ? 'No transcripts in this range.' : `HTTP ${res.status}`);
-        const content = await res.text();
-        const rangeLabel = days === 'all' ? 'all available meetings' : `the last ${days} days of meetings`;
-        const prompt = `Please analyze the meeting transcripts for ${customerName} covering ${rangeLabel}. Provide a summary of key topics discussed, action items, attendees, and any customer concerns or feedback.\n\n${content}`;
-        await navigator.clipboard.writeText(prompt);
-        claudeRangeBtn.textContent = 'Copied!';
-        setTimeout(() => { claudeRangeBtn.textContent = orig; claudeRangeBtn.disabled = false; }, 2000);
-      } catch (err) {
-        claudeRangeBtn.textContent = err.message || 'Failed';
-        setTimeout(() => { claudeRangeBtn.textContent = orig; claudeRangeBtn.disabled = false; }, 3000);
-      }
-    });
-  }
-
-  // Wire upload button
-  if (uploadBtn && fileInput && dateInput) {
-    uploadBtn.addEventListener('click', async () => {
-      const file = fileInput.files?.[0];
-      const date = dateInput.value;
-
-      if (!file) { if (statusEl) { statusEl.textContent = 'Select a file first.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
-      if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-transcript-upload-status err'; } return; }
-
-      uploadBtn.disabled = true;
-      if (statusEl) { statusEl.textContent = 'Processing…'; statusEl.className = 'qr-transcript-upload-status'; }
-
-      try {
-        // Extract text content client-side (handles PDF, DOCX, XLSX, etc.)
-        const { text, fileName } = await (window.extractFileText
-          ? window.extractFileText(file)
-          : { text: await file.text(), fileName: file.name });
-
-        const profile = typeof getProfile === 'function' ? getProfile() : null;
-        const uploadedBy = profile?.email || profile?.name || '';
-
-        // Upload extracted text as a plain file blob
-        const textBlob = new Blob([text], { type: 'text/plain' });
-        const textFile = new File([textBlob], fileName, { type: 'text/plain' });
-
-        if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.className = 'qr-transcript-upload-status'; }
-
-        const form = new FormData();
-        form.append('company', customerName);
-        form.append('meetingDate', date);
-        form.append('uploadedBy', uploadedBy);
-        form.append('file', textFile);
-
-        const res = await fetch('/api/transcripts', { method: 'POST', body: form });
-        const json = await res.json();
-
-        if (!res.ok) {
-          throw new Error(json.error || `HTTP ${res.status}`);
-        }
-
-        if (statusEl) { statusEl.textContent = `Uploaded: ${fileName}`; statusEl.className = 'qr-transcript-upload-status ok'; }
-        fileInput.value = '';
-        await fetchAndRenderList();
-      } catch (err) {
-        if (statusEl) { statusEl.textContent = `Upload failed: ${err.message}`; statusEl.className = 'qr-transcript-upload-status err'; }
-      } finally {
-        uploadBtn.disabled = false;
-      }
-    });
-  }
-
-  await fetchAndRenderList();
-}
-
-/**
- * Wire the Meeting Notes panel for a customer.
- * Notes are stored via the same /api/transcripts endpoint with fileType="notes".
- * Supports typing/pasting text directly OR uploading a .txt/.md file.
- */
-async function loadCustomerNotes(container, customerName) {
-  const listEl      = container.querySelector('.qr-notes-list');
-  const rangeSelect = container.querySelector('.qr-notes-range');
-  const uploadBtn   = container.querySelector('.qr-notes-upload-btn');
-  const statusEl    = container.querySelector('.qr-notes-upload-status');
-  const fileInput   = container.querySelector('.qr-notes-file');
-  const dateInput   = container.querySelector('.qr-notes-date');
-  const titleInput  = container.querySelector('.qr-notes-title');
-  const descInput   = container.querySelector('.qr-notes-desc');
-  const textarea    = container.querySelector('.qr-notes-textarea');
-  const aiRangeBtn  = container.querySelector('.qr-notes-ai-range');
-  const countBadge  = container.querySelector('.qr-notes-count');
-  if (!listEl) return;
-
-  if (dateInput && !dateInput.value) {
-    dateInput.value = new Date().toISOString().slice(0, 10);
-  }
-
+  // ── List ───────────────────────────────────────────────────────────────────
   async function fetchAndRenderList() {
     listEl.innerHTML = '<p class="quick-ref-msg">Loading…</p>';
     try {
@@ -967,43 +822,68 @@ async function loadCustomerNotes(container, customerName) {
       const res = await fetch(`/api/transcripts?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { data } = await res.json();
-      const items = (data || []).filter(i => i.fileType === 'notes');
+      let items = data || [];
+
+      const filter = filterSelect?.value ?? 'all';
+      if (filter !== 'all') items = items.filter(i => i.fileType === filter);
+
+      items.sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
 
       if (countBadge) countBadge.textContent = items.length > 0 ? `(${items.length})` : '';
 
       if (items.length === 0) {
-        listEl.innerHTML = '<p class="quick-ref-msg">No meeting notes in this period.</p>';
+        listEl.innerHTML = '<p class="quick-ref-msg">No files in this period.</p>';
         return;
       }
 
+      // Store items by id so click handlers can retrieve the full object
+      const itemMap = new Map(items.map(i => [i.id, i]));
+
       listEl.innerHTML = items.map(item => {
-        const byLabel = item.uploadedBy ? `<span class="qr-notes-item-by">· ${escapeHtml(item.uploadedBy)}</span>` : '';
-        const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
+        const typeLabel = item.fileType === 'notes' ? 'Note' : 'Transcript';
+        const title = escapeHtml((item.fileName || '').replace(/\.[^.]+$/, ''));
+        const byLabel = item.uploadedBy ? `<span class="qr-files-item-by">&nbsp;·&nbsp;${escapeHtml(item.uploadedBy)}</span>` : '';
+        const descRow = item.description ? `<div class="qr-files-item-desc">${escapeHtml(item.description)}</div>` : '';
         return `
-          <div class="qr-notes-item" data-id="${escapeHtml(item.id)}" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">
-            <div class="qr-notes-item-header">
-              <span class="qr-notes-item-date">${escapeHtml(item.meetingDate)}</span>
-              <span class="qr-notes-item-title" title="${escapeHtml(item.fileName)}">${escapeHtml(item.fileName.replace(/\.txt$|\.md$/i, ''))}</span>
+          <div class="qr-files-item" data-id="${escapeHtml(item.id)}">
+            <div class="qr-files-item-header">
+              <span class="qr-files-type-badge qr-files-type-badge--${item.fileType}">${typeLabel}</span>
+              <span class="qr-files-item-date">${escapeHtml(item.meetingDate)}</span>
+              <button class="qr-files-item-view-btn" title="Click to view full content">${title}</button>
               ${byLabel}
-              <div class="qr-notes-item-actions">
-                <button class="qr-notes-ai-btn" data-view-url="${viewUrl}" data-date="${escapeHtml(item.meetingDate)}">Copy AI prompt</button>
+              <div class="qr-files-item-actions">
+                <button class="qr-files-ai-btn" data-id="${escapeHtml(item.id)}" data-date="${escapeHtml(item.meetingDate)}" data-type="${item.fileType}">Copy AI prompt</button>
               </div>
             </div>
+            ${descRow}
           </div>`;
       }).join('');
 
-      // Wire per-item AI buttons
-      listEl.querySelectorAll('.qr-notes-ai-btn').forEach(btn => {
+      // Wire view buttons — open modal
+      listEl.querySelectorAll('.qr-files-item-view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.closest('.qr-files-item')?.dataset.id;
+          const item = id && itemMap.get(id);
+          if (item) openViewer(item);
+        });
+      });
+
+      // Wire AI prompt buttons
+      listEl.querySelectorAll('.qr-files-ai-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
-          const viewUrl = btn.dataset.viewUrl;
+          const id   = btn.dataset.id;
           const date = btn.dataset.date;
+          const type = btn.dataset.type;
           const orig = btn.textContent;
           btn.textContent = 'Fetching…'; btn.disabled = true;
           try {
+            const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(id)}&view=1`;
             const r = await fetch(viewUrl);
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const content = await r.text();
-            const prompt = `Please analyze these meeting notes for ${customerName} (${date}) and summarize key discussion points, decisions, action items, and any customer concerns:\n\n${content}`;
+            const prompt = type === 'notes'
+              ? `Please analyze these meeting notes for ${customerName} (${date}) and summarize key discussion points, decisions, action items, and any customer concerns:\n\n${content}`
+              : `Please analyze this meeting transcript for ${customerName} (${date}) and summarize key discussion points, decisions, action items, and any customer concerns:\n\n${content}`;
             await navigator.clipboard.writeText(prompt);
             btn.textContent = 'Copied!';
             setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
@@ -1014,36 +894,36 @@ async function loadCustomerNotes(container, customerName) {
         });
       });
     } catch {
-      listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load notes.</p>';
+      listEl.innerHTML = '<p class="quick-ref-msg quick-ref-err">Failed to load files.</p>';
     }
   }
 
-  if (rangeSelect) rangeSelect.addEventListener('change', fetchAndRenderList);
+  if (rangeSelect)  rangeSelect.addEventListener('change', fetchAndRenderList);
+  if (filterSelect) filterSelect.addEventListener('change', fetchAndRenderList);
 
-  // Range AI prompt
+  // ── Download all ───────────────────────────────────────────────────────────
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      const days = rangeSelect?.value ?? 'all';
+      const a = document.createElement('a');
+      a.href = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}`;
+      a.click();
+    });
+  }
+
+  // ── Range AI prompt ────────────────────────────────────────────────────────
   if (aiRangeBtn) {
     aiRangeBtn.addEventListener('click', async () => {
       const days = rangeSelect?.value ?? 'all';
       const orig = aiRangeBtn.textContent;
       aiRangeBtn.textContent = 'Fetching…'; aiRangeBtn.disabled = true;
       try {
-        const params = new URLSearchParams({ company: customerName, days });
-        const res = await fetch(`/api/transcripts?${params}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { data } = await res.json();
-        const items = (data || []).filter(i => i.fileType === 'notes');
-        if (items.length === 0) throw new Error('No notes in this range.');
-
-        // Fetch content for each note
-        const contents = await Promise.all(items.map(async item => {
-          const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&id=${encodeURIComponent(item.id)}&view=1`;
-          const r = await fetch(viewUrl);
-          const text = r.ok ? await r.text() : '';
-          return `[${item.meetingDate}] ${item.fileName.replace(/\.txt$|\.md$/i, '')}\n${text}`;
-        }));
-
-        const rangeLabel = days === 'all' ? 'all available' : `last ${days} days of`;
-        const prompt = `Please analyze the following ${rangeLabel} meeting notes for ${customerName}. Provide a summary of key themes, decisions, action items, and any recurring customer concerns:\n\n${contents.join('\n\n---\n\n')}`;
+        const viewUrl = `/api/transcripts/download?company=${encodeURIComponent(customerName)}&days=${days}&view=1`;
+        const res = await fetch(viewUrl);
+        if (!res.ok) throw new Error(res.status === 404 ? 'No files in this range.' : `HTTP ${res.status}`);
+        const content = await res.text();
+        const rangeLabel = days === 'all' ? 'all available meetings' : `the last ${days} days of meetings`;
+        const prompt = `Please analyze the meeting transcripts and notes for ${customerName} covering ${rangeLabel}. Provide a summary of key topics discussed, action items, and any customer concerns or feedback.\n\n${content}`;
         await navigator.clipboard.writeText(prompt);
         aiRangeBtn.textContent = 'Copied!';
         setTimeout(() => { aiRangeBtn.textContent = orig; aiRangeBtn.disabled = false; }, 2000);
@@ -1054,19 +934,20 @@ async function loadCustomerNotes(container, customerName) {
     });
   }
 
-  // Upload / save
+  // ── Upload / save ──────────────────────────────────────────────────────────
   async function doSave() {
     const date  = dateInput?.value;
     const title = titleInput?.value.trim();
     const desc  = descInput?.value.trim() ?? '';
     const text  = textarea?.value.trim();
     const file  = fileInput?.files?.[0];
+    const type  = typeSelect?.value ?? 'notes';
 
-    if (!date) { if (statusEl) { statusEl.textContent = 'Select a meeting date.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
-    if (!text && !file) { if (statusEl) { statusEl.textContent = 'Enter notes or choose a file.'; statusEl.className = 'qr-notes-upload-status err'; } return; }
+    if (!date) { if (statusEl) { statusEl.textContent = 'Select a date.'; statusEl.className = 'qr-files-upload-status err'; } return; }
+    if (!text && !file) { if (statusEl) { statusEl.textContent = 'Enter notes or choose a file.'; statusEl.className = 'qr-files-upload-status err'; } return; }
 
     if (uploadBtn) uploadBtn.disabled = true;
-    if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'qr-notes-upload-status'; }
+    if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'qr-files-upload-status'; }
 
     try {
       const profile = typeof getProfile === 'function' ? getProfile() : null;
@@ -1074,30 +955,26 @@ async function loadCustomerNotes(container, customerName) {
 
       let uploadFile;
       if (file) {
-        // Extract text content client-side (handles PDF, DOCX, XLSX, etc.)
-        if (statusEl) { statusEl.textContent = 'Extracting text…'; statusEl.className = 'qr-notes-upload-status'; }
+        if (statusEl) { statusEl.textContent = 'Extracting text…'; statusEl.className = 'qr-files-upload-status'; }
         const { text: extracted, fileName: extractedName } = window.extractFileText
           ? await window.extractFileText(file)
           : { text: await file.text(), fileName: file.name };
         const contentText = (extracted || text || '').trim();
         if (!contentText) {
-          if (statusEl) { statusEl.textContent = 'Could not extract text from file.'; statusEl.className = 'qr-notes-upload-status err'; }
+          if (statusEl) { statusEl.textContent = 'Could not extract text from file.'; statusEl.className = 'qr-files-upload-status err'; }
           if (uploadBtn) uploadBtn.disabled = false;
           return;
         }
-        const baseName = (title || (extractedName || file.name).replace(/\.[^.]+$/, ''));
-        const filename = `${baseName.replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
-        uploadFile = new File([contentText], filename, { type: 'text/plain' });
+        const baseName = title || (extractedName || file.name).replace(/\.[^.]+$/, '');
+        uploadFile = new File([contentText], `${baseName.replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`, { type: 'text/plain' });
       } else {
-        // Wrap typed text as a .txt file named after the title or date
-        const filename = `${(title || date).replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`;
-        uploadFile = new File([text], filename, { type: 'text/plain' });
+        uploadFile = new File([text], `${(title || date).replace(/[^a-z0-9\-_ ]/gi, '_')}.txt`, { type: 'text/plain' });
       }
 
       const form = new FormData();
       form.append('company', customerName);
       form.append('meetingDate', date);
-      form.append('fileType', 'notes');
+      form.append('fileType', type);
       form.append('description', desc);
       form.append('uploadedBy', uploadedBy);
       form.append('file', uploadFile, uploadFile.name);
@@ -1106,14 +983,14 @@ async function loadCustomerNotes(container, customerName) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
 
-      if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-notes-upload-status ok'; }
-      if (textarea) textarea.value = '';
+      if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.className = 'qr-files-upload-status ok'; }
+      if (textarea)   textarea.value  = '';
       if (titleInput) titleInput.value = '';
-      if (descInput) descInput.value = '';
-      if (fileInput) fileInput.value = '';
+      if (descInput)  descInput.value  = '';
+      if (fileInput)  fileInput.value  = '';
       await fetchAndRenderList();
     } catch (err) {
-      if (statusEl) { statusEl.textContent = `Failed: ${err.message}`; statusEl.className = 'qr-notes-upload-status err'; }
+      if (statusEl) { statusEl.textContent = `Failed: ${err.message}`; statusEl.className = 'qr-files-upload-status err'; }
     } finally {
       if (uploadBtn) uploadBtn.disabled = false;
     }
@@ -1121,13 +998,13 @@ async function loadCustomerNotes(container, customerName) {
 
   if (uploadBtn) uploadBtn.addEventListener('click', doSave);
 
-  // Auto-upload when a file is selected (no extra click needed)
   if (fileInput) {
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files?.[0];
       if (!file) return;
       if (titleInput && !titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
-      if (statusEl) { statusEl.textContent = `File selected: ${file.name} — saving…`; statusEl.className = 'qr-notes-upload-status'; }
+      if (typeSelect && /\.vtt$/i.test(file.name)) typeSelect.value = 'transcript';
+      if (statusEl) { statusEl.textContent = `File selected: ${file.name} — saving…`; statusEl.className = 'qr-files-upload-status'; }
       await doSave();
     });
   }
