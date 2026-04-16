@@ -1,5 +1,6 @@
 'use client';
 
+import './SuggestionList.css';
 import {
   useState,
   useEffect,

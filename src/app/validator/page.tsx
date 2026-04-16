@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import {
   Flex,
   Heading,
@@ -19,6 +19,7 @@ import type { OriginFilter } from '@/components/validator/CategoryFilters';
 import type { Opportunity as SharedOpportunity } from '@validator-shared/types';
 import { mapOpportunityToTypeId } from '@validator-shared/validation/map-opportunity-type';
 import { useIMSAuth } from '@/contexts/IMSAuthContext';
+import { useSearchParams } from 'next/navigation';
 
 export type ValidationResultItem = {
   suggestionId: string;
@@ -29,7 +30,17 @@ export type ValidationResultItem = {
 };
 
 export default function ValidatorPage() {
+  return (
+    <Suspense>
+      <ValidatorPageInner />
+    </Suspense>
+  );
+}
+
+function ValidatorPageInner() {
   const { accessToken } = useIMSAuth();
+  const searchParams = useSearchParams();
+  const preloadBaseURL = searchParams.get('baseURL') ?? undefined;
   const [site, setSite] = useState<Site | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
@@ -371,7 +382,7 @@ export default function ValidatorPage() {
       <View UNSAFE_style={contentPadding}>
         <Well>
           <Flex direction="column" gap="size-300">
-            <SiteSelector onSelect={handleSelectSite} selectedSite={site} />
+            <SiteSelector onSelect={handleSelectSite} selectedSite={site} preloadBaseURL={preloadBaseURL} />
 
             {site && (
               <OpportunityList

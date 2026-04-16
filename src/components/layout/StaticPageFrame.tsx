@@ -14,6 +14,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Props {
   src: string;
@@ -23,6 +24,7 @@ interface Props {
 export default function StaticPageFrame({ src, title }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { accessToken, isReady, signIn, signOut } = useIMSAuth();
+  const { colorScheme, fontSize } = useTheme();
 
   const postToIframe = useCallback((msg: object) => {
     iframeRef.current?.contentWindow?.postMessage(msg, window.location.origin);
@@ -38,6 +40,11 @@ export default function StaticPageFrame({ src, title }: Props) {
     }
   }, [isReady, accessToken, postToIframe]);
 
+  // Push theme into iframe whenever it changes
+  useEffect(() => {
+    postToIframe({ type: "theme", colorScheme, fontSize });
+  }, [colorScheme, fontSize, postToIframe]);
+
   // Also send token when the iframe finishes loading (it may load after token is set)
   const handleLoad = useCallback(() => {
     if (!isReady) return;
@@ -46,7 +53,8 @@ export default function StaticPageFrame({ src, title }: Props) {
     } else {
       postToIframe({ type: "ims-signout" });
     }
-  }, [isReady, accessToken, postToIframe]);
+    postToIframe({ type: "theme", colorScheme, fontSize });
+  }, [isReady, accessToken, colorScheme, fontSize, postToIframe]);
 
   // Listen for sign-in / sign-out requests from the iframe
   useEffect(() => {

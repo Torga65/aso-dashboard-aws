@@ -21,7 +21,7 @@
 
 .subtitle {
   font-size: 15px;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -34,8 +34,8 @@
 }
 
 .statCard {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
   text-align: center;
@@ -49,28 +49,28 @@
 
 .statGreen {
   border-color: #22c55e;
-  background: #f0fdf4;
+  background: var(--status-active-bg);
 }
 
 .statYellow {
   border-color: #f59e0b;
-  background: #fffbeb;
+  background: var(--status-at-risk-bg);
 }
 
 .statValue {
   font-size: 36px;
   font-weight: bold;
-  color: #111827;
+  color: var(--text-strong);
   margin-bottom: 8px;
   line-height: 1;
 }
 
-.statGreen .statValue { color: #16a34a; }
-.statYellow .statValue { color: #d97706; }
+.statGreen .statValue { color: var(--status-active-text); }
+.statYellow .statValue { color: var(--status-at-risk-text); }
 
 .statLabel {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -78,7 +78,7 @@
 /* ─── Result count ───────────────────────────────────────────────────────── */
 .resultCount {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0 0 16px;
 }
 
@@ -93,7 +93,7 @@
 .empty {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--text-subtle);
   font-size: 16px;
   font-style: italic;
 }

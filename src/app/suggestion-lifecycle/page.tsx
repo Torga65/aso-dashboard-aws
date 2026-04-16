@@ -1,5 +1,13 @@
 import StaticPageFrame from "@/components/layout/StaticPageFrame";
 
-export default function SuggestionLifecyclePage() {
-  return <StaticPageFrame src="/suggestion-lifecycle.html" title="Suggestions Lifecycle" />;
+interface Props {
+  searchParams: Promise<{ customer?: string }>;
+}
+
+export default async function SuggestionLifecyclePage({ searchParams }: Props) {
+  const { customer } = await searchParams;
+  const src = customer
+    ? `/suggestion-lifecycle.html?customer=${encodeURIComponent(customer)}`
+    : "/suggestion-lifecycle.html";
+  return <StaticPageFrame src={src} title="Suggestions Lifecycle" />;
 }

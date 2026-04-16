@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}});})()</script>
 <head>
   <title>Customer 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="description" content="Historical analysis of customer data across all 28 columns and 16 weeks"/>
+  <meta name="description" content="Customer 360 view — current status and quick reference for all ASO customers"/>
   <script>document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('appear'); });</script>
   <script src="/scripts/customer-history-quick-ref.js" type="module"></script>
   <link rel="stylesheet" href="/styles/styles.css"/>
@@ -294,6 +295,85 @@
     .view-all-accordion-body .timeline-table th,
     .view-all-accordion-body .timeline-table td { padding: 4px 8px; }
     
+    /* ── Accordion header chips ─────────────────────────────────────── */
+    .acc-header-left { display: flex; flex-direction: column; gap: 4px; }
+    .acc-header-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .acc-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      background: #e9ecef;
+      color: #495057;
+    }
+    .acc-chip--cse { background: #e8f0fe; color: #1a56b0; }
+    .acc-chip--license { background: #f3e8fd; color: #6b21a8; }
+    .acc-chip--status { background: #dcfce7; color: #166534; }
+    .acc-chip--live { background: #f1f3f4; color: #555; }
+    .acc-chip--warn { background: #fef3c7 !important; color: #92400e !important; }
+
+    /* ── Accordion body lifecycle stats ─────────────────────────────── */
+    .acc-lifecycle-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f0f4ff;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border: 1px solid #c7d2fe;
+    }
+    .acc-ls-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
+      padding: 4px 10px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e0e7ff;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    a.acc-ls-item:hover { background: #e8f0fe; border-color: #a5b4fc; }
+    .acc-ls-val { font-size: 18px; font-weight: 700; color: #1e3a8a; line-height: 1.2; }
+    .acc-ls-label { font-size: 10px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .acc-ls-item--open .acc-ls-val { color: #d97706; }
+    .acc-ls-item--resolved .acc-ls-val { color: #16a34a; }
+    .acc-ls-item--fixed .acc-ls-val { color: #7c3aed; }
+    .acc-ls-loading { font-size: 12px; color: #999; font-style: italic; }
+    .acc-ls-lifecycle-link {
+      align-self: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a56b0;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #c7d2fe;
+      background: white;
+      transition: background 0.15s;
+    }
+    .acc-ls-lifecycle-link:hover { background: #e8f0fe; }
+
+    [data-theme="dark"] .acc-ls-lifecycle-link { background: #1e2a3a; color: #93c5fd; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-ls-lifecycle-link:hover { background: #253a5a; }
+    [data-theme="dark"] .acc-chip { background: #2a2a2a; color: #ccc; }
+    [data-theme="dark"] .acc-chip--cse { background: #1e2a3a; color: #93c5fd; }
+    [data-theme="dark"] .acc-chip--license { background: #2a1a3a; color: #d8b4fe; }
+    [data-theme="dark"] .acc-chip--status { background: #14532d; color: #86efac; }
+    [data-theme="dark"] .acc-chip--live { background: #333; color: #aaa; }
+    [data-theme="dark"] .acc-chip--warn { background: #78350f !important; color: #fde68a !important; }
+    [data-theme="dark"] .acc-lifecycle-stats { background: #1e2235; border-color: #3a4a6a; }
+    [data-theme="dark"] .acc-ls-item { background: #252f4a; border-color: #3a4a6a; }
+    [data-theme="dark"] a.acc-ls-item:hover { background: #2e3f6a; border-color: #5a7aaa; }
+    [data-theme="dark"] .acc-ls-val { color: #93c5fd; }
+    [data-theme="dark"] .acc-ls-label { color: #9ca3af; }
+
     .view-all-accordion {
       display: flex;
       flex-direction: column;
@@ -301,7 +381,7 @@
     }
     
     .view-all-accordion-item {
-      background: white;
+      background: #f5f5f5;
       border: 1px solid #ddd;
       border-radius: 8px;
       overflow: hidden;
@@ -340,7 +420,7 @@
       display: none;
       padding: 16px;
       border-top: 1px solid #e0e0e0;
-      background: #fff;
+      background: #f8f8f8;
     }
     
     .view-all-accordion-item.expanded .view-all-accordion-body {
@@ -493,11 +573,7 @@
 
     /* Auth bar (same pattern as suggestion-lifecycle) */
     .auth-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 12px 16px;
-      background: #f8f9fa;
+      display: none !important;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       margin-bottom: 12px;
@@ -583,6 +659,91 @@
       font-size: 14px;
     }
     .btn-edit-customer:hover { background: #0d66d0; color: white !important; }
+
+    /* ── Dark mode ───────────────────────────────────────────────────── */
+    [data-theme="dark"] body { background: #1a1a1a; color: #e8e8e8; }
+    [data-theme="dark"] main > div:first-child { /* keep gradient header */ }
+    [data-theme="dark"] .controls,
+    [data-theme="dark"] .quick-ref-box,
+    [data-theme="dark"] .qr-prog-modal-box { background: #252525; border-color: #3a3a3a; color: #e8e8e8; }
+    [data-theme="dark"] .controls select,
+    [data-theme="dark"] .controls input,
+    [data-theme="dark"] .controls .customer-select-dropdown,
+    [data-theme="dark"] .quick-ref-site-select,
+    [data-theme="dark"] .quick-ref-comments-controls select,
+    [data-theme="dark"] .qr-transcript-controls select,
+    [data-theme="dark"] .qr-notes-controls select,
+    [data-theme="dark"] .qr-notes-upload-form input,
+    [data-theme="dark"] .qr-notes-upload-form select,
+    [data-theme="dark"] .qr-transcript-upload-form select,
+    [data-theme="dark"] .qr-transcript-upload-form input[type="date"],
+    [data-theme="dark"] .qr-notes-textarea,
+    [data-theme="dark"] .qr-prog-field select,
+    [data-theme="dark"] .qr-prog-field input,
+    [data-theme="dark"] .qr-prog-field textarea,
+    [data-theme="dark"] .quick-ref-autofix-select { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .controls .customer-select-dropdown { border-color: #4a4a4a; }
+    [data-theme="dark"] .controls .customer-select-dropdown li { border-bottom-color: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .controls .customer-select-dropdown li:hover { background: #2a3a5a; }
+    [data-theme="dark"] .customer-timeline,
+    [data-theme="dark"] .view-all-accordion-item { background: #2a2a2a; border-color: #3a3a3a; }
+    [data-theme="dark"] .view-all-accordion-header { background: #2a2a2a; color: #e8e8e8; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .customer-name { color: #e8e8e8; }
+    [data-theme="dark"] .view-all-accordion-header:hover { background: #333; }
+    [data-theme="dark"] .view-all-accordion-item.expanded > .view-all-accordion-header { background: #252f4a; color: #e8e8e8; }
+    [data-theme="dark"] .view-all-accordion-body { background: #2a2a2a; border-top-color: #3a3a3a; color: #e8e8e8; }
+    [data-theme="dark"] .timeline-table th { background: #2a2a2a; color: #bbb; border-color: #3a3a3a; }
+    [data-theme="dark"] .timeline-table td { color: #d0d0d0; border-color: #3a3a3a; }
+    [data-theme="dark"] .quick-ref-table th { background: #2a2a2a; color: #bbb; border-color: #3a3a3a; }
+    [data-theme="dark"] .quick-ref-table td { border-color: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .qr-user-row:hover td { background: #2a3a5a; }
+    [data-theme="dark"] .qr-user-row.expanded td { background: #252f4a; }
+    [data-theme="dark"] .qr-user-detail td { background: #252530; }
+    [data-theme="dark"] .qr-comment-entry,
+    [data-theme="dark"] .qr-transcript-item,
+    [data-theme="dark"] .qr-notes-item,
+    [data-theme="dark"] .qr-progression-history-entry { border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .qr-comment-meta,
+    [data-theme="dark"] .qr-transcript-item-name,
+    [data-theme="dark"] .qr-notes-item-by,
+    [data-theme="dark"] .qr-progression-meta,
+    [data-theme="dark"] .qr-progression-days,
+    [data-theme="dark"] .quick-ref-pv-label { color: #999; }
+    [data-theme="dark"] .qr-comment-meta strong,
+    [data-theme="dark"] .qr-comment-body,
+    [data-theme="dark"] .qr-notes-item-title,
+    [data-theme="dark"] .qr-notes-item-body,
+    [data-theme="dark"] .qr-transcript-item-date,
+    [data-theme="dark"] .qr-notes-item-date,
+    [data-theme="dark"] .qr-progression-stage-name { color: #e0e0e0; }
+    [data-theme="dark"] .qr-transcript-item-dl,
+    [data-theme="dark"] .qr-notes-item-view { background: #2a2a2a; border-color: #4a4a4a; color: #d0d0d0; }
+    [data-theme="dark"] .qr-transcript-item-dl:hover,
+    [data-theme="dark"] .qr-notes-item-view:hover { background: #333; }
+    [data-theme="dark"] .qr-prog-modal-box h3,
+    [data-theme="dark"] .qr-prog-field label { color: #d0d0d0; }
+    [data-theme="dark"] .qr-prog-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
+    [data-theme="dark"] .qr-prog-cancel:hover { background: #333; }
+    [data-theme="dark"] .qr-notes-upload-form label,
+    [data-theme="dark"] .qr-transcript-upload-form label { color: #bbb; }
+    [data-theme="dark"] .pl-card { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-card-name { color: #e8e8e8; }
+    [data-theme="dark"] .pl-col { border-right-color: #3a3a3a; }
+    [data-theme="dark"] .pl-col-title { color: #aaa; }
+    [data-theme="dark"] .pl-unset-card { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-unset-card-name { color: #d0d0d0; }
+    [data-theme="dark"] .pl-form { background: #1e2235; border-color: #3a4a7a; }
+    [data-theme="dark"] .pl-form-field label { color: #bbb; }
+    [data-theme="dark"] .pl-form-field select,
+    [data-theme="dark"] .pl-form-field input[type=date] { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-form-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-form-cancel:hover { background: #333; }
+    [data-theme="dark"] .pl-section { border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-moving > .pl-section-hdr { background: #1a3a22; color: #86efac; border-bottom-color: #2d5a38; }
+    [data-theme="dark"] .pl-onhold > .pl-section-hdr { background: #3a2010; color: #fed7aa; border-bottom-color: #5a3a20; }
+    [data-theme="dark"] .pl-unset > .pl-section-hdr { background: #252525; color: #d0d0d0; border-bottom-color: #3a3a3a; }
+    [data-theme="dark"] .pl-col-count { background: #3a3a3a; color: #d0d0d0; }
+    [data-theme="dark"] .quick-ref-logins-chart-wrap { border-top-color: #3a3a3a; }
   </style>
 </head>
 <body>
@@ -590,7 +751,7 @@
   <main>
     <div>
       <h1>Customer 360</h1>
-      <p>Track customer changes across all 28 columns over 16 weeks</p>
+      <p>Current status and quick reference for all ASO customers</p>
     </div>
 
     <!-- Auth bar (aside so AEM does not treat it as a section and load auth-controls-row as a block) -->
@@ -623,7 +784,7 @@
     
     <!-- Controls -->
     <div class="controls" id="controls" style="display: none;">
-      <a href="/customer-history-edit.html" class="btn-edit-customer" id="edit-customer-btn">Edit / Add customer</a>
+      <a href="/customer-history-edit" class="btn-edit-customer" id="edit-customer-btn" target="_top">Edit / Add customer</a>
       <a href="/reports.html" class="btn-edit-customer" style="background:#667eea;color:white;border-color:#667eea;">Reports</a>
       <div class="controls-search-wrap" style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 4px;">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -647,15 +808,6 @@
           <option value="">All</option>
         </select>
       </div>
-      <div>
-        <label for="metric-select">Focus Metric:</label>
-        <select id="metric-select">
-          <option value="all">All Columns</option>
-          <option value="engagement">Engagement Metrics</option>
-          <option value="implementation">Implementation Status</option>
-          <option value="business">Business Info</option>
-        </select>
-      </div>
     </div>
     
     <!-- Timeline Display -->
@@ -665,7 +817,14 @@
   
   <script type="module">
     let allData = [];
+    let rawData = []; // all records across all weeks, pre-collapse
     let weeks = [];
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = String(s ?? '');
+      return div.innerHTML;
+    }
 
     function collapseToOneRecordPerCustomer(rows) {
       const byCustomer = {};
@@ -868,7 +1027,8 @@
           throw new Error(err.error || `API error ${response.status}`);
         }
         const data = await response.json();
-        allData = data.data || [];
+        rawData = data.data || [];
+        allData = rawData;
         const rawLength = allData.length;
         const weeksForStats = [...new Set(allData.map(c => c.week))].filter(Boolean).sort();
         // One record per customer (latest only)
@@ -889,7 +1049,7 @@
           licenseSelect.value = 'Paid';
         }
         
-        displaySummaryStats(getFilteredCustomers().length, weeksForStats, rawLength);
+        displaySummaryStats();
         const summaryEl = document.getElementById('summary-stats');
         if (summaryEl) summaryEl.style.display = 'grid';
         
@@ -897,12 +1057,6 @@
         const customerSearchInput = document.getElementById('customer-search-input');
         const customerSelectHidden = document.getElementById('customer-select');
         const customerDropdown = document.getElementById('customer-dropdown');
-
-        function escapeHtml(s) {
-          const div = document.createElement('div');
-          div.textContent = s;
-          return div.innerHTML;
-        }
 
         function syncVisibleFromHidden() {
           const v = customerSelectHidden.value;
@@ -1064,15 +1218,26 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
     
-    function displaySummaryStats(customerCount, weeksList, totalRecords) {
+    function displaySummaryStats() {
       const container = document.getElementById('summary-stats');
       if (!container) return;
-      const total = totalRecords != null ? totalRecords : allData.length;
+      // Count unique paid customers across ALL historical records (not just latest)
+      const paidNames = new Set(
+        rawData
+          .filter(c => (c.licenseType || '').trim().toLowerCase() === 'paid')
+          .map(c => (c.companyName || '').trim())
+          .filter(Boolean)
+      );
+      const production = allData.filter(c => c.status === 'Active').length;
+      const preProd    = allData.filter(c => c.status === 'Pre-Production').length;
+      const trial      = allData.filter(c => (c.licenseType || '').trim().toLowerCase() === 'trial').length;
+      const deferred   = allData.filter(c => c.status === 'On-Hold').length;
       const stats = [
-        { label: 'Total Customers', value: customerCount },
-        { label: 'Weeks of Data', value: (weeksList && weeksList.length) ? weeksList.length : 0 },
-        { label: 'Total Records', value: total },
-        { label: 'Latest Week', value: (weeksList && weeksList.length) ? formatWeek(weeksList[weeksList.length - 1]) : '—' }
+        { label: 'Total Paid Customers', value: paidNames.size },
+        { label: 'Production',           value: production },
+        { label: 'Pre-Production',       value: preProd },
+        { label: 'Trial',                value: trial },
+        { label: 'Deferred (On-Hold)',   value: deferred },
       ];
       container.innerHTML = stats.map(stat => `
         <div class="stat-card">
@@ -1093,13 +1258,6 @@
         <div class="customer-timeline" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
           <div class="customer-header" style="margin-bottom: 10px; padding-bottom: 8px;">
             <div class="customer-name" style="font-size: 16px;">${customerName}</div>
-          </div>
-          ${createTimelineTable(customerData)}
-          <div class="insights-section">
-            <h4>📊 Historical Insights</h4>
-            <ul class="insights-list">
-              ${insights.map(insight => `<li>• ${insight}</li>`).join('')}
-            </ul>
           </div>
           <div class="quick-ref-actions">
             <button type="button" class="quick-ref-refresh-btn">Refresh</button>
@@ -1208,34 +1366,53 @@
       setTimeout(() => { if (window.loadCustomerQuickRef) window.loadCustomerQuickRef(timelineEl, customerName); }, 0);
     }
     
+    const COLUMN_LABELS = {
+      week: 'Week',
+      status: 'Status',
+      licenseType: 'License Type',
+      industry: 'Industry',
+      eseLead: 'CSE',
+      deploymentType: 'Deployment',
+      imsOrgId: 'IMS Org ID',
+      tenantId: 'Tenant ID',
+      terminationReason: 'Termination Reason',
+      comments: 'Comments',
+      sourceLastUpdated: 'SNOW Updated',
+      ingestedAt: 'Ingested At',
+      dataSource: 'Data Source',
+      engagement: 'Engagement',
+      healthScore: 'Health Score',
+      blockers: 'Blockers',
+      feedback: 'Feedback',
+      mau: 'MAU',
+      ttiv: 'TTIV',
+    };
+
     function createTimelineTable(customerData) {
       const metricSelect = document.getElementById('metric-select');
       const metricValue = metricSelect ? metricSelect.value : 'all';
+      // Columns matching the CustomerSnapshot fields from the ServiceNow daily sync
       const allColumns = [
-        'week', 'status', 'engagement', 'healthScore', 'licenseType', 'industry',
-        'eseLead', 'delayReason', 'closeDate', 'onboardDate', 'deploymentType',
-        'headless', 'blockers', 'feedback', 'mau', 'ttiv', 'opptyRealized',
-        'preflight', 'autoOptimizeEnabled', 'autoOptimizeButtonPressed',
-        'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed', 'codeRepo',
-        'authImplementation', 'workflowManager', 'customerSelfServe'
+        'week', 'status', 'licenseType', 'industry', 'eseLead', 'deploymentType',
+        'imsOrgId', 'tenantId', 'terminationReason', 'comments',
+        'sourceLastUpdated', 'ingestedAt', 'dataSource'
       ];
       const engagementCols = [
         'week', 'status', 'engagement', 'healthScore', 'blockers', 'feedback', 'mau', 'ttiv'
       ];
-      const implementationCols = [
-        'week', 'preflight', 'autoOptimizeEnabled', 'servicePrincipleDeployed',
-        'brandProfile', 'aemyDeployed', 'codeRepo', 'authImplementation'
-      ];
       const businessCols = [
-        'week', 'licenseType', 'industry', 'eseLead', 'status', 'closeDate',
-        'onboardDate', 'deploymentType'
+        'week', 'licenseType', 'industry', 'eseLead', 'status', 'deploymentType'
+      ];
+      const snowCols = [
+        'week', 'imsOrgId', 'tenantId', 'terminationReason', 'comments',
+        'sourceLastUpdated', 'ingestedAt', 'dataSource'
       ];
       let columns = allColumns;
       if (metricValue === 'engagement') columns = engagementCols;
-      if (metricValue === 'implementation') columns = implementationCols;
       if (metricValue === 'business') columns = businessCols;
+      if (metricValue === 'snow') columns = snowCols;
       
-      const headers = columns.map(col => formatColumnName(col));
+      const headers = columns.map(col => COLUMN_LABELS[col] || formatColumnName(col));
       
       let html = '<div class="timeline-container"><table class="timeline-table">';
       html += '<thead><tr>';
@@ -1254,6 +1431,13 @@
           if (col === 'week') {
             cellClass = 'week-col';
             value = value ? formatWeek(value) : value;
+          } else if (col === 'sourceLastUpdated' || col === 'ingestedAt') {
+            if (value) {
+              const d = new Date(value);
+              value = isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+          } else if (col === 'comments' && value && value.length > 80) {
+            value = `<span title="${escapeHtml(value)}">${escapeHtml(value.slice(0, 80))}…</span>`;
           } else if (prevRecord) {
             const prevValue = prevRecord[col] || '';
             if (value !== prevValue) {
@@ -1330,7 +1514,9 @@
       const atRiskCount = engagementLevels.filter(e => e === 'At Risk').length;
       const criticalCount = engagementLevels.filter(e => e === 'Critical').length;
       
-      insights.push(`Engagement history: ${activeCount} weeks Active, ${atRiskCount} weeks At Risk, ${criticalCount} weeks Critical`);
+      if (activeCount || atRiskCount || criticalCount) {
+        insights.push(`Engagement: Active ${activeCount}, At Risk ${atRiskCount}, Critical ${criticalCount}`);
+      }
       
       // Implementation progress
       const implementations = ['autoOptimizeEnabled', 'servicePrincipleDeployed', 'brandProfile', 'aemyDeployed'];
@@ -1340,9 +1526,6 @@
       if (lastCount > firstCount) {
         insights.push(`Implementation progress: ${lastCount - firstCount} new features enabled`);
       }
-      
-      // Weeks tracked
-      insights.push(`Tracked for ${customerData.length} weeks from ${formatWeek(first.week)} to ${formatWeek(last.week)}`);
       
       return insights;
     }
@@ -1356,23 +1539,26 @@
         const record = allData.find((c) => c.companyName === customerName);
         if (!record) return;
         const healthScore = record.healthScore ?? '—';
-        const weekLabel = record.week ? '1 week' : 'Current';
-
-        const tableHtml = createTimelineTable([record]);
+        const eseLead = record.eseLead || '—';
+        const licenseType = record.licenseType || '—';
+        const statusLabel = record.status || '—';
         html += `
           <div class="view-all-accordion-item" data-customer-name="${customerName.replace(/"/g, '&quot;')}">
             <div class="view-all-accordion-header">
-              <div>
-                <div class="customer-name" style="margin-bottom: 4px;">${customerName}</div>
-                <div style="font-size: 14px; color: #666;">
-                  ${weekLabel} | Health: ${healthScore}
-                  <span class="trend-indicator trend-stable">→</span>
+              <div class="acc-header-left">
+                <div class="customer-name">${customerName}</div>
+                <div class="acc-header-chips">
+                  <span class="acc-chip acc-chip--cse">${escapeHtml(eseLead)}</span>
+                  <span class="acc-chip acc-chip--license">${escapeHtml(licenseType)}</span>
+                  <span class="acc-chip acc-chip--status">${escapeHtml(statusLabel)}</span>
+                  <span class="acc-chip acc-chip--live acc-chip-audits">— audits</span>
+                  <span class="acc-chip acc-chip--live acc-chip-pending">— pending</span>
+                  <span class="acc-chip acc-chip--live acc-chip-users">— active users</span>
                 </div>
               </div>
-              <div class="week-count">${record.status} | ${record.engagement}</div>
             </div>
             <div class="view-all-accordion-body">
-              ${tableHtml}
+              <div class="acc-lifecycle-stats"><a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a><span class="acc-ls-loading">Loading opportunity stats…</span></div>
               <div class="quick-ref-actions">
                 <button type="button" class="quick-ref-refresh-btn">Refresh</button>
               </div>

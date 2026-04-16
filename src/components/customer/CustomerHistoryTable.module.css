@@ -14,7 +14,7 @@
 .selectorLabel {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-body);
   white-space: nowrap;
 }
 
@@ -23,10 +23,11 @@
   min-width: 280px;
   max-width: 480px;
   padding: 10px 14px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
-  background: white;
+  background: var(--surface-color);
+  color: var(--text-color);
   cursor: pointer;
 }
 
@@ -45,7 +46,7 @@
 
 .weekCount {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0 0 20px;
 }
 
@@ -59,12 +60,12 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--surface-color);
 }
 
 .table thead {
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
+  background: var(--surface-alt);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .table th {
@@ -72,7 +73,7 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -81,8 +82,8 @@
 .table td {
   padding: 12px 16px;
   font-size: 14px;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-color);
   vertical-align: top;
 }
 
@@ -92,7 +93,7 @@
 
 .weekCell {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-strong);
   white-space: nowrap;
 }
 
@@ -123,12 +124,12 @@
 .blockersCol {
   max-width: 200px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .dateCell {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-subtle);
   white-space: nowrap;
 }
 
@@ -137,7 +138,7 @@
 .hint {
   text-align: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--text-subtle);
   font-size: 16px;
   font-style: italic;
 }

@@ -434,7 +434,36 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
     const result = await getCustomerQuickRef(customerName, token, options);
     const {
       orgResolved, audits = [], disabledAudits = [], pendingValidationOpps = { count: 0, types: [] }, users = [], loginCountByDay = {}, usersByDay = {}, sites = [], siteId: currentSiteId, allOrgs, baseURL,
+      opportunityStats = { total: 0, open: 0, resolved: 0, resolutionRate: 0, deployedFixes: 0 },
     } = result;
+
+    // ── Update accordion header live chips ───────────────────────────────────
+    const accordionItem = container.closest('.view-all-accordion-item');
+    if (accordionItem) {
+      const cutoff30 = Date.now() - 30 * 86400000;
+      const activeUsers30d = users.filter((u) => u.lastSignInAt && new Date(u.lastSignInAt).getTime() >= cutoff30).length;
+      const auditsChip = accordionItem.querySelector('.acc-chip-audits');
+      const pendingChip = accordionItem.querySelector('.acc-chip-pending');
+      const usersChip = accordionItem.querySelector('.acc-chip-users');
+      if (auditsChip) auditsChip.textContent = `${audits.length} audits`;
+      if (pendingChip) { pendingChip.textContent = `${pendingValidationOpps.count} pending`; pendingChip.classList.toggle('acc-chip--warn', pendingValidationOpps.count > 0); }
+      if (usersChip) usersChip.textContent = `${activeUsers30d} active users`;
+    }
+
+    // ── Populate lifecycle stats section ─────────────────────────────────────
+    const lifecycleEl = container.querySelector('.acc-lifecycle-stats');
+    if (lifecycleEl) {
+      const { total, open, resolved, resolutionRate, deployedFixes } = opportunityStats;
+      const lifecycleUrl = `/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}`;
+      lifecycleEl.innerHTML = `
+        <a class="acc-ls-lifecycle-link" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
+        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${total}</span><span class="acc-ls-label">total opps</span></a>
+        <a class="acc-ls-item acc-ls-item--open" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${open}</span><span class="acc-ls-label">open</span></a>
+        <a class="acc-ls-item acc-ls-item--resolved" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolved}</span><span class="acc-ls-label">resolved</span></a>
+        <a class="acc-ls-item" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${resolutionRate}%</span><span class="acc-ls-label">resolution rate</span></a>
+        <a class="acc-ls-item acc-ls-item--fixed" href="${lifecycleUrl}" target="_blank" rel="noopener noreferrer"><span class="acc-ls-val">${deployedFixes}</span><span class="acc-ls-label">deployed fixes</span></a>
+      `;
+    }
 
     if (!orgResolved && allOrgs && allOrgs.length > 0) {
       const pickerHtml = `
@@ -520,8 +549,12 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
       const backOfficeLink = currentSiteId
         ? `<a class="quick-ref-backoffice-link" href="https://experience.adobe.com/#/@sitesinternal/custom-apps/245265-EssDeveloperUI/#/sites/${encodeURIComponent(currentSiteId)}/opportunities?showPendingValidation=true" target="_blank" rel="noopener noreferrer">Open in back office</a>`
         : '';
+      const validatorLink = baseURL
+        ? `<a class="quick-ref-backoffice-link" href="/validator?baseURL=${encodeURIComponent(baseURL)}" target="_blank" rel="noopener noreferrer">Open in validator</a>`
+        : '';
+      const linkSeparator = (backOfficeLink && validatorLink) ? '<br>' : '';
       if (pvCount === 0) {
-        pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}`;
+        pendingEl.innerHTML = `<p class="quick-ref-msg">No pending validation suggestions.</p>${backOfficeLink}${linkSeparator}${validatorLink}`;
       } else {
         const typeItems = pvTypes
           .map((t) => `<li>${escapeHtml((t || '').replace(/-/g, ' '))}</li>`)
@@ -530,7 +563,7 @@ async function loadCustomerQuickRef(container, customerName, options = {}) {
           <div class="quick-ref-pv-count">${pvCount}</div>
           <p class="quick-ref-pv-label">suggestion${pvCount !== 1 ? 's' : ''} awaiting validation</p>
           ${pvTypes.length > 0 ? `<ul class="quick-ref-list" style="margin:6px 0 0;padding-left:18px;">${typeItems}</ul>` : ''}
-          ${backOfficeLink}
+          ${backOfficeLink}${linkSeparator}${validatorLink}
         `;
       }
       setDetailsCount(pendingEl.closest('details'), pvCount);

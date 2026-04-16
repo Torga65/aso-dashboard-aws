@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add / Edit Customer</title>
+  <script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}if(e.data&&e.data.type==='ims-token'){window._imsToken=e.data.token;}if(e.data&&e.data.type==='ims-signout'){window._imsToken=null;}});})()</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f9fa; --surface: #fff; --border: #dee2e6; --text: #212529;
+      --text-muted: #6c757d; --primary: #1a56b0; --primary-hover: #1240a0;
+      --success: #198754; --danger: #dc3545; --input-bg: #fff; --label: #495057;
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a1a; --surface: #252525; --border: #3a3a3a; --text: #e8e8e8;
+      --text-muted: #999; --primary: #4a90e2; --primary-hover: #357abd;
+      --input-bg: #2e2e2e; --label: #ccc;
+    }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; font-size: 14px; padding: 24px; }
+    aside#auth-bar { display: none !important; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .page-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+
+    /* Search */
+    .search-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 24px; }
+    .search-wrap { position: relative; flex: 1; max-width: 400px; }
+    .search-wrap input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 14px; }
+    .search-wrap input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 100; max-height: 220px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+    .autocomplete-list.open { display: block; }
+    .autocomplete-item { padding: 8px 12px; cursor: pointer; font-size: 13px; }
+    .autocomplete-item:hover { background: var(--primary); color: #fff; }
+    .btn-secondary { padding: 8px 16px; background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .btn-secondary:hover { background: var(--primary); color: #fff; }
+
+    /* Form */
+    form { display: flex; flex-direction: column; gap: 0; }
+    .form-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .form-section h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field.full-width { grid-column: 1 / -1; }
+    label { font-size: 12px; font-weight: 600; color: var(--label); }
+    label .required { color: var(--danger); margin-left: 2px; }
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+      padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px;
+      background: var(--input-bg); color: var(--text); font-size: 13px; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+    textarea { resize: vertical; min-height: 72px; }
+    select option { background: var(--input-bg); color: var(--text); }
+
+    /* Custom fields */
+    .custom-fields-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .custom-field-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; }
+    .custom-field-row input { width: 100%; }
+    .btn-remove-field { padding: 6px 10px; background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--danger); cursor: pointer; font-size: 13px; line-height: 1; }
+    .btn-remove-field:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-add-field { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: transparent; border: 1px dashed var(--primary); border-radius: 6px; color: var(--primary); cursor: pointer; font-size: 13px; font-weight: 600; }
+    .btn-add-field:hover { background: var(--primary); color: #fff; border-style: solid; }
+    .custom-field-header { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; margin-bottom: 4px; }
+    .custom-field-header span { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* Actions */
+    .form-actions { display: flex; gap: 12px; align-items: center; padding: 16px 0 4px; }
+    .btn-submit { padding: 10px 28px; background: var(--primary); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 700; }
+    .btn-submit:hover { background: var(--primary-hover); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-cancel { padding: 10px 20px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; }
+    .btn-cancel:hover { background: var(--border); }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+    #toast.success { background: var(--success); color: #fff; display: block; }
+    #toast.error { background: var(--danger); color: #fff; display: block; }
+  </style>
+</head>
+<body>
+
+<h1>Add / Edit Customer</h1>
+<p class="page-subtitle">Search for an existing customer to edit their record, or fill in a new entry from scratch.</p>
+
+<div class="search-row">
+  <div class="search-wrap">
+    <input type="text" id="customer-search" placeholder="Search existing customers…" autocomplete="off"/>
+    <div class="autocomplete-list" id="autocomplete-list"></div>
+  </div>
+  <button type="button" class="btn-secondary" id="btn-clear">New customer</button>
+</div>
+
+<form id="customer-form" novalidate>
+  <!-- Identity -->
+  <div class="form-section">
+    <h2>Identity</h2>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="f-companyName">Company Name<span class="required">*</span></label>
+        <input type="text" id="f-companyName" name="companyName" required placeholder="e.g. ASO - Acme Corp"/>
+      </div>
+      <input type="hidden" id="f-week" name="week"/>
+      <div class="form-field">
+        <label for="f-imsOrgId">IMS Org ID</label>
+        <input type="text" id="f-imsOrgId" name="imsOrgId" placeholder="e.g. ABCD1234@AdobeOrg"/>
+      </div>
+      <div class="form-field">
+        <label for="f-tenantId">Tenant ID</label>
+        <input type="text" id="f-tenantId" name="tenantId"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Classification -->
+  <div class="form-section">
+    <h2>Classification</h2>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="f-licenseType">License Type</label>
+        <select id="f-licenseType" name="licenseType">
+          <option value="">— select —</option>
+          <option value="Paid">Paid</option>
+          <option value="Trial">Trial</option>
+          <option value="Pre-Production">Pre-Production</option>
+          <option value="Internal">Internal</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-status">Status</label>
+        <select id="f-status" name="status">
+          <option value="">— select —</option>
+          <option value="Active">Active</option>
+          <option value="At-Risk">At-Risk</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Deferred">Deferred</option>
+          <option value="Churned">Churned</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-deploymentType">Deployment Type</label>
+        <select id="f-deploymentType" name="deploymentType">
+          <option value="">— select —</option>
+          <option value="Production">Production</option>
+          <option value="Pre-Production">Pre-Production</option>
+          <option value="Development">Development</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-industry">Industry</label>
+        <input type="text" id="f-industry" name="industry" placeholder="e.g. Technology"/>
+      </div>
+      <div class="form-field">
+        <label for="f-eseLead">CSE (ESE Lead)</label>
+        <input type="text" id="f-eseLead" name="eseLead" placeholder="First Last"/>
+      </div>
+      <div class="form-field">
+        <label for="f-terminationReason">Termination Reason</label>
+        <input type="text" id="f-terminationReason" name="terminationReason"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Engagement -->
+  <div class="form-section">
+    <h2>Engagement</h2>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="f-engagement">Engagement Level</label>
+        <select id="f-engagement" name="engagement">
+          <option value="">— select —</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+          <option value="Unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="f-healthScore">Health Score (0–100)</label>
+        <input type="number" id="f-healthScore" name="healthScore" min="0" max="100" placeholder="0–100"/>
+      </div>
+      <div class="form-field">
+        <label for="f-mau">MAU</label>
+        <input type="text" id="f-mau" name="mau" placeholder="Monthly Active Users"/>
+      </div>
+      <div class="form-field">
+        <label for="f-ttiv">TTIV</label>
+        <input type="text" id="f-ttiv" name="ttiv" placeholder="Time to Initial Value"/>
+      </div>
+      <div class="form-field full-width">
+        <label for="f-summary">Summary</label>
+        <textarea id="f-summary" name="summary" placeholder="Free-form summary of customer status…"></textarea>
+      </div>
+      <div class="form-field full-width">
+        <label for="f-blockers">Blockers</label>
+        <textarea id="f-blockers" name="blockers"></textarea>
+      </div>
+      <div class="form-field full-width">
+        <label for="f-feedback">Feedback</label>
+        <textarea id="f-feedback" name="feedback"></textarea>
+      </div>
+      <div class="form-field full-width">
+        <label for="f-comments">Comments</label>
+        <textarea id="f-comments" name="comments"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom fields -->
+  <div class="form-section">
+    <h2>Custom Fields</h2>
+    <div class="custom-field-header">
+      <span>Field Name</span>
+      <span>Value</span>
+      <span></span>
+    </div>
+    <div class="custom-fields-list" id="custom-fields-list"></div>
+    <button type="button" class="btn-add-field" id="btn-add-field">+ Add column</button>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-submit" id="btn-submit">Save Customer</button>
+    <a href="/customer-history" class="btn-cancel">Cancel</a>
+    <span id="form-status" style="font-size:13px; color: var(--text-muted);"></span>
+  </div>
+</form>
+
+<div id="toast"></div>
+
+<script>
+  function currentMonday() {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function showToast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = ''; }, 4000);
+  }
+
+  document.getElementById('f-week').value = currentMonday();
+
+  // ── Custom fields ─────────────────────────────────────────────────────────
+  const customFieldsList = document.getElementById('custom-fields-list');
+
+  function addCustomFieldRow(key = '', value = '') {
+    const row = document.createElement('div');
+    row.className = 'custom-field-row';
+    row.innerHTML = `
+      <input type="text" class="cf-key" placeholder="Field name" value="${key.replace(/"/g,'&quot;')}"/>
+      <input type="text" class="cf-val" placeholder="Value" value="${value.replace(/"/g,'&quot;')}"/>
+      <button type="button" class="btn-remove-field" title="Remove">✕</button>
+    `;
+    row.querySelector('.btn-remove-field').addEventListener('click', () => row.remove());
+    customFieldsList.appendChild(row);
+    row.querySelector('.cf-key').focus();
+  }
+
+  document.getElementById('btn-add-field').addEventListener('click', () => addCustomFieldRow());
+
+  function getCustomFields() {
+    const result = {};
+    customFieldsList.querySelectorAll('.custom-field-row').forEach(row => {
+      const k = row.querySelector('.cf-key').value.trim();
+      const v = row.querySelector('.cf-val').value.trim();
+      if (k) result[k] = v;
+    });
+    return Object.keys(result).length ? result : null;
+  }
+
+  function setCustomFields(obj) {
+    customFieldsList.innerHTML = '';
+    if (!obj || typeof obj !== 'object') return;
+    Object.entries(obj).forEach(([k, v]) => addCustomFieldRow(k, String(v ?? '')));
+  }
+
+  // ── Customer autocomplete ─────────────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const preCustomer = urlParams.get('customer');
+  let allCustomers = [];
+
+  async function loadCustomers() {
+    try {
+      const res = await fetch('/api/customers');
+      const json = await res.json();
+      const raw = json.data || [];
+      const map = {};
+      for (const r of raw) {
+        const key = (r.companyName || '').trim();
+        if (!key) continue;
+        if (!map[key] || r.week > map[key].week) map[key] = r;
+      }
+      allCustomers = Object.values(map).sort((a, b) => a.companyName.localeCompare(b.companyName));
+      if (preCustomer) {
+        const match = allCustomers.find(c => c.companyName === preCustomer);
+        if (match) prefillForm(match);
+      }
+    } catch (e) {
+      console.error('Failed to load customers', e);
+    }
+  }
+  loadCustomers();
+
+  const searchInput = document.getElementById('customer-search');
+  const autocompleteList = document.getElementById('autocomplete-list');
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    autocompleteList.innerHTML = '';
+    if (!q) { autocompleteList.classList.remove('open'); return; }
+    const matches = allCustomers.filter(c => c.companyName.toLowerCase().includes(q)).slice(0, 12);
+    if (!matches.length) { autocompleteList.classList.remove('open'); return; }
+    matches.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.textContent = c.companyName;
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        searchInput.value = c.companyName;
+        autocompleteList.classList.remove('open');
+        prefillForm(c);
+      });
+      autocompleteList.appendChild(item);
+    });
+    autocompleteList.classList.add('open');
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap')) autocompleteList.classList.remove('open');
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    searchInput.value = '';
+    autocompleteList.classList.remove('open');
+    clearForm();
+  });
+
+  // ── Form fill / clear ─────────────────────────────────────────────────────
+  const FIELDS = ['companyName','week','imsOrgId','tenantId','licenseType','status',
+    'deploymentType','industry','eseLead','terminationReason','engagement',
+    'healthScore','mau','ttiv','summary','blockers','feedback','comments'];
+
+  function prefillForm(data) {
+    for (const key of FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      el.value = data[key] != null ? String(data[key]) : '';
+    }
+    if (!data.week) document.getElementById('f-week').value = currentMonday();
+    // Restore any saved custom fields
+    let cf = data.customFields;
+    if (typeof cf === 'string') { try { cf = JSON.parse(cf); } catch { cf = null; } }
+    setCustomFields(cf);
+    document.getElementById('form-status').textContent =
+      'Editing existing record for week ' + (data.week || currentMonday());
+  }
+
+  function clearForm() {
+    document.getElementById('customer-form').reset();
+    document.getElementById('f-week').value = currentMonday();
+    customFieldsList.innerHTML = '';
+    document.getElementById('form-status').textContent = '';
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  document.getElementById('customer-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit');
+    const companyName = document.getElementById('f-companyName').value.trim();
+    if (!companyName) {
+      showToast('Company Name is required.', 'error');
+      document.getElementById('f-companyName').focus();
+      return;
+    }
+
+    const payload = {};
+    for (const key of FIELDS) {
+      const el = document.getElementById('f-' + key);
+      if (!el) continue;
+      const val = el.value.trim();
+      if (val !== '') payload[key] = key === 'healthScore' ? Number(val) : val;
+    }
+
+    const customFields = getCustomFields();
+    if (customFields) payload.customFields = customFields;
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const res = await fetch('/api/customers/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Save failed');
+      showToast(json.action === 'created' ? 'Customer created.' : 'Customer updated.', 'success');
+      document.getElementById('form-status').textContent =
+        'Last saved: ' + new Date().toLocaleTimeString() + ' (' + json.action + ')';
+    } catch (err) {
+      showToast(err.message || 'Save failed.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Customer';
+    }
+  });
+</script>
+</body>
+</html>
