@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { Customer } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { HealthBar } from "@/components/ui/HealthBar";
 import { EngagementBadge } from "@/components/ui/EngagementBadge";
 import styles from "./CustomerCard.module.css";
 
@@ -31,10 +30,6 @@ export function CustomerCard({ customer }: Props) {
 
       {/* Metrics */}
       <div className={styles.metrics}>
-        <div className={styles.metric}>
-          <span className={styles.metricLabel}>Health</span>
-          <HealthBar score={customer.healthScore} />
-        </div>
         <div className={styles.metric}>
           <span className={styles.metricLabel}>Engagement</span>
           <EngagementBadge level={customer.engagement} />

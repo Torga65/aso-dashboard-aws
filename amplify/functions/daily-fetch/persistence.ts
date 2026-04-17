@@ -23,7 +23,6 @@ const GET_SNAPSHOT = /* GraphQL */ `
       blockers
       feedbackStatus
       feedback
-      healthScore
       summary
       mau
       ttiv
@@ -123,7 +122,6 @@ const MANUAL_FIELDS = [
   "blockers",
   "feedbackStatus",
   "feedback",
-  "healthScore",
   "summary",
   "mau",
   "ttiv",
@@ -142,7 +140,6 @@ interface SnapshotKey {
   blockers?: string | null;
   feedbackStatus?: string | null;
   feedback?: string | null;
-  healthScore?: number | null;
   summary?: string | null;
   mau?: string | null;
   ttiv?: string | null;
@@ -275,7 +272,7 @@ export async function upsertSnapshot(
   }
 
   // 4. Record exists but source has newer data — update, preserving manually-managed
-  //    fields that SNOW does not own (engagement, blockers, healthScore, etc.).
+  //    fields that SNOW does not own (engagement, blockers, summary, etc.).
   //    SNOW always sends empty/default values for these; overwriting them would
   //    silently discard whatever the team entered via the edit form.
   const mergedSnapshot: NormalizedSnapshot = { ...snapshot };

@@ -39,7 +39,6 @@ export function normalizeCustomer(
     blockers: raw.blockers?.trim() ?? "None",
     feedbackStatus: raw.feedbackStatus?.trim() ?? "",
     feedback: raw.feedback?.trim() ?? "",
-    healthScore: normalizeHealthScore(raw.healthScore),
     summary: raw.summary?.trim() ?? "",
     mau: raw.mau?.trim() ?? "",
     ttiv: raw.ttiv?.trim() ?? "",
@@ -73,7 +72,6 @@ export function computeWeeklySummary(
 ): WeeklySummaryInput {
   let active = 0, atRisk = 0, onboarding = 0, preProduction = 0, churned = 0;
   let high = 0, medium = 0, low = 0;
-  let healthTotal = 0;
 
   for (const s of snapshots) {
     switch (s.status) {
@@ -89,8 +87,6 @@ export function computeWeeklySummary(
       case "Medium": medium++; break;
       case "Low":    low++;    break;
     }
-
-    healthTotal += s.healthScore;
   }
 
   return {
@@ -101,10 +97,6 @@ export function computeWeeklySummary(
     onboardingCount: onboarding,
     preProductionCount: preProduction,
     churnedCount: churned,
-    avgHealthScore:
-      snapshots.length > 0
-        ? Math.round((healthTotal / snapshots.length) * 10) / 10
-        : 0,
     highEngagementCount: high,
     mediumEngagementCount: medium,
     lowEngagementCount: low,
@@ -148,16 +140,6 @@ export function normalizeEngagement(raw: string | undefined): string {
   if (s === "none" || s === "n/a" || s === "") return "Unknown";
 
   return raw?.trim() ?? "Unknown";
-}
-
-/**
- * Parse health score to an integer in the range [0, 100].
- * Defaults to 50 when the value is missing, non-numeric, or out of range.
- */
-export function normalizeHealthScore(raw: number | string | undefined): number {
-  const parsed = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(parsed)) return 50;
-  return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
 /**

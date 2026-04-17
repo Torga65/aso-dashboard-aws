@@ -153,7 +153,7 @@ server.tool(
 /* ── 3. get_customer_data ───────────────────────────────────────────── */
 server.tool(
   'get_customer_data',
-  'Fetch the latest snapshot data for a specific customer: status, engagement, health score, blockers, feedback, license type, ESE lead, and more. For a complete picture, also call get_transcripts and get_comments with the same company name.',
+  'Fetch the latest snapshot data for a specific customer: status, engagement, blockers, feedback, license type, ESE lead, and more. For a complete picture, also call get_transcripts and get_comments with the same company name.',
   {
     company: z.string().describe('Customer / company name'),
   },
@@ -183,7 +183,6 @@ server.tool(
         `Week: ${r.week}`,
         `Status: ${r.status || '—'}`,
         `Engagement: ${r.engagement || '—'}`,
-        `Health Score: ${r.healthScore ?? '—'}`,
         `License Type: ${r.licenseType || '—'}`,
         `Industry: ${r.industry || '—'}`,
         `ESE Lead: ${r.eseLead || '—'}`,
@@ -210,7 +209,7 @@ server.tool(
 /* ── 4. list_customers ──────────────────────────────────────────────── */
 server.tool(
   'list_customers',
-  'List all customers in the dashboard with their current status, engagement, and health score. Optionally filter by status. When drilling into one customer, use get_transcripts and get_comments for full context.',
+  'List all customers in the dashboard with their current status and engagement. Optionally filter by status. When drilling into one customer, use get_transcripts and get_comments for full context.',
   {
     status:     z.enum(['', 'Active', 'At-Risk', 'Onboarding', 'Pre-Production', 'Churned', 'On-Hold']).default('').describe('Filter by status, or leave empty for all.'),
     engagement: z.enum(['', 'High', 'Medium', 'Low', 'Unknown']).default('').describe('Filter by engagement level.'),
@@ -238,7 +237,7 @@ server.tool(
     }
 
     const lines = customers.map((c) =>
-      `• ${c.companyName} | ${c.status || '—'} | ${c.engagement || '—'} | Health: ${c.healthScore ?? '—'} | ESE: ${c.eseLead || '—'}`
+      `• ${c.companyName} | ${c.status || '—'} | ${c.engagement || '—'} | ESE: ${c.eseLead || '—'}`
     );
 
     return {
@@ -304,7 +303,7 @@ server.tool(
         }
       }
       const matched = [...matchedFields, ...matchedCf].join('\n');
-      return `${r.companyName} (${r.status || '—'}, health ${r.healthScore ?? '—'}):\n${matched}`;
+      return `${r.companyName} (${r.status || '—'}):\n${matched}`;
     });
 
     return {

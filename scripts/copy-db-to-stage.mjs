@@ -98,7 +98,7 @@ const LIST_SNAPSHOTS = `
     listCustomerSnapshots(limit: $limit, nextToken: $nextToken) {
       items {
         companyName week licenseType industry eseLead status deploymentType
-        engagement blockersStatus blockers feedbackStatus feedback healthScore
+        engagement blockersStatus blockers feedbackStatus feedback
         summary mau ttiv autoOptimizeButtonPressed sourceLastUpdated ingestedAt dataSource
       }
       nextToken

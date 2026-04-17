@@ -207,7 +207,6 @@ function mapToRawCustomer(record: SnowRecord, week: string): RawCustomer {
     mau: "",
     ttiv: "",
     autoOptimizeButtonPressed: "",
-    healthScore: 0,
   };
 }
 
