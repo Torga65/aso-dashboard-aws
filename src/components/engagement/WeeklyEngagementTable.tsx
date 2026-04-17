@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import type { Customer } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EngagementBadge } from "@/components/ui/EngagementBadge";
-import { HealthBar } from "@/components/ui/HealthBar";
 import styles from "./WeeklyEngagementTable.module.css";
 
 interface Props {
@@ -122,7 +121,6 @@ export function WeeklyEngagementTable({ customers, week, availableWeeks = [] }: 
                 <th>Company</th>
                 <th>Status</th>
                 <th>Engagement</th>
-                <th className={styles.healthCol}>Health Score</th>
                 <th className={styles.summaryCol}>Summary</th>
                 <th className={styles.blockersCol}>Blockers</th>
                 <th className={styles.feedbackCol}>Feedback</th>
@@ -148,9 +146,6 @@ export function WeeklyEngagementTable({ customers, week, availableWeeks = [] }: 
                     </td>
                     <td>
                       <EngagementBadge level={c.engagement} />
-                    </td>
-                    <td className={styles.healthCol}>
-                      <HealthBar score={c.healthScore} />
                     </td>
                     <td className={`${styles.summaryCol} ${styles.summaryCell}`}>
                       {c.summary || "—"}

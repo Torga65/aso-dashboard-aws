@@ -551,7 +551,6 @@ const FIELDS = [
   { key: 'imsOrgId',                 label: 'IMS Org ID',           category: 'Identity',  defaultOn: false },
   { key: 'status',                   label: 'Status',               category: 'Status',    defaultOn: true },
   { key: 'engagement',               label: 'Engagement',           category: 'Status',    defaultOn: true },
-  { key: 'healthScore',              label: 'Health Score',         category: 'Status',    defaultOn: true },
   { key: 'deploymentType',           label: 'Deployment Type',      category: 'Status',    defaultOn: false },
   { key: 'mau',                      label: 'Monthly Active Users', category: 'Activity',  defaultOn: false },
   { key: 'ttiv',                     label: 'TTIV',                 category: 'Activity',  defaultOn: false },
@@ -701,11 +700,7 @@ function sortRows(rows) {
     const av = a[sortKey] ?? '';
     const bv = b[sortKey] ?? '';
     let cmp;
-    if (sortKey === 'healthScore') {
-      cmp = Number(av) - Number(bv);
-    } else {
-      cmp = String(av).localeCompare(String(bv));
-    }
+    cmp = String(av).localeCompare(String(bv));
     return sortDir === 'asc' ? cmp : -cmp;
   });
 }
@@ -727,15 +722,6 @@ function engagementBadge(val) {
   return `<span class="badge ${cls}">${escHtml(val)}</span>`;
 }
 
-function healthCell(val) {
-  const score = Number(val) || 0;
-  const color = score >= 70 ? '#4caf50' : score >= 40 ? '#ff9800' : '#f44336';
-  return `<div class="health-bar-cell">
-    <span style="font-weight:600;">${score}</span>
-    <div class="health-bar"><div class="health-bar-fill" style="width:${score}%;background:${color};"></div></div>
-  </div>`;
-}
-
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -743,7 +729,6 @@ function escHtml(s) {
 function renderCell(field, value) {
   if (field.key === 'status') return statusBadge(value);
   if (field.key === 'engagement') return engagementBadge(value);
-  if (field.key === 'healthScore') return healthCell(value);
   const escaped = escHtml(value);
   if (LONG_TEXT_FIELDS.has(field.key) && value && value.length > 80) {
     return `<span title="${escHtml(value)}">${escaped.slice(0, 80)}…</span>`;
@@ -935,7 +920,7 @@ Report parameters:
 
 Please analyze the data below and provide:
 1. An executive summary of the overall customer health
-2. Customers that need immediate attention (at-risk, low engagement, low health scores)
+2. Customers that need immediate attention (at-risk, low engagement)
 3. Trends or patterns you notice across the dataset
 4. Recommended actions for the CSM team
 

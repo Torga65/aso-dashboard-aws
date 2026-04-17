@@ -22,50 +22,71 @@ Internal Adobe Sites Optimizer (ASO) customer success dashboard. Tracks engageme
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        AWS Amplify Hosting                           │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │              Next.js 14  (standalone output)                  │   │
-│  │                                                               │   │
-│  │   Pages (React/SSR)          API Routes (Edge/Node)          │   │
-│  │   ─────────────────          ────────────────────────        │   │
-│  │   / Dashboard                GET  /api/customers             │   │
-│  │   /engagement                GET  /api/org-mapping           │   │
-│  │   /customer-history          PUT  /api/org-mapping           │   │
-│  │   /suggestion-lifecycle      GET  /api/spacecat/[...path]    │   │
-│  │   /developer                 GET  /api/portfolio/            │   │
-│  │                                   opportunity-metrics        │   │
-│  └────────────────────┬─────────────────────────────────────────┘   │
-└───────────────────────│─────────────────────────────────────────────┘
-                        │ AppSync (API Key + IAM)
-┌───────────────────────▼─────────────────────────────────────────────┐
-│                     AWS AppSync (GraphQL)                            │
-│              us-east-1  ·  API Key + AWS IAM auth                   │
-└───────────────────────┬─────────────────────────────────────────────┘
-                        │
-         ┌──────────────┼──────────────────┐
-         ▼              ▼                  ▼
-  ┌─────────────┐ ┌──────────────┐ ┌──────────────────┐
-  │ CustomerS-  │ │WeeklySummary │ │  CustomerOrgMap  │
-  │ napshot     │ │  (per week)  │ │  ping / Notes /  │
-  │ (DynamoDB)  │ │  (DynamoDB)  │ │  DataSyncJob     │
-  └─────────────┘ └──────────────┘ └──────────────────┘
+ ┌──────────────────────────────────────────────────────────────────────────────────┐
+ │  Developer machine (Claude Code / Cursor)                                         │
+ │  ┌────────────────────────────────────────────────────────────────────────────┐  │
+ │  │  customer-insight-mcp/server.mjs  (MCP server — stdio transport)           │  │
+ │  │  Tools: get_customer_data · get_comments · get_transcripts                 │  │
+ │  │         list_notes · list_customers · search_customers                     │  │
+ │  │         list_headless_customers                                             │  │
+ │  └───────────────────────────────────┬────────────────────────────────────────┘  │
+ └──────────────────────────────────────│────────────────────────────────────────────┘
+                                        │ HTTP  (ASO_BASE_URL)
+ ┌──────────────────────────────────────▼────────────────────────────────────────────┐
+ │                           AWS Amplify Hosting                                      │
+ │  ┌─────────────────────────────────────────────────────────────────────────────┐  │
+ │  │                     Next.js 14  (standalone output)                          │  │
+ │  │                                                                              │  │
+ │  │   Pages (React / SSR)                 API Routes (Node / Edge)              │  │
+ │  │   ──────────────────────────          ────────────────────────────────────  │  │
+ │  │   /                 Homepage          GET  /api/customers                   │  │
+ │  │   /dashboard        Customer list     POST /api/customers/upsert            │  │
+ │  │   /engagement       Table + filters   GET  /api/comments                   │  │
+ │  │   /customer-history (360 iframe)      GET  /api/transcripts                │  │
+ │  │   /suggestion-lifecycle  (iframe)     POST /api/transcripts                │  │
+ │  │   /reports          (reports iframe)  GET  /api/transcripts/download       │  │
+ │  │   /validator        AI validator      GET  /api/org-mapping                │  │
+ │  │   /developer        Token + sync log  PUT  /api/org-mapping                │  │
+ │  │                                       GET  /api/spacecat/[...path] ──────► SpaceCat
+ │  │                                       GET  /api/portfolio/opportunity-metrics
+ │  │                                       GET  /api/reports/headless-customers │  │
+ │  │                                       POST /api/validator/sites/.../validate│  │
+ │  └───────────────────────────────────────┬────────────────────────────────────┘  │
+ └─────────────────────────────────────────│─────────────────────────────────────────┘
+                                           │ AppSync  (API Key + IAM)
+ ┌─────────────────────────────────────────▼─────────────────────────────────────────┐
+ │                          AWS AppSync  (GraphQL)                                    │
+ │                   us-east-1  ·  API Key + AWS IAM auth                            │
+ └──────┬──────────────────┬────────────────────┬──────────────────┬─────────────────┘
+        │                  │                    │                  │
+        ▼                  ▼                    ▼                  ▼
+ ┌────────────┐   ┌──────────────┐   ┌──────────────────┐   ┌──────────────────────┐
+ │ Customer   │   │ Weekly       │   │ SnowComment      │   │ MeetingTranscript    │
+ │ Snapshot   │   │ Summary      │   │ CustomerOrgMap   │   │ CustomerProgression  │
+ │ (DynamoDB) │   │ (DynamoDB)   │   │ CustomerNote     │   │ DataSyncJob          │
+ └────────────┘   └──────────────┘   │ (DynamoDB)       │   │ (DynamoDB)           │
+                                     └──────────────────┘   └──────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────┐
-│              EventBridge Scheduler  (02:00 UTC daily)               │
-│                         │                                           │
-│                         ▼                                           │
-│              Lambda: daily-fetch  (512 MB, 5 min timeout)          │
-│              ├── Fetches ~600 records from ServiceNow               │
-│              ├── Writes CustomerSnapshot + WeeklySummary to AppSync │
-│              ├── Logs to DataSyncJob (RUNNING → COMPLETED/FAILED)   │
-│              └── Retries: 2× · Dead-letter queue (SQS) → CW Alarm  │
-└─────────────────────────────────────────────────────────────────────┘
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │  EventBridge Scheduler  (cron 02:00 UTC daily)                                  │
+ │          │                                                                       │
+ │          ▼                                                                       │
+ │  Lambda: daily-fetch  (Node 20 · 512 MB · 5 min timeout)                       │
+ │          ├── 1. GET ServiceNow core_company  (~600 records, paginated)           │
+ │          │       auth: SERVICENOW_AUTH_TOKEN  (Secrets Manager)                 │
+ │          ├── 2. Normalize fields + merge-preserve manual edits                  │
+ │          ├── 3. Upsert CustomerSnapshot + WeeklySummary  (AppSync)              │
+ │          ├── 4. Parse u_comments → SnowComment rows  (AppSync)                 │
+ │          └── 5. DataSyncJob audit log  (RUNNING → COMPLETED / FAILED)           │
+ │                 Retries: 2×  ·  Dead-letter queue (SQS) → CloudWatch Alarm      │
+ └─────────────────────────────────────────────────────────────────────────────────┘
 
-External APIs (called from browser via IMS token):
-  SpaceCat  https://spacecat.experiencecloud.live/api/v1
-  Adobe IMS https://ims-na1.adobelogin.com
-  Behance   https://cc-api-behance.adobe.io  (avatar fetch)
+ External APIs
+   ServiceNow  https://adobems.service-now.com   (Lambda only — server-side)
+   SpaceCat    https://spacecat.experiencecloud.live/api/v1  (browser via proxy)
+   Adobe IMS   https://ims-na1.adobelogin.com    (browser — OAuth / PKCE)
+   Behance     https://cc-api-behance.adobe.io   (browser — avatar fetch)
+   OpenAI      (server-side — AI validator LLM calls)
 ```
 
 ---

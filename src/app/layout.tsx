@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { IMSAuthProvider } from "@/contexts/IMSAuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { OrgWarningBanner } from "@/components/auth/OrgWarningBanner";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
     default: "AEM Sites Optimizer — Customer Dashboard",
   },
   description:
-    "AEM Sites Optimizer customer engagement dashboard showing key metrics and health scores.",
+    "AEM Sites Optimizer customer engagement dashboard showing key metrics and customer health.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <IMSAuthProvider>
+            <OrgWarningBanner />
             <div>
               <Header />
               <main>{children}</main>

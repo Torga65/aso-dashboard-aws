@@ -69,9 +69,6 @@ export function toCustomer(snap: SnapshotRecord): Customer {
     blockers:                   snap.blockers                ?? "",
     feedbackStatus:             snap.feedbackStatus          ?? "",
     feedback:                   snap.feedback                ?? "",
-    // healthScoreRaw kept as a string for display; healthScore is the integer
-    healthScoreRaw:             String(snap.healthScore      ?? 50),
-    healthScore:                snap.healthScore             ?? 50,
     summary:                    snap.summary                 ?? "",
     mau:                        snap.mau                     ?? "",
     ttiv:                       snap.ttiv                    ?? "",
@@ -101,7 +98,6 @@ export function toWeeklySummary(record: SummaryRecord): WeeklySummary {
     onboardingCount:        record.onboardingCount      ?? 0,
     preProductionCount:     record.preProductionCount   ?? 0,
     churnedCount:           record.churnedCount         ?? 0,
-    avgHealthScore:         record.avgHealthScore       ?? 0,
     highEngagementCount:    record.highEngagementCount  ?? 0,
     mediumEngagementCount:  record.mediumEngagementCount ?? 0,
     lowEngagementCount:     record.lowEngagementCount   ?? 0,

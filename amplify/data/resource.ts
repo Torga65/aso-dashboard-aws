@@ -48,7 +48,6 @@ const schema = a.schema({
       blockers: a.string(),
       feedbackStatus: a.string(),
       feedback: a.string(),
-      healthScore: a.integer(), // 0–100
       summary: a.string(),
       mau: a.string(), // Monthly Active Users (raw string from source)
       ttiv: a.string(), // Time to Initial Value
@@ -99,7 +98,6 @@ const schema = a.schema({
       churnedCount: a.integer(),
 
       // ── Aggregates ────────────────────────────────────────────────────
-      avgHealthScore: a.float(),
       highEngagementCount: a.integer(),
       mediumEngagementCount: a.integer(),
       lowEngagementCount: a.integer(),

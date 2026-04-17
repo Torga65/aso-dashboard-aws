@@ -1683,7 +1683,6 @@
       ingestedAt: 'Ingested At',
       dataSource: 'Data Source',
       engagement: 'Engagement',
-      healthScore: 'Health Score',
       blockers: 'Blockers',
       feedback: 'Feedback',
       mau: 'MAU',
@@ -1700,7 +1699,7 @@
         'sourceLastUpdated', 'ingestedAt', 'dataSource'
       ];
       const engagementCols = [
-        'week', 'status', 'engagement', 'healthScore', 'blockers', 'feedback', 'mau', 'ttiv'
+        'week', 'status', 'engagement', 'blockers', 'feedback', 'mau', 'ttiv'
       ];
       const businessCols = [
         'week', 'licenseType', 'industry', 'eseLead', 'status', 'deploymentType'
@@ -1746,17 +1745,7 @@
               cellClass = 'changed';
               
               // Determine if change is improvement or decline
-              if (col === 'healthScore') {
-                const curr = Number(value) || 0;
-                const prev = Number(prevValue) || 0;
-                if (curr > prev) {
-                  cellClass = 'improved';
-                  trendIndicator = '<span class="trend-indicator trend-up">↑</span>';
-                } else if (curr < prev) {
-                  cellClass = 'declined';
-                  trendIndicator = '<span class="trend-indicator trend-down">↓</span>';
-                }
-              } else if (col === 'engagement') {
+              if (col === 'engagement') {
                 const levels = { 'Active': 3, 'At Risk': 2, 'Critical': 1 };
                 const curr = levels[value] || 0;
                 const prev = levels[prevValue] || 0;
@@ -1791,19 +1780,6 @@
       const insights = [];
       const first = customerData[0];
       const last = customerData[customerData.length - 1];
-      
-      // Health score trend
-      const firstHealth = Number(first.healthScore) || 0;
-      const lastHealth = Number(last.healthScore) || 0;
-      const healthChange = lastHealth - firstHealth;
-      
-      if (healthChange > 10) {
-        insights.push(`Health score improved by ${healthChange} points (${firstHealth} → ${lastHealth})`);
-      } else if (healthChange < -10) {
-        insights.push(`Health score declined by ${Math.abs(healthChange)} points (${firstHealth} → ${lastHealth})`);
-      } else {
-        insights.push(`Health score stable around ${lastHealth}`);
-      }
       
       // Status progression
       if (first.status !== last.status) {
@@ -1840,7 +1816,6 @@
       customers.forEach(customerName => {
         const record = allData.find((c) => c.companyName === customerName);
         if (!record) return;
-        const healthScore = record.healthScore ?? '—';
         const eseLead = record.eseLead || '—';
         const licenseType = record.licenseType || '—';
         const statusLabel = record.status || '—';
@@ -1904,13 +1879,11 @@
             </div>
             <div class="view-all-accordion-body">
               <div class="acc-lifecycle-stats">
-                <a class="acc-ls-lifecycle-link" href="/suggestion-lifecycle?customer=${encodeURIComponent(customerName)}" target="_blank" rel="noopener noreferrer">View in Lifecycle →</a>
                 <div class="acc-ls-item"><span class="acc-ls-label">CSE</span><span class="acc-ls-val">${escapeHtml(eseLead)}</span></div>
                 <div class="acc-ls-item"><span class="acc-ls-label">License Type</span><span class="acc-ls-val">${escapeHtml(licenseType)}</span></div>
                 <div class="acc-ls-item"><span class="acc-ls-label">Status</span><span class="acc-ls-val">${escapeHtml(statusLabel)}</span></div>
                 <div class="acc-ls-item"><span class="acc-ls-label">Deployment</span><span class="acc-ls-val">${escapeHtml(deploymentType)}</span></div>
                 <div class="acc-ls-item"><span class="acc-ls-label">Engagement</span><span class="acc-ls-val">${escapeHtml(engagement)}</span></div>
-                <div class="acc-ls-item"><span class="acc-ls-label">Health Score</span><span class="acc-ls-val acc-ls-val--num">${healthScore}</span></div>
               </div>
               ${customFieldsHtml}
               <div class="quick-ref-actions">
@@ -2021,7 +1994,7 @@
       const headers = [
         'Week', 'Company Name', 'License Type', 'Industry', 'ESE Lead', 'Status',
         'Delay Reason', 'Close Date', 'Onboard Date', 'Deployment Type', 'Headless',
-        'Engagement', 'Blockers', 'Feedback', 'Health Score', 'Summary',
+        'Engagement', 'Blockers', 'Feedback', 'Summary',
         'MAU', 'TTIV', 'Oppty Realized', 'Preflight', 'Auto-Optimize Enabled',
         'Auto-Optimize Button Pressed', 'Service Principle Deployed', 'Brand Profile',
         'AEMY Deployed', 'Code Repo', 'Auth Implementation', 'Workflow Manager',
@@ -2031,7 +2004,7 @@
       const fields = [
         'week', 'companyName', 'licenseType', 'industry', 'eseLead', 'status',
         'delayReason', 'closeDate', 'onboardDate', 'deploymentType', 'headless',
-        'engagement', 'blockers', 'feedback', 'healthScore', 'summary',
+        'engagement', 'blockers', 'feedback', 'summary',
         'mau', 'ttiv', 'opptyRealized', 'preflight', 'autoOptimizeEnabled',
         'autoOptimizeButtonPressed', 'servicePrincipleDeployed', 'brandProfile',
         'aemyDeployed', 'codeRepo', 'authImplementation', 'workflowManager',

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 const SNAPSHOT_FIELDS = [
   "licenseType", "industry", "eseLead", "status", "deploymentType",
   "engagement", "blockersStatus", "blockers", "feedbackStatus", "feedback",
-  "healthScore", "summary", "mau", "ttiv", "autoOptimizeButtonPressed",
+  "summary", "mau", "ttiv", "autoOptimizeButtonPressed",
   "imsOrgId", "tenantId", "terminationReason", "comments", "sourceLastUpdated",
 ] as const;
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     for (const field of SNAPSHOT_FIELDS) {
       const val = rest[field] ?? body[field];
       if (val !== undefined && val !== null && val !== "") {
-        input[field] = field === "healthScore" ? Number(val) : val;
+        input[field] = val;
       }
     }
 

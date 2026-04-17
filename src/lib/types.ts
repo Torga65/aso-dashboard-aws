@@ -27,9 +27,6 @@ export interface Customer {
   blockers: string;
   feedbackStatus: string;
   feedback: string;
-  healthScoreRaw: string;
-  /** 0–100 */
-  healthScore: number;
   summary: string;
   mau: string;
   ttiv: string;
@@ -67,7 +64,6 @@ export interface WeeklySummary {
   onboardingCount: number;
   preProductionCount: number;
   churnedCount: number;
-  avgHealthScore: number;
   highEngagementCount: number;
   mediumEngagementCount: number;
   lowEngagementCount: number;
