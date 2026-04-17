@@ -47,6 +47,7 @@ export const ASO_PORTFOLIO_SITES = [
   { siteId: 'f4cd1965-0657-4cf3-bc08-76665a243928', baseURL: 'https://amgen.eu' },
   { siteId: '0f98a36a-783e-4d31-ad26-e97a3044df94', baseURL: 'https://purestorage.com' },
   { siteId: '76afaaf7-4ffb-4551-a52e-dca16552ddff', baseURL: 'https://workday.com' },
+  { siteId: '1fdc671a-e4f9-437b-9f2c-8cb54aa09d21', baseURL: 'https://mheducation.com' },
 ];
 
 export const ASO_PORTFOLIO_SITE_IDS = ASO_PORTFOLIO_SITES.map((s) => s.siteId);
