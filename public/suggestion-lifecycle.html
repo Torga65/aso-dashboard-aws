@@ -541,6 +541,50 @@
       margin: -1px;
     }
 
+    /* Portfolio Insights (top rejected types + top deployers) */
+    #portfolio-insights .portfolio-insights-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    @media (max-width: 700px) {
+      #portfolio-insights .portfolio-insights-inner { grid-template-columns: 1fr; }
+    }
+    .portfolio-insight-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .portfolio-insight-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .portfolio-insight-table th {
+      text-align: left;
+      padding: 5px 8px;
+      border-bottom: 2px solid #e5e7eb;
+      color: #9ca3af;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .portfolio-insight-table td {
+      padding: 8px 8px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #111827;
+      vertical-align: top;
+    }
+    .portfolio-insight-table tr:last-child td { border-bottom: none; }
+    .pi-rank { color: #d1d5db; font-weight: 700; width: 24px; }
+    .pi-count { font-weight: 700; text-align: right; white-space: nowrap; }
+    .pi-types { color: #6b7280; font-size: 11px; margin-top: 3px; }
+    .pi-domain { word-break: break-all; }
+
     /* Global Filters Bar */
     .global-filters-bar { margin-bottom: 16px; }
     .global-filters {
@@ -1523,6 +1567,21 @@
           <canvas id="portfolio-chart"></canvas>
         </div>
       </div>
+      <div id="portfolio-insights" class="section-card" style="display: none;">
+        <div class="table-header">
+          <h3>Period Highlights</h3>
+        </div>
+        <div class="portfolio-insights-inner">
+          <div>
+            <h4 class="portfolio-insight-title">Top Rejected Suggestion Types</h4>
+            <div id="portfolio-top-rejected"></div>
+          </div>
+          <div>
+            <h4 class="portfolio-insight-title">Top Deploying Customers</h4>
+            <div id="portfolio-top-deployers"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="dashboard">
@@ -1748,6 +1807,9 @@
     const portfolioSiteSelect = document.getElementById('portfolio-site');
     const portfolioSiteListSelect = document.getElementById('portfolio-site-list');
     const portfolioScopeSummaryEl = document.getElementById('portfolio-scope-summary');
+    const portfolioInsights = document.getElementById('portfolio-insights');
+    const portfolioTopRejected = document.getElementById('portfolio-top-rejected');
+    const portfolioTopDeployers = document.getElementById('portfolio-top-deployers');
 
     function getPortfolioListMode() {
       return (portfolioSiteListSelect?.value === 'cja' ? 'cja' : 'aso');
@@ -2816,6 +2878,7 @@
       portfolioStats.style.display = 'none';
       portfolioMetricsScope.style.display = 'none';
       portfolioChartSection.style.display = 'none';
+      if (portfolioInsights) portfolioInsights.style.display = 'none';
 
       const listTitleShort = listMode === 'cja' ? 'CJA' : 'ASO';
       // Update title
@@ -3075,6 +3138,59 @@
       ];
       renderPortfolioChart(buckets, statuses);
       updatePortfolioScopeSummary();
+
+      // ---- Period highlights: top rejected types + top deployers ----
+      const topRejected = Array.isArray(data.topRejectedTypes) ? data.topRejectedTypes : [];
+      const topDeployers = Array.isArray(data.topDeployingCustomers) ? data.topDeployingCustomers : [];
+
+      if (portfolioInsights && (topRejected.length > 0 || topDeployers.length > 0)) {
+        if (portfolioTopRejected) {
+          portfolioTopRejected.innerHTML = topRejected.length === 0
+            ? '<p style="color:#9ca3af;font-size:13px;margin:0;">No rejections in this period.</p>'
+            : `<table class="portfolio-insight-table">
+                <thead><tr>
+                  <th class="pi-rank">#</th>
+                  <th>Type</th>
+                  <th class="pi-count">Rejected</th>
+                </tr></thead>
+                <tbody>${topRejected.map((item, i) => `
+                  <tr>
+                    <td class="pi-rank">${i + 1}</td>
+                    <td>${item.type}</td>
+                    <td class="pi-count">${item.count.toLocaleString()}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>`;
+        }
+
+        if (portfolioTopDeployers) {
+          portfolioTopDeployers.innerHTML = topDeployers.length === 0
+            ? '<p style="color:#9ca3af;font-size:13px;margin:0;">No deployments in this period.</p>'
+            : `<table class="portfolio-insight-table">
+                <thead><tr>
+                  <th class="pi-rank">#</th>
+                  <th>Domain</th>
+                  <th class="pi-count">Fixed</th>
+                </tr></thead>
+                <tbody>${topDeployers.map((item, i) => `
+                  <tr>
+                    <td class="pi-rank">${i + 1}</td>
+                    <td>
+                      <div class="pi-domain">${item.domain}</div>
+                      ${item.types && item.types.length > 0
+                        ? `<div class="pi-types">${item.types.join(', ')}</div>`
+                        : ''}
+                    </td>
+                    <td class="pi-count">${item.count.toLocaleString()}</td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>`;
+        }
+
+        portfolioInsights.style.display = 'block';
+      } else if (portfolioInsights) {
+        portfolioInsights.style.display = 'none';
+      }
     }
 
     async function renderPortfolioChart(buckets, statuses) {

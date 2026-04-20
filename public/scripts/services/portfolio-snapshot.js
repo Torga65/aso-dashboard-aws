@@ -54,7 +54,7 @@ function isExcluded(opp) {
 const OPEN_STATUSES = new Set(['NEW', 'IN_PROGRESS']);
 const AWAITING_CUSTOMER = new Set(['NEW', 'APPROVED', 'IN_PROGRESS']);
 
-function aggregateOpportunities(opportunities, from, to) {
+function aggregateOpportunities(opportunities, from, to, siteIdToBaseUrl = {}) {
   const createdDayMap = new Map();
   const totalCounts = {};
   let totalAvailable = 0;
@@ -63,6 +63,8 @@ function aggregateOpportunities(opportunities, from, to) {
   let outdatedInPeriod = 0;
   const statusChangeDayMap = new Map();
   const inScopeIndices = new Set();
+  const rejectedTypeMap = new Map();
+  const fixedSiteMap = new Map();
 
   for (let i = 0; i < opportunities.length; i++) {
     const opp = opportunities[i];
@@ -142,13 +144,30 @@ function aggregateOpportunities(opportunities, from, to) {
           const inRange = (upd && upd >= from && upd <= to)
             || (!upd && created && created >= from && created <= to);
           if (inRange) {
-            if (sugStatus === 'FIXED') movedToFixed++;
-            else if (sugStatus === 'SKIPPED') movedToSkipped++;
-            else if (sugStatus === 'REJECTED') movedToRejected++;
-            else if (sugStatus === 'PENDING_VALIDATION') movedToAwaitingEseReview++;
-            else if (sugStatus === 'OUTDATED') movedToOutdated++;
-            else if (sugStatus === 'ERROR') movedToError++;
-            else if (AWAITING_CUSTOMER.has(sugStatus)) movedToAwaitingCustomerReview++;
+            if (sugStatus === 'FIXED') {
+              movedToFixed++;
+              const sid = opp.siteId;
+              if (sid) {
+                if (!fixedSiteMap.has(sid)) fixedSiteMap.set(sid, { count: 0, types: new Set() });
+                const entry = fixedSiteMap.get(sid);
+                entry.count++;
+                if (opp.type) entry.types.add(opp.type);
+              }
+            } else if (sugStatus === 'SKIPPED') {
+              movedToSkipped++;
+            } else if (sugStatus === 'REJECTED') {
+              movedToRejected++;
+              const t = opp.type || 'unknown';
+              rejectedTypeMap.set(t, (rejectedTypeMap.get(t) || 0) + 1);
+            } else if (sugStatus === 'PENDING_VALIDATION') {
+              movedToAwaitingEseReview++;
+            } else if (sugStatus === 'OUTDATED') {
+              movedToOutdated++;
+            } else if (sugStatus === 'ERROR') {
+              movedToError++;
+            } else if (AWAITING_CUSTOMER.has(sugStatus)) {
+              movedToAwaitingCustomerReview++;
+            }
           }
         }
       }
@@ -167,9 +186,26 @@ function aggregateOpportunities(opportunities, from, to) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, counts]) => ({ date, counts }));
 
+  const topRejectedTypes = Array.from(rejectedTypeMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([type, count]) => ({ type, count }));
+
+  const topDeployingCustomers = Array.from(fixedSiteMap.entries())
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 3)
+    .map(([siteId, { count, types }]) => ({
+      siteId,
+      domain: siteIdToBaseUrl[siteId] || siteId,
+      count,
+      types: Array.from(types),
+    }));
+
   return {
     buckets,
     totalCounts,
+    topRejectedTypes,
+    topDeployingCustomers,
     summary: {
       totalAvailable,
       createdInPeriod,
@@ -218,7 +254,18 @@ export async function getPortfolioMetrics({
   if (!includeLlmo) opps = opps.filter((o) => !isLlmoOnly(o));
   if (!includeGeneric) opps = opps.filter((o) => (o.type || '').toLowerCase() !== 'generic-opportunity');
 
-  const result = aggregateOpportunities(opps, from, to);
+  // Build siteId → baseURL from customers snapshot for top-deployers display
+  const siteIdToBaseUrl = {};
+  try {
+    const customersData = await fetchJSON(`${SNAPSHOTS_BASE}/customers.json`);
+    for (const customer of customersData.customers || []) {
+      for (const site of customer.sites || []) {
+        if (site.siteId && site.baseURL) siteIdToBaseUrl[site.siteId] = site.baseURL;
+      }
+    }
+  } catch (e) { /* non-fatal — domain falls back to siteId */ }
+
+  const result = aggregateOpportunities(opps, from, to, siteIdToBaseUrl);
   result.siteCount = siteIds ? siteIds.length : snapshot.siteCount;
   result.snapshotDate = snapshot.snapshotDate;
   result.source = 'snapshot';

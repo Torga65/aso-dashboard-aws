@@ -27,6 +27,9 @@ const BATCH_DELAY_MS = 0;
 
 interface CacheEntry { data: unknown; expiresAt: number; }
 const _cache = new Map<string, CacheEntry>();
+
+// Site baseURL lookup — populated when fetching site lists, never expires (baseURLs are stable)
+const _siteBaseUrlCache = new Map<string, string>(); // siteId → baseURL
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 function cacheGet(key: string) {
@@ -56,10 +59,14 @@ async function fetchAllSiteIds(token: string): Promise<string[]> {
   const cached = cacheGet(cacheKey);
   if (cached) return cached as string[];
   const data = await spacecatGet(`${SPACECAT_BASE}/sites`, token);
-  const sites: { id?: string; siteId?: string }[] = Array.isArray(data)
+  const sites: { id?: string; siteId?: string; baseURL?: string }[] = Array.isArray(data)
     ? data
     : data.sites || data.data || [];
-  const ids = sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  const ids = sites.map((s) => {
+    const id = s.id || s.siteId;
+    if (id && s.baseURL) _siteBaseUrlCache.set(id, s.baseURL);
+    return id;
+  }).filter(Boolean) as string[];
   cacheSet(cacheKey, ids);
   return ids;
 }
@@ -69,10 +76,14 @@ async function fetchOrgSiteIds(orgId: string, token: string): Promise<string[]> 
   const cached = cacheGet(cacheKey);
   if (cached) return cached as string[];
   const data = await spacecatGet(`${SPACECAT_BASE}/organizations/${orgId}/sites`, token);
-  const sites: { id?: string; siteId?: string }[] = Array.isArray(data)
+  const sites: { id?: string; siteId?: string; baseURL?: string }[] = Array.isArray(data)
     ? data
     : data.sites || data.data || [];
-  const ids = sites.map((s) => s.id || s.siteId).filter(Boolean) as string[];
+  const ids = sites.map((s) => {
+    const id = s.id || s.siteId;
+    if (id && s.baseURL) _siteBaseUrlCache.set(id, s.baseURL);
+    return id;
+  }).filter(Boolean) as string[];
   cacheSet(cacheKey, ids);
   return ids;
 }
@@ -90,7 +101,13 @@ async function fetchOpportunitiesForSites(siteIds: string[], token: string) {
   const allOpps: unknown[] = [];
   for (let i = 0; i < siteIds.length; i += BATCH_SIZE) {
     const batch = siteIds.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(batch.map((id) => fetchSiteOpportunities(id, token)));
+    const results = await Promise.all(
+      batch.map((id) =>
+        fetchSiteOpportunities(id, token).then((opps) =>
+          (opps as Record<string, unknown>[]).map((o) => ({ ...o, _siteId: id }))
+        )
+      )
+    );
     for (const opps of results) allOpps.push(...opps);
     if (i + BATCH_SIZE < siteIds.length) {
       await new Promise<void>((r) => { setTimeout(r, BATCH_DELAY_MS); });
@@ -130,6 +147,7 @@ const SUG_PENDING = "PENDING_VALIDATION", SUG_OUTDATED = "OUTDATED", SUG_ERROR =
 const AWAITING_CUSTOMER = new Set(["NEW", "APPROVED", "IN_PROGRESS"]);
 
 interface Opportunity {
+  _siteId?: string;
   status?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -159,6 +177,10 @@ function aggregateOpportunities(opportunities: Opportunity[], from: string, to: 
   let awaitingCustomerReview = 0, suggestionsFixed = 0, totalSuggestions = 0;
   let movedToFixed = 0, movedToAwaitingCustomerReview = 0, movedToAwaitingEseReview = 0;
   let movedToSkipped = 0, movedToRejected = 0, movedToOutdated = 0, movedToError = 0;
+
+  // For top-N breakdowns
+  const rejectedTypeMap = new Map<string, number>(); // type → rejected count in period
+  const fixedSiteMap = new Map<string, { count: number; types: Set<string> }>(); // siteId → fixes
 
   for (let i = 0; i < opportunities.length; i++) {
     const opp = opportunities[i];
@@ -214,13 +236,30 @@ function aggregateOpportunities(opportunities: Opportunity[], from: string, to: 
         const inRange = (upd && upd >= from && upd <= to)
           || (!upd && created && created >= from && created <= to);
         if (!inRange) continue;
-        if (sug === SUG_FIXED) movedToFixed++;
-        else if (sug === SUG_SKIPPED) movedToSkipped++;
-        else if (sug === SUG_REJECTED) movedToRejected++;
-        else if (sug === SUG_PENDING) movedToAwaitingEseReview++;
-        else if (sug === SUG_OUTDATED) movedToOutdated++;
-        else if (sug === SUG_ERROR) movedToError++;
-        else if (AWAITING_CUSTOMER.has(sug)) movedToAwaitingCustomerReview++;
+        if (sug === SUG_FIXED) {
+          movedToFixed++;
+          const sid = opp._siteId;
+          if (sid) {
+            if (!fixedSiteMap.has(sid)) fixedSiteMap.set(sid, { count: 0, types: new Set() });
+            const entry = fixedSiteMap.get(sid)!;
+            entry.count++;
+            if (opp.type) entry.types.add(opp.type);
+          }
+        } else if (sug === SUG_SKIPPED) {
+          movedToSkipped++;
+        } else if (sug === SUG_REJECTED) {
+          movedToRejected++;
+          const t = opp.type || "unknown";
+          rejectedTypeMap.set(t, (rejectedTypeMap.get(t) || 0) + 1);
+        } else if (sug === SUG_PENDING) {
+          movedToAwaitingEseReview++;
+        } else if (sug === SUG_OUTDATED) {
+          movedToOutdated++;
+        } else if (sug === SUG_ERROR) {
+          movedToError++;
+        } else if (AWAITING_CUSTOMER.has(sug)) {
+          movedToAwaitingCustomerReview++;
+        }
       }
     }
   }
@@ -232,10 +271,27 @@ function aggregateOpportunities(opportunities: Opportunity[], from: string, to: 
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, counts]) => ({ date, counts }));
 
+  const topRejectedTypes = Array.from(rejectedTypeMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([type, count]) => ({ type, count }));
+
+  const topDeployingCustomers = Array.from(fixedSiteMap.entries())
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 3)
+    .map(([siteId, { count, types }]) => ({
+      siteId,
+      domain: _siteBaseUrlCache.get(siteId) || siteId,
+      count,
+      types: Array.from(types),
+    }));
+
   return {
     buckets,
     totalCounts,
     statusChangeBuckets,
+    topRejectedTypes,
+    topDeployingCustomers,
     summary: {
       totalAvailable, createdInPeriod, fixedInPeriod, outdatedInPeriod,
       skippedByCustomer, rejectedByEse, pendingValidation, awaitingCustomerReview,
