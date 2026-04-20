@@ -9,7 +9,12 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "amplify:sandbox": "ampx sandbox",
-    "amplify:deploy": "ampx pipeline-deploy"
+    "amplify:deploy": "ampx pipeline-deploy",
+    "snapshot": "node scripts/snapshot.mjs",
+    "snapshot:portfolio": "node scripts/snapshot.mjs --portfolio",
+    "snapshot:portfolio:cja": "node scripts/snapshot.mjs --portfolio-cja",
+    "snapshot:portfolio:all": "node scripts/snapshot.mjs --portfolio && node scripts/snapshot.mjs --portfolio-cja",
+    "snapshot:customers": "node scripts/snapshot-customers.mjs"
   },
   "dependencies": {
     "@adobe/react-spectrum": "^3.46.2",
@@ -33,6 +38,7 @@
     "@types/react-dom": "^18.3.0",
     "aws-cdk-lib": "^2.150.0",
     "constructs": "^10.3.0",
+    "dotenv": "^16.6.1",
     "esbuild": "^0.21.0",
     "tsx": "^4.15.0",
     "typescript": "^5.4.0"
