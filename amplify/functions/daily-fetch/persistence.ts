@@ -18,6 +18,16 @@ const GET_SNAPSHOT = /* GraphQL */ `
       companyName
       week
       sourceLastUpdated
+      engagement
+      blockersStatus
+      blockers
+      feedbackStatus
+      feedback
+      healthScore
+      summary
+      mau
+      ttiv
+      autoOptimizeButtonPressed
     }
   }
 `;
@@ -102,10 +112,41 @@ const CREATE_SNOW_COMMENT = /* GraphQL */ `
 // Response shapes (only the fields we select)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Fields that are owned by manual user edits, not by the SNOW sync.
+ * SNOW always sends empty/default values for these, so we must preserve
+ * whatever the user has entered rather than overwriting with SNOW defaults.
+ */
+const MANUAL_FIELDS = [
+  "engagement",
+  "blockersStatus",
+  "blockers",
+  "feedbackStatus",
+  "feedback",
+  "healthScore",
+  "summary",
+  "mau",
+  "ttiv",
+  "autoOptimizeButtonPressed",
+] as const;
+
+type ManualField = (typeof MANUAL_FIELDS)[number];
+
 interface SnapshotKey {
   companyName: string;
   week: string;
   sourceLastUpdated?: string | null;
+  // Manually-managed fields fetched so we can preserve them on SNOW updates
+  engagement?: string | null;
+  blockersStatus?: string | null;
+  blockers?: string | null;
+  feedbackStatus?: string | null;
+  feedback?: string | null;
+  healthScore?: number | null;
+  summary?: string | null;
+  mau?: string | null;
+  ttiv?: string | null;
+  autoOptimizeButtonPressed?: string | null;
 }
 
 interface SyncJobId {
@@ -233,10 +274,21 @@ export async function upsertSnapshot(
     return { action: "skipped", ...key };
   }
 
-  // 4. Record exists but source has newer data — update
+  // 4. Record exists but source has newer data — update, preserving manually-managed
+  //    fields that SNOW does not own (engagement, blockers, healthScore, etc.).
+  //    SNOW always sends empty/default values for these; overwriting them would
+  //    silently discard whatever the team entered via the edit form.
+  const mergedSnapshot: NormalizedSnapshot = { ...snapshot };
+  for (const field of MANUAL_FIELDS) {
+    const existingVal = existing[field as ManualField];
+    if (existingVal !== null && existingVal !== undefined) {
+      (mergedSnapshot as unknown as Record<string, unknown>)[field] = existingVal;
+    }
+  }
+
   const updateResult = await client.request<{ updateCustomerSnapshot: SnapshotKey }>(
     UPDATE_SNAPSHOT,
-    { input: snapshot }
+    { input: mergedSnapshot }
   );
 
   if (updateResult.errors?.length) {
