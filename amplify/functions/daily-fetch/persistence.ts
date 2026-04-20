@@ -282,7 +282,7 @@ export async function upsertSnapshot(
   for (const field of MANUAL_FIELDS) {
     const existingVal = existing[field as ManualField];
     if (existingVal !== null && existingVal !== undefined) {
-      (mergedSnapshot as Record<string, unknown>)[field] = existingVal;
+      (mergedSnapshot as unknown as Record<string, unknown>)[field] = existingVal;
     }
   }
 
