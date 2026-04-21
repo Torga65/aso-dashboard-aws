@@ -340,6 +340,134 @@ server.tool(
   }
 );
 
+/* ── 7. get_progression ─────────────────────────────────────────────── */
+server.tool(
+  'get_progression',
+  'Get the current migration/onboarding progression record for a specific customer: track (Moving/On Hold/Done/Stopped), stage, migration source, checklist completion, notes, and history. Returns null if the customer has no progression entry.',
+  {
+    company: z.string().describe('Customer / company name (exact match used in the dashboard)'),
+  },
+  async ({ company }) => {
+    const qs = new URLSearchParams({ company });
+    const res = await apiFetch(`/api/progression?${qs}`);
+    const { data } = await res.json();
+
+    if (!data) {
+      return { content: [{ type: 'text', text: `No progression record found for "${company}".` }] };
+    }
+
+    const p = data;
+    const lines = [
+      `Company: ${p.companyName}`,
+      `Track: ${p.progressionTrack}`,
+      `Stage: ${p.progressionStage}`,
+      p.migrationSource ? `Migration Source: ${p.migrationSource}` : null,
+      p.stageEnteredAt  ? `Stage Entered: ${formatDate(p.stageEnteredAt)}` : null,
+      p.updatedBy       ? `Last Updated By: ${p.updatedBy}` : null,
+      p.updatedAt       ? `Last Updated At: ${formatDate(p.updatedAt)}` : null,
+      p.notes           ? `Notes: ${p.notes}` : null,
+      // On Hold / Future Date fields
+      p.projectedGoLiveDate ? `Projected Go-Live: ${formatDate(p.projectedGoLiveDate)}` : null,
+      p.holdReason          ? `Hold Reason: ${p.holdReason}` : null,
+      p.holdReasonOther     ? `Hold Reason (Other): ${p.holdReasonOther}` : null,
+      // Preprod checklist
+      p.preprodOnboardFirstSite    != null ? `Preprod — Onboard First Site: ${p.preprodOnboardFirstSite ? 'Yes' : 'No'}` : null,
+      p.preprodFcmCompleted        != null ? `Preprod — FCM Completed: ${p.preprodFcmCompleted ? 'Yes' : 'No'}` : null,
+      p.preprodPreflightCompleted  != null ? `Preprod — Pre-flight Completed: ${p.preprodPreflightCompleted ? 'Yes' : 'No'}` : null,
+      // Prod checklist
+      p.prodAutoOptimizeEnabled       != null ? `Prod — Auto-Optimize Enabled: ${p.prodAutoOptimizeEnabled ? 'Yes' : 'No'}` : null,
+      p.prodAutoOptimizedOpportunity  != null ? `Prod — Auto-Optimized Opportunity Deployed: ${p.prodAutoOptimizedOpportunity ? 'Yes' : 'No'}` : null,
+    ].filter(Boolean);
+
+    return { content: [{ type: 'text', text: lines.join('\n') }] };
+  }
+);
+
+/* ── 8. list_progression ────────────────────────────────────────────── */
+server.tool(
+  'list_progression',
+  'List all customers in the migration/onboarding pipeline with their current track and stage. Optionally filter by track or stage. Use get_progression for full detail on a specific customer.',
+  {
+    track: z.enum(['', 'Moving', 'On Hold', 'Done', 'Stopped']).default('').describe('Filter by track, or leave empty for all.'),
+    stage: z.string().default('').describe('Filter by stage name (partial match, case-insensitive), e.g. "Preprod", "Prod", "Future Date".'),
+  },
+  async ({ track, stage }) => {
+    const res = await apiFetch('/api/progression/all');
+    const { data } = await res.json();
+    let items = data ?? [];
+
+    if (track) items = items.filter((p) => p.progressionTrack === track);
+    if (stage) {
+      const needle = stage.toLowerCase();
+      items = items.filter((p) => (p.progressionStage || '').toLowerCase().includes(needle));
+    }
+
+    items.sort((a, b) => (a.companyName || '').localeCompare(b.companyName || ''));
+
+    if (items.length === 0) {
+      return { content: [{ type: 'text', text: 'No progression records match the requested filters.' }] };
+    }
+
+    const lines = items.map((p) => {
+      let line = `• ${p.companyName} | ${p.progressionTrack} / ${p.progressionStage}`;
+      if (p.migrationSource) line += ` | ${p.migrationSource}`;
+      if (p.stageEnteredAt)  line += ` | since ${formatDate(p.stageEnteredAt)}`;
+      return line;
+    });
+
+    return {
+      content: [{
+        type: 'text',
+        text: `${items.length} record${items.length !== 1 ? 's' : ''}${track ? ` (${track})` : ''}${stage ? ` / stage contains "${stage}"` : ''}:\n\n${lines.join('\n')}`,
+      }],
+    };
+  }
+);
+
+/* ── 9. get_stage_history ───────────────────────────────────────────── */
+server.tool(
+  'get_stage_history',
+  'Get the full stage-change audit trail for a customer — every time their progression track or stage was updated, who made the change, and any notes or checklist state captured at the time.',
+  {
+    company: z.string().describe('Customer / company name (exact match used in the dashboard)'),
+  },
+  async ({ company }) => {
+    const qs = new URLSearchParams({ company });
+    const res = await apiFetch(`/api/progression/history?${qs}`);
+    const { data } = await res.json();
+    const entries = data ?? [];
+
+    if (entries.length === 0) {
+      return { content: [{ type: 'text', text: `No stage history found for "${company}".` }] };
+    }
+
+    const formatted = entries.map((e) => {
+      const lines = [
+        `[${formatDate(e.changedAt)}] ${e.progressionTrack} / ${e.progressionStage}`,
+        e.changedBy       ? `  Changed by: ${e.changedBy}` : null,
+        e.migrationSource ? `  Migration source: ${e.migrationSource}` : null,
+        e.notes           ? `  Notes: ${e.notes}` : null,
+        e.projectedGoLiveDate ? `  Projected go-live: ${formatDate(e.projectedGoLiveDate)}` : null,
+        e.holdReason          ? `  Hold reason: ${e.holdReason}${e.holdReasonOther ? ` — ${e.holdReasonOther}` : ''}` : null,
+        (e.preprodOnboardFirstSite != null || e.preprodFcmCompleted != null || e.preprodPreflightCompleted != null)
+          ? `  Preprod checklist: onboard=${e.preprodOnboardFirstSite ? '✓' : '✗'} FCM=${e.preprodFcmCompleted ? '✓' : '✗'} pre-flight=${e.preprodPreflightCompleted ? '✓' : '✗'}`
+          : null,
+        (e.prodAutoOptimizeEnabled != null || e.prodAutoOptimizedOpportunity != null)
+          ? `  Prod checklist: auto-optimize=${e.prodAutoOptimizeEnabled ? '✓' : '✗'} opp-deployed=${e.prodAutoOptimizedOpportunity ? '✓' : '✗'}`
+          : null,
+      ].filter(Boolean);
+      return lines.join('\n');
+    });
+
+    return {
+      content: [{
+        type: 'text',
+        text: `Stage history for ${company} (${entries.length} entries, newest first):\n\n${formatted.join('\n\n')}`,
+      }],
+    };
+  }
+);
+
 /* ─── start ───────────────────────────────────────────────────────────── */
 const transport = new StdioServerTransport();
 await server.connect(transport);

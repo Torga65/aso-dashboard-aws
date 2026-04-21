@@ -145,15 +145,23 @@ export function toCustomerNote(record: NoteRecord): CustomerNote {
 
 export function toCustomerProgression(record: ProgressionRecord): CustomerProgression {
   return {
-    companyName:      record.companyName,
-    progressionTrack: record.progressionTrack as CustomerProgression["progressionTrack"],
-    progressionStage: record.progressionStage as CustomerProgression["progressionStage"],
-    migrationSource:  (record.migrationSource ?? null) as CustomerProgression["migrationSource"],
-    migrationTech:    (record.migrationTech   ?? null) as CustomerProgression["migrationTech"],
-    stageEnteredAt:   record.stageEnteredAt,
-    updatedBy:        record.updatedBy,
-    updatedAt:        record.updatedAt,
-    notes:            record.notes ?? null,
+    companyName:          record.companyName,
+    progressionTrack:     record.progressionTrack as CustomerProgression["progressionTrack"],
+    progressionStage:     record.progressionStage as CustomerProgression["progressionStage"],
+    migrationSource:      (record.migrationSource ?? null) as CustomerProgression["migrationSource"],
+    migrationTech:        (record.migrationTech   ?? null) as CustomerProgression["migrationTech"],
+    stageEnteredAt:       record.stageEnteredAt,
+    updatedBy:            record.updatedBy,
+    updatedAt:            record.updatedAt,
+    notes:                record.notes               ?? null,
+    projectedGoLiveDate:       record.projectedGoLiveDate       ?? null,
+    holdReason:                record.holdReason                ?? null,
+    holdReasonOther:           record.holdReasonOther           ?? null,
+    preprodOnboardFirstSite:      record.preprodOnboardFirstSite      ?? null,
+    preprodFcmCompleted:          record.preprodFcmCompleted          ?? null,
+    preprodPreflightCompleted:    record.preprodPreflightCompleted    ?? null,
+    prodAutoOptimizeEnabled:      record.prodAutoOptimizeEnabled      ?? null,
+    prodAutoOptimizedOpportunity: record.prodAutoOptimizedOpportunity ?? null,
   };
 }
 
@@ -163,14 +171,22 @@ export function toCustomerProgression(record: ProgressionRecord): CustomerProgre
 
 export function toStageHistoryEntry(record: StageHistoryRecord): CustomerStageHistoryEntry {
   return {
-    id:               record.id,
-    companyName:      record.companyName,
-    changedAt:        record.changedAt,
-    progressionTrack: record.progressionTrack,
-    progressionStage: record.progressionStage,
-    migrationSource:  record.migrationSource ?? null,
-    migrationTech:    record.migrationTech   ?? null,
-    changedBy:        record.changedBy,
-    notes:            record.notes           ?? null,
+    id:                   record.id,
+    companyName:          record.companyName,
+    changedAt:            record.changedAt,
+    progressionTrack:     record.progressionTrack,
+    progressionStage:     record.progressionStage,
+    migrationSource:      record.migrationSource      ?? null,
+    migrationTech:        record.migrationTech        ?? null,
+    changedBy:            record.changedBy,
+    notes:                record.notes                ?? null,
+    projectedGoLiveDate:       record.projectedGoLiveDate       ?? null,
+    holdReason:                record.holdReason                ?? null,
+    holdReasonOther:           record.holdReasonOther           ?? null,
+    preprodOnboardFirstSite:      record.preprodOnboardFirstSite      ?? null,
+    preprodFcmCompleted:          record.preprodFcmCompleted          ?? null,
+    preprodPreflightCompleted:    record.preprodPreflightCompleted    ?? null,
+    prodAutoOptimizeEnabled:      record.prodAutoOptimizeEnabled      ?? null,
+    prodAutoOptimizedOpportunity: record.prodAutoOptimizedOpportunity ?? null,
   };
 }

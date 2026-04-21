@@ -2069,21 +2069,29 @@
         <label>Migration Source *</label>
         <select id="qr-prog-source">
           <option value="">-- select --</option>
-          <option value="On Prem">On Prem</option>
-          <option value="AMS">AMS</option>
-        </select>
-      </div>
-      <div class="qr-prog-field" id="qr-prog-tech-row" style="display:none;">
-        <label>Migration Tech *</label>
-        <select id="qr-prog-tech">
-          <option value="">-- select --</option>
-          <option value="AEM">AEM</option>
-          <option value="Not AEM">Not AEM</option>
+          <option value="On Prem > AEMCS">On Prem &gt; AEMCS</option>
+          <option value="Non-AEM > AEMCS">Non-AEM &gt; AEMCS</option>
+          <option value="AMS > AEMCS">AMS &gt; AEMCS</option>
         </select>
       </div>
       <div class="qr-prog-field">
-        <label>Stage entered date *</label>
+        <label id="qr-prog-date-lbl">Stage entered date *</label>
         <input type="date" id="qr-prog-date"/>
+      </div>
+      <div id="qr-prog-preprod-row" style="display:none;">
+        <div style="font-size:11px;font-weight:700;color:#667eea;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.04em;">Preprod checklist</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;padding:2px 0;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="qr-preprod-onboard"> On-board first site</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="qr-preprod-fcm"> FCM</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="qr-preprod-preflight"> Pre-flight</label>
+        </div>
+      </div>
+      <div id="qr-prog-prod-row" style="display:none;">
+        <div style="font-size:11px;font-weight:700;color:#667eea;margin:6px 0 4px;text-transform:uppercase;letter-spacing:0.04em;">Prod checklist</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;padding:2px 0;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="qr-prod-autoopt"> Auto-optimize enabled</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="qr-prod-autodepl"> Customer deployed an auto-optimized opportunity</label>
+        </div>
       </div>
       <div class="qr-prog-field">
         <label>Notes</label>
@@ -2195,6 +2203,12 @@
     };
 
     /* Modal logic */
+    function qrDateLabel(track, stage) {
+      if (track === 'On Hold') return 'Migration completion *';
+      if (track === 'Moving' && stage === 'Preprod') return 'Production date *';
+      if (track === 'Moving' && stage === 'Prod')    return 'Date went live *';
+      return 'Stage entered date *';
+    }
     function updateStageOpts(track) {
       const stages = track === 'Moving' ? MOVING_STAGES : track === 'On Hold' ? ONHOLD_STAGES : [];
       const sel = document.getElementById('qr-prog-stage');
@@ -2203,29 +2217,38 @@
         : '<option value="">-- select track first --</option>';
       sel.value = '';
       document.getElementById('qr-prog-source').value = '';
-      document.getElementById('qr-prog-tech').value = '';
-      updateMigRows('', null);
+      updateMigRows(track, '');
+      const lbl = document.getElementById('qr-prog-date-lbl');
+      if (lbl) lbl.textContent = qrDateLabel(track, '');
     }
-    function updateMigRows(stage, source) {
-      const showSrc = stage === 'Migration';
-      const showTch = showSrc && source === 'On Prem';
-      document.getElementById('qr-prog-source-row').style.display = showSrc ? 'block' : 'none';
-      document.getElementById('qr-prog-tech-row').style.display   = showTch ? 'block' : 'none';
+    function updateMigRows(track, stage) {
+      document.getElementById('qr-prog-source-row').style.display  = stage === 'Migration' ? 'block' : 'none';
+      document.getElementById('qr-prog-preprod-row').style.display = (track === 'Moving' && stage === 'Preprod') ? 'block' : 'none';
+      document.getElementById('qr-prog-prod-row').style.display    = (track === 'Moving' && stage === 'Prod')    ? 'block' : 'none';
+      const lbl = document.getElementById('qr-prog-date-lbl');
+      if (lbl) lbl.textContent = qrDateLabel(track, stage);
     }
     document.getElementById('qr-prog-track').addEventListener('change', e => updateStageOpts(e.target.value));
-    document.getElementById('qr-prog-stage').addEventListener('change', e => updateMigRows(e.target.value, document.getElementById('qr-prog-source').value));
-    document.getElementById('qr-prog-source').addEventListener('change', e => updateMigRows('Migration', e.target.value));
+    document.getElementById('qr-prog-stage').addEventListener('change', e => {
+      const track = document.getElementById('qr-prog-track').value;
+      updateMigRows(track, e.target.value);
+    });
 
     function openQrProgModal(companyName, existing) {
       qrProgCurrentCompany = companyName;
       document.getElementById('qr-prog-modal-title').textContent =
         existing ? `Edit Stage — ${companyName}` : `Set Stage — ${companyName}`;
-      document.getElementById('qr-prog-track').value = existing?.progressionTrack || '';
-      updateStageOpts(existing?.progressionTrack || '');
+      const existingTrack = existing?.progressionTrack || '';
+      document.getElementById('qr-prog-track').value = existingTrack;
+      updateStageOpts(existingTrack);
       if (existing?.progressionStage) document.getElementById('qr-prog-stage').value = existing.progressionStage;
       document.getElementById('qr-prog-source').value = existing?.migrationSource || '';
-      document.getElementById('qr-prog-tech').value   = existing?.migrationTech   || '';
-      updateMigRows(existing?.progressionStage || '', existing?.migrationSource || '');
+      document.getElementById('qr-preprod-onboard').checked   = !!(existing?.preprodOnboardFirstSite);
+      document.getElementById('qr-preprod-fcm').checked       = !!(existing?.preprodFcmCompleted);
+      document.getElementById('qr-preprod-preflight').checked = !!(existing?.preprodPreflightCompleted);
+      document.getElementById('qr-prod-autoopt').checked      = !!(existing?.prodAutoOptimizeEnabled);
+      document.getElementById('qr-prod-autodepl').checked     = !!(existing?.prodAutoOptimizedOpportunity);
+      updateMigRows(existingTrack, existing?.progressionStage || '');
       document.getElementById('qr-prog-date').value  = existing?.stageEnteredAt || new Date().toISOString().slice(0,10);
       document.getElementById('qr-prog-notes').value = existing?.notes || '';
       document.getElementById('qr-prog-modal').classList.add('open');
@@ -2244,8 +2267,14 @@
       const track     = document.getElementById('qr-prog-track').value;
       const stage     = document.getElementById('qr-prog-stage').value;
       const source    = document.getElementById('qr-prog-source').value || null;
-      const tech      = document.getElementById('qr-prog-tech').value   || null;
       const date      = document.getElementById('qr-prog-date').value;
+      const isPreprod = track === 'Moving' && stage === 'Preprod';
+      const isProd    = track === 'Moving' && stage === 'Prod';
+      const preprodOnboardFirstSite   = isPreprod ? document.getElementById('qr-preprod-onboard').checked   : null;
+      const preprodFcmCompleted       = isPreprod ? document.getElementById('qr-preprod-fcm').checked       : null;
+      const preprodPreflightCompleted = isPreprod ? document.getElementById('qr-preprod-preflight').checked : null;
+      const prodAutoOptimizeEnabled      = isProd ? document.getElementById('qr-prod-autoopt').checked  : null;
+      const prodAutoOptimizedOpportunity = isProd ? document.getElementById('qr-prod-autodepl').checked : null;
       const p         = (typeof getProfile === 'function') ? getProfile() : null;
       const updatedBy = p?.email || p?.displayName || p?.name || 'unknown';
       const notes     = document.getElementById('qr-prog-notes').value.trim() || null;
@@ -2255,7 +2284,6 @@
         return;
       }
       if (stage === 'Migration' && !source) { alert('Please select a Migration Source.'); return; }
-      if (stage === 'Migration' && source === 'On Prem' && !tech) { alert('Please select Migration Tech.'); return; }
 
       const saveBtn = document.getElementById('qr-prog-save');
       saveBtn.disabled = true;
@@ -2265,7 +2293,7 @@
         const res = await fetch('/api/progression', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName: company, progressionTrack: track, progressionStage: stage, migrationSource: source, migrationTech: tech, stageEnteredAt: date, updatedBy, notes }),
+          body: JSON.stringify({ companyName: company, progressionTrack: track, progressionStage: stage, migrationSource: source, stageEnteredAt: date, updatedBy, notes, preprodOnboardFirstSite, preprodFcmCompleted, preprodPreflightCompleted, prodAutoOptimizeEnabled, prodAutoOptimizedOpportunity }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);

@@ -362,6 +362,44 @@
     .pl-form-field label { font-size:11px; font-weight:600; color:#555; }
     .pl-form-field select { padding:4px 8px; font-size:12px; border:1px solid #ccc; border-radius:4px; background:white; min-width:130px; }
     .pl-form-field input[type=date] { padding:4px 8px; font-size:12px; border:1px solid #ccc; border-radius:4px; background:white; }
+    .pl-form-field textarea { padding:4px 8px; font-size:12px; border:1px solid #ccc; border-radius:4px; background:white; resize:vertical; min-width:220px; font-family:inherit; }
+    .pl-hold-section { border-top:1px solid #d0d3ff; margin-top:6px; padding-top:8px; }
+    .pl-hold-section-title { font-size:11px; font-weight:700; color:#667eea; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.04em; }
+    .pl-card-tag-golive { background:#e0e7ff; color:#3730a3; }
+    .pl-card-tag-holdreason { background:#fef3c7; color:#92400e; }
+    .pl-checklist { display:flex; gap:14px; flex-wrap:wrap; padding:2px 0; }
+    .pl-check-field { display:flex; align-items:center; gap:5px; font-size:12px; color:#555; cursor:pointer; white-space:nowrap; }
+    .pl-check-field input[type=checkbox] { width:14px; height:14px; cursor:pointer; accent-color:#667eea; }
+    .pl-card-tag-check { background:#dcfce7; color:#166534; }
+    .pl-card { cursor:pointer; }
+    .pl-card:hover { border-color:#667eea; box-shadow:0 1px 6px rgba(102,126,234,.18); }
+    .pl-unset-card { cursor:pointer; }
+    .pl-unset-card:hover { border-color:#667eea; }
+
+    /* Detail modal */
+    .pl-detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .pl-detail-modal { background:white; border-radius:10px; padding:24px; max-width:480px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .pl-detail-hdr { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; gap:10px; }
+    .pl-detail-title { font-size:16px; font-weight:700; color:#111; line-height:1.3; }
+    .pl-detail-close { background:none; border:none; font-size:22px; color:#999; cursor:pointer; line-height:1; padding:0 2px; flex-shrink:0; }
+    .pl-detail-close:hover { color:#333; }
+    .pl-detail-section { margin-bottom:16px; border-top:1px solid #f0f0f0; padding-top:12px; }
+    .pl-detail-section:first-of-type { border-top:none; padding-top:0; }
+    .pl-detail-section-title { font-size:10px; font-weight:700; color:#667eea; text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+    .pl-detail-row { display:flex; gap:8px; margin-bottom:5px; font-size:13px; line-height:1.4; }
+    .pl-detail-label { color:#777; min-width:130px; flex-shrink:0; font-size:12px; padding-top:1px; }
+    .pl-detail-value { color:#111; font-weight:500; }
+    .pl-detail-check { display:flex; align-items:center; gap:7px; font-size:13px; margin-bottom:5px; }
+    .pl-detail-meta { font-size:11px; color:#bbb; margin-top:12px; padding-top:10px; border-top:1px solid #f0f0f0; }
+    .pl-detail-edit-btn { display:block; width:100%; margin-top:16px; padding:9px; text-align:center; background:#667eea; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; }
+    .pl-detail-edit-btn:hover { background:#5568d3; }
+    [data-theme="dark"] .pl-detail-modal { background:#252525; }
+    [data-theme="dark"] .pl-detail-title { color:#e8e8e8; }
+    [data-theme="dark"] .pl-detail-section { border-top-color:#3a3a3a; }
+    [data-theme="dark"] .pl-detail-label { color:#aaa; }
+    [data-theme="dark"] .pl-detail-value { color:#e0e0e0; }
+    [data-theme="dark"] .pl-detail-check { color:#e0e0e0; }
+    [data-theme="dark"] .pl-detail-meta { color:#666; border-top-color:#3a3a3a; }
     .pl-form-actions { display:flex; gap:6px; }
     .pl-form-save { padding:4px 14px; font-size:12px; font-weight:600; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; }
     .pl-form-save:hover { background:#5568d3; }
@@ -426,7 +464,11 @@
     [data-theme="dark"] .pl-form { background: #1e2235; border-color: #3a4a7a; }
     [data-theme="dark"] .pl-form-field label { color: #bbb; }
     [data-theme="dark"] .pl-form-field select,
-    [data-theme="dark"] .pl-form-field input[type=date] { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-form-field input[type=date],
+    [data-theme="dark"] .pl-form-field textarea { background: #2a2a2a; color: #e8e8e8; border-color: #4a4a4a; }
+    [data-theme="dark"] .pl-hold-section { border-top-color: #3a4a7a; }
+    [data-theme="dark"] .pl-hold-section-title { color: #818cf8; }
+    [data-theme="dark"] .pl-check-field { color: #ccc; }
     [data-theme="dark"] .pl-form-cancel { background: #2a2a2a; color: #d0d0d0; border-color: #4a4a4a; }
     [data-theme="dark"] .pl-form-cancel:hover { background: #333; }
   </style>
@@ -446,7 +488,7 @@
   <!-- Tab bar -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-btn-report" onclick="switchTab('report')">Customer Data</button>
-    <button class="tab-btn" id="tab-btn-pipeline" onclick="switchTab('pipeline')">Pipeline View</button>
+    <button class="tab-btn" id="tab-btn-pipeline" onclick="switchTab('pipeline')">Customer Status</button>
   </div>
 
   <!-- ══ TAB: Customer Data ═══════════════════════════════════════ -->
@@ -515,7 +557,7 @@
 
   </div><!-- /tab-report -->
 
-  <!-- ══ TAB: Pipeline View ════════════════════════════════════════ -->
+  <!-- ══ TAB: Customer Status ════════════════════════════════════════ -->
   <div class="tab-content" id="tab-pipeline">
     <div class="pl-search-bar">
       <input type="text" id="pl-search" placeholder="Search customers…" oninput="plFilter()"/>
@@ -523,7 +565,7 @@
       <span class="pl-status" id="pl-status"></span>
     </div>
     <div id="pl-board">
-      <div style="padding:30px;text-align:center;color:#aaa;font-size:14px;">Click the Pipeline View tab to load.</div>
+      <div style="padding:30px;text-align:center;color:#aaa;font-size:14px;">Click the Customer Status tab to load.</div>
     </div>
   </div><!-- /tab-pipeline -->
 
@@ -1043,8 +1085,8 @@ function plRender() {
   var board = document.getElementById('pl-board');
   board.innerHTML = '';
 
-  // Moving section
-  board.appendChild(buildSection('Moving', 'pl-moving', MOVING_STAGES, visible));
+  // Active section
+  board.appendChild(buildSection('Moving', 'pl-moving', MOVING_STAGES, visible, 'Active'));
   // On Hold section
   board.appendChild(buildSection('On Hold', 'pl-onhold', ONHOLD_STAGES, visible));
   // Unassigned section
@@ -1052,7 +1094,8 @@ function plRender() {
   board.appendChild(buildUnassigned(unassigned));
 }
 
-function buildSection(trackName, cssClass, stages, allVisible) {
+function buildSection(trackName, cssClass, stages, allVisible, displayName) {
+  var label = displayName || trackName;
   var trackCustomers = allVisible.filter(function(c) {
     var p = progMap[c.companyName];
     return p && p.progressionTrack === trackName;
@@ -1063,7 +1106,7 @@ function buildSection(trackName, cssClass, stages, allVisible) {
 
   var hdr = document.createElement('div');
   hdr.className = 'pl-section-hdr';
-  hdr.innerHTML = esc(trackName) +
+  hdr.innerHTML = esc(label) +
     '<span class="pl-count">' + trackCustomers.length + '</span>' +
     '<span class="pl-toggle">▼</span>';
   hdr.onclick = function() {
@@ -1132,22 +1175,39 @@ function buildCard(c) {
   var tags = '';
   if (p && p.progressionStage === 'Migration') {
     if (p.migrationSource) tags += '<span class="pl-card-tag pl-card-tag-source">' + esc(p.migrationSource) + '</span>';
-    if (p.migrationSource === 'On Prem' && p.migrationTech) tags += '<span class="pl-card-tag pl-card-tag-tech">' + esc(p.migrationTech) + '</span>';
+  }
+  if (p && p.progressionTrack === 'Moving' && p.progressionStage === 'Prod') {
+    if (p.prodAutoOptimizeEnabled)      tags += '<span class="pl-card-tag pl-card-tag-check" title="Auto-optimize enabled">✓ Auto-optimize</span>';
+    if (p.prodAutoOptimizedOpportunity) tags += '<span class="pl-card-tag pl-card-tag-check" title="Customer deployed an auto-optimized opportunity">✓ Auto-opt deployed</span>';
+  }
+  if (p && p.progressionTrack === 'Moving' && p.progressionStage === 'Preprod') {
+    if (p.preprodOnboardFirstSite)   tags += '<span class="pl-card-tag pl-card-tag-check" title="On-board first site">✓ On-board</span>';
+    if (p.preprodFcmCompleted)       tags += '<span class="pl-card-tag pl-card-tag-check" title="FCM">✓ FCM</span>';
+    if (p.preprodPreflightCompleted) tags += '<span class="pl-card-tag pl-card-tag-check" title="Pre-flight">✓ Pre-flight</span>';
+  }
+  if (p && p.progressionTrack === 'On Hold' && p.progressionStage === 'Future Date') {
+    if (p.projectedGoLiveDate) tags += '<span class="pl-card-tag pl-card-tag-golive" title="Projected go-live">🗓 ' + esc(p.projectedGoLiveDate) + '</span>';
+    if (p.holdReason) {
+      var reasonLabel = p.holdReason === 'Other' && p.holdReasonOther ? p.holdReasonOther : p.holdReason;
+      tags += '<span class="pl-card-tag pl-card-tag-holdreason" title="Reason for hold">' + esc(reasonLabel) + '</span>';
+    }
   }
   if (d !== null) tags += '<span class="pl-card-tag pl-card-tag-days">' + d + 'd</span>';
   if (p && p.updatedBy && p.updatedBy !== 'unknown') tags += '<span class="pl-card-tag pl-card-tag-user">' + esc(p.updatedBy) + '</span>';
 
-  return '<div class="pl-card" id="card-' + esc(c.companyName) + '">' +
+  var safeName = esc(c.companyName).replace(/'/g,"&#39;");
+  return '<div class="pl-card" id="card-' + esc(c.companyName) + '" onclick="plViewCard(\'' + safeName + '\')">' +
     '<div class="pl-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
     '<div class="pl-card-tags">' + tags + '</div>' +
-    '<button class="pl-edit-btn" onclick="plOpenForm(\'' + esc(c.companyName).replace(/'/g,"&#39;") + '\')">Edit</button>' +
+    '<button class="pl-edit-btn" onclick="event.stopPropagation();plOpenForm(\'' + safeName + '\')">Edit</button>' +
     '</div>';
 }
 
 function buildUnsetCard(c) {
-  return '<div class="pl-unset-card" id="card-' + esc(c.companyName) + '">' +
+  var safeName = esc(c.companyName).replace(/'/g,"&#39;");
+  return '<div class="pl-unset-card" id="card-' + esc(c.companyName) + '" onclick="plViewCard(\'' + safeName + '\')">' +
     '<div class="pl-unset-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
-    '<button class="pl-edit-btn" onclick="plOpenForm(\'' + esc(c.companyName).replace(/'/g,"&#39;") + '\')">Set stage</button>' +
+    '<button class="pl-edit-btn" onclick="event.stopPropagation();plOpenForm(\'' + safeName + '\')">Set stage</button>' +
     '</div>';
 }
 
@@ -1162,16 +1222,26 @@ window.plOpenForm = function(companyName) {
   var cardEl = document.getElementById('card-' + companyName);
   if (!cardEl) return;
 
-  var existing = progMap[companyName];
-  var track    = (existing && existing.progressionTrack)  || '';
-  var stage    = (existing && existing.progressionStage)  || '';
-  var source   = (existing && existing.migrationSource)   || '';
-  var tech     = (existing && existing.migrationTech)     || '';
-  var date     = (existing && existing.stageEnteredAt)    || new Date().toISOString().slice(0,10);
+  var existing    = progMap[companyName];
+  var track       = (existing && existing.progressionTrack)       || '';
+  var stage       = (existing && existing.progressionStage)       || '';
+  var source      = (existing && existing.migrationSource)           || '';
+  var date        = (existing && existing.stageEnteredAt)            || new Date().toISOString().slice(0,10);
+  var golive      = (existing && existing.projectedGoLiveDate)       || '';
+  var holdReason  = (existing && existing.holdReason)                || '';
+  var holdOther   = (existing && existing.holdReasonOther)           || '';
+  var chkOnboard   = !!(existing && existing.preprodOnboardFirstSite);
+  var chkFcm       = !!(existing && existing.preprodFcmCompleted);
+  var chkPreflight = !!(existing && existing.preprodPreflightCompleted);
+  var chkAutoOpt   = !!(existing && existing.prodAutoOptimizeEnabled);
+  var chkAutoDepl  = !!(existing && existing.prodAutoOptimizedOpportunity);
 
-  var stageOpts = buildStageOpts(track, stage);
-  var sourceVis = stage === 'Migration' ? '' : 'display:none;';
-  var techVis   = (stage === 'Migration' && source === 'On Prem') ? '' : 'display:none;';
+  var stageOpts    = buildStageOpts(track, stage);
+  var sourceVis    = stage === 'Migration' ? '' : 'display:none;';
+  var holdVis      = (track === 'On Hold' && stage === 'Future Date') ? '' : 'display:none;';
+  var holdOtherVis = (holdReason === 'Other') ? '' : 'display:none;';
+  var preprodVis   = (track === 'Moving' && stage === 'Preprod') ? '' : 'display:none;';
+  var prodVis      = (track === 'Moving' && stage === 'Prod')    ? '' : 'display:none;';
 
   var removeBtn = existing
     ? '<button class="pl-form-remove" onclick="plRemove(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">Remove from pipeline</button>'
@@ -1183,25 +1253,54 @@ window.plOpenForm = function(companyName) {
       '<div class="pl-form-field"><label>Track</label>' +
         '<select id="pf-track-' + esc(companyName) + '" onchange="plTrackChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' +
           '<option value="">-- select --</option>' +
-          '<option value="Moving"'  + (track==='Moving'  ?' selected':'') + '>Moving</option>' +
+          '<option value="Moving"'  + (track==='Moving'  ?' selected':'') + '>Active</option>' +
           '<option value="On Hold"' + (track==='On Hold' ?' selected':'') + '>On Hold</option>' +
         '</select></div>' +
       '<div class="pl-form-field"><label>Stage</label>' +
         '<select id="pf-stage-' + esc(companyName) + '" onchange="plStageChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' + stageOpts + '</select></div>' +
       '<div class="pl-form-field" id="pf-source-wrap-' + esc(companyName) + '" style="' + sourceVis + '"><label>Migration source</label>' +
-        '<select id="pf-source-' + esc(companyName) + '" onchange="plSourceChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' +
+        '<select id="pf-source-' + esc(companyName) + '">' +
           '<option value="">-- select --</option>' +
-          '<option value="On Prem"' + (source==='On Prem'?' selected':'') + '>On Prem</option>' +
-          '<option value="AMS"'     + (source==='AMS'    ?' selected':'') + '>AMS</option>' +
+          '<option value="On Prem > AEMCS"'   + (source==='On Prem > AEMCS'   ?' selected':'') + '>On Prem &gt; AEMCS</option>' +
+          '<option value="Non-AEM > AEMCS"'   + (source==='Non-AEM > AEMCS'   ?' selected':'') + '>Non-AEM &gt; AEMCS</option>' +
+          '<option value="AMS > AEMCS"'        + (source==='AMS > AEMCS'        ?' selected':'') + '>AMS &gt; AEMCS</option>' +
         '</select></div>' +
-      '<div class="pl-form-field" id="pf-tech-wrap-' + esc(companyName) + '" style="' + techVis + '"><label>AEM tech</label>' +
-        '<select id="pf-tech-' + esc(companyName) + '">' +
-          '<option value="">-- select --</option>' +
-          '<option value="AEM"'     + (tech==='AEM'    ?' selected':'') + '>AEM</option>' +
-          '<option value="Not AEM"' + (tech==='Not AEM'?' selected':'') + '>Not AEM</option>' +
-        '</select></div>' +
-      '<div class="pl-form-field"><label>Stage entered</label>' +
+      '<div class="pl-form-field"><label id="pf-date-lbl-' + esc(companyName) + '">' + plDateLabel(track, stage) + '</label>' +
         '<input type="date" id="pf-date-' + esc(companyName) + '" value="' + esc(date) + '"/></div>' +
+    '</div>' +
+    '<div class="pl-hold-section" id="pf-hold-wrap-' + esc(companyName) + '" style="' + holdVis + '">' +
+      '<div class="pl-hold-section-title">On Hold — Future Date</div>' +
+      '<div class="pl-form-row">' +
+        '<div class="pl-form-field"><label>Projected go-live</label>' +
+          '<input type="date" id="pf-golive-' + esc(companyName) + '" value="' + esc(golive) + '"/></div>' +
+        '<div class="pl-form-field"><label>Reason for hold</label>' +
+          '<select id="pf-holdreason-' + esc(companyName) + '" onchange="plHoldReasonChange(\'' + esc(companyName).replace(/'/g,"&#39;") + '\')">' +
+            '<option value="">-- select --</option>' +
+            '<option value="Customer requested"'   + (holdReason==='Customer requested'   ?' selected':'') + '>Customer requested</option>' +
+            '<option value="Security"'             + (holdReason==='Security'             ?' selected':'') + '>Security</option>' +
+            '<option value="Competing priorities"' + (holdReason==='Competing priorities' ?' selected':'') + '>Competing priorities</option>' +
+            '<option value="Other"'                + (holdReason==='Other'                ?' selected':'') + '>Other</option>' +
+          '</select></div>' +
+      '</div>' +
+      '<div class="pl-form-row" id="pf-holdother-wrap-' + esc(companyName) + '" style="' + holdOtherVis + '">' +
+        '<div class="pl-form-field" style="flex:1;"><label>Other reason</label>' +
+          '<textarea id="pf-holdother-' + esc(companyName) + '" rows="2" placeholder="Describe the reason for being on hold…">' + esc(holdOther) + '</textarea></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pl-hold-section" id="pf-preprod-wrap-' + esc(companyName) + '" style="' + preprodVis + '">' +
+      '<div class="pl-hold-section-title">Preprod checklist</div>' +
+      '<div class="pl-checklist">' +
+        '<label class="pl-check-field"><input type="checkbox" id="pf-onboard-' + esc(companyName) + '"' + (chkOnboard   ? ' checked' : '') + '> On-board first site</label>' +
+        '<label class="pl-check-field"><input type="checkbox" id="pf-fcm-'     + esc(companyName) + '"' + (chkFcm       ? ' checked' : '') + '> FCM</label>' +
+        '<label class="pl-check-field"><input type="checkbox" id="pf-preflight-' + esc(companyName) + '"' + (chkPreflight ? ' checked' : '') + '> Pre-flight</label>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pl-hold-section" id="pf-prod-wrap-' + esc(companyName) + '" style="' + prodVis + '">' +
+      '<div class="pl-hold-section-title">Prod checklist</div>' +
+      '<div class="pl-checklist">' +
+        '<label class="pl-check-field"><input type="checkbox" id="pf-autoopt-' + esc(companyName) + '"' + (chkAutoOpt  ? ' checked' : '') + '> Auto-optimize enabled</label>' +
+        '<label class="pl-check-field"><input type="checkbox" id="pf-autodepl-' + esc(companyName) + '"' + (chkAutoDepl ? ' checked' : '') + '> Customer deployed an auto-optimized opportunity</label>' +
+      '</div>' +
     '</div>' +
     '<div class="pl-form-actions">' +
       removeBtn +
@@ -1225,17 +1324,30 @@ function buildStageOpts(track, selectedStage) {
     }).join('');
 }
 
+function plDateLabel(track, stage) {
+  if (track === 'On Hold') return 'Migration completion';
+  if (track === 'Moving' && stage === 'Preprod') return 'Production date';
+  if (track === 'Moving' && stage === 'Prod')    return 'Date went live';
+  return 'Stage entered';
+}
+
 window.plTrackChange = function(companyName) {
   var track = document.getElementById('pf-track-' + companyName).value;
   var stageSel = document.getElementById('pf-stage-' + companyName);
   stageSel.innerHTML = buildStageOpts(track, '');
   plHideMigrationFields(companyName);
+  plHideHoldFields(companyName);
+  plHidePreprodSection(companyName);
+  var prodWrap = document.getElementById('pf-prod-wrap-' + companyName);
+  if (prodWrap) prodWrap.style.display = 'none';
+  var lbl = document.getElementById('pf-date-lbl-' + companyName);
+  if (lbl) lbl.textContent = plDateLabel(track, '');
 };
 
 window.plStageChange = function(companyName) {
+  var track = document.getElementById('pf-track-' + companyName).value;
   var stage = document.getElementById('pf-stage-' + companyName).value;
   var sourceWrap = document.getElementById('pf-source-wrap-' + companyName);
-  var techWrap   = document.getElementById('pf-tech-wrap-'   + companyName);
   if (stage === 'Migration') {
     sourceWrap.style.display = '';
   } else {
@@ -1243,29 +1355,54 @@ window.plStageChange = function(companyName) {
     document.getElementById('pf-source-' + companyName).value = '';
     plHideMigrationFields(companyName);
   }
-};
-
-window.plSourceChange = function(companyName) {
-  var source   = document.getElementById('pf-source-' + companyName).value;
-  var techWrap = document.getElementById('pf-tech-wrap-' + companyName);
-  if (source === 'On Prem') {
-    techWrap.style.display = '';
-  } else {
-    techWrap.style.display = 'none';
-    document.getElementById('pf-tech-' + companyName).value = '';
+  var holdWrap = document.getElementById('pf-hold-wrap-' + companyName);
+  if (holdWrap) {
+    if (track === 'On Hold' && stage === 'Future Date') {
+      holdWrap.style.display = '';
+    } else {
+      plHideHoldFields(companyName);
+    }
   }
+  var preprodWrap = document.getElementById('pf-preprod-wrap-' + companyName);
+  if (preprodWrap) preprodWrap.style.display = (track === 'Moving' && stage === 'Preprod') ? '' : 'none';
+  var prodWrap = document.getElementById('pf-prod-wrap-' + companyName);
+  if (prodWrap) prodWrap.style.display = (track === 'Moving' && stage === 'Prod') ? '' : 'none';
+  var lbl = document.getElementById('pf-date-lbl-' + companyName);
+  if (lbl) lbl.textContent = plDateLabel(track, stage);
 };
 
 function plHideMigrationFields(companyName) {
   var sourceWrap = document.getElementById('pf-source-wrap-' + companyName);
-  var techWrap   = document.getElementById('pf-tech-wrap-'   + companyName);
   if (sourceWrap) sourceWrap.style.display = 'none';
-  if (techWrap)   techWrap.style.display   = 'none';
   var src = document.getElementById('pf-source-' + companyName);
-  var tch = document.getElementById('pf-tech-'   + companyName);
   if (src) src.value = '';
-  if (tch) tch.value = '';
 }
+
+function plHideHoldFields(companyName) {
+  var holdWrap = document.getElementById('pf-hold-wrap-' + companyName);
+  if (holdWrap) holdWrap.style.display = 'none';
+  var golive = document.getElementById('pf-golive-'      + companyName);
+  var reason = document.getElementById('pf-holdreason-'  + companyName);
+  var other  = document.getElementById('pf-holdother-'   + companyName);
+  if (golive) golive.value = '';
+  if (reason) reason.value = '';
+  if (other)  other.value  = '';
+  var otherWrap = document.getElementById('pf-holdother-wrap-' + companyName);
+  if (otherWrap) otherWrap.style.display = 'none';
+}
+
+function plHidePreprodSection(companyName) {
+  var wrap = document.getElementById('pf-preprod-wrap-' + companyName);
+  if (wrap) wrap.style.display = 'none';
+}
+
+window.plHoldReasonChange = function(companyName) {
+  var reason    = document.getElementById('pf-holdreason-'       + companyName).value;
+  var otherWrap = document.getElementById('pf-holdother-wrap-'   + companyName);
+  var otherEl   = document.getElementById('pf-holdother-'        + companyName);
+  if (otherWrap) otherWrap.style.display = reason === 'Other' ? '' : 'none';
+  if (reason !== 'Other' && otherEl) otherEl.value = '';
+};
 
 window.plCloseForm = function(companyName) {
   var form = document.getElementById('form-' + companyName);
@@ -1282,12 +1419,22 @@ window.plSave = async function(companyName) {
   var track  = document.getElementById('pf-track-'  + companyName).value;
   var stage  = document.getElementById('pf-stage-'  + companyName).value;
   var source = document.getElementById('pf-source-' + companyName).value || null;
-  var tech   = document.getElementById('pf-tech-'   + companyName).value || null;
   var date   = document.getElementById('pf-date-'   + companyName).value;
+
+  var isOnHoldFutureDate = track === 'On Hold' && stage === 'Future Date';
+  var isPreprod          = track === 'Moving'  && stage === 'Preprod';
+  var isProd             = track === 'Moving'  && stage === 'Prod';
+  var golive     = isOnHoldFutureDate ? (document.getElementById('pf-golive-'     + companyName).value || null) : null;
+  var holdReason = isOnHoldFutureDate ? (document.getElementById('pf-holdreason-' + companyName).value || null) : null;
+  var holdOther  = (isOnHoldFutureDate && holdReason === 'Other') ? (document.getElementById('pf-holdother-' + companyName).value.trim() || null) : null;
+  var chkOnboard   = isPreprod ? document.getElementById('pf-onboard-'   + companyName).checked : null;
+  var chkFcm       = isPreprod ? document.getElementById('pf-fcm-'       + companyName).checked : null;
+  var chkPreflight = isPreprod ? document.getElementById('pf-preflight-' + companyName).checked : null;
+  var chkAutoOpt   = isProd    ? document.getElementById('pf-autoopt-'   + companyName).checked : null;
+  var chkAutoDepl  = isProd    ? document.getElementById('pf-autodepl-'  + companyName).checked : null;
 
   if (!track || !stage || !date) { toast('Please select Track, Stage, and Date.'); return; }
   if (stage === 'Migration' && !source) { toast('Please select a Migration Source.'); return; }
-  if (stage === 'Migration' && source === 'On Prem' && !tech) { toast('Please select AEM Tech.'); return; }
 
   var saveBtn = document.getElementById('pf-save-' + companyName);
   saveBtn.disabled = true;
@@ -1298,14 +1445,21 @@ window.plSave = async function(companyName) {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        companyName:      companyName,
-        progressionTrack: track,
-        progressionStage: stage,
-        migrationSource:  source,
-        migrationTech:    tech,
-        stageEnteredAt:   date,
-        updatedBy:        imsUser(),
-        notes:            null,
+        companyName:         companyName,
+        progressionTrack:    track,
+        progressionStage:    stage,
+        migrationSource:     source,
+        stageEnteredAt:      date,
+        updatedBy:           imsUser(),
+        notes:               null,
+        projectedGoLiveDate:       golive,
+        holdReason:                holdReason,
+        holdReasonOther:           holdOther,
+        preprodOnboardFirstSite:      chkOnboard,
+        preprodFcmCompleted:          chkFcm,
+        preprodPreflightCompleted:    chkPreflight,
+        prodAutoOptimizeEnabled:      chkAutoOpt,
+        prodAutoOptimizedOpportunity: chkAutoDepl,
       }),
     });
     var json = await res.json();
@@ -1337,6 +1491,117 @@ window.plRemove = async function(companyName) {
     toast('Error: ' + e.message);
   }
 };
+
+/* ── Detail modal ───────────────────────────────────────── */
+function detailRow(label, value) {
+  if (!value && value !== 0) return '';
+  return '<div class="pl-detail-row"><span class="pl-detail-label">' + esc(label) + '</span><span class="pl-detail-value">' + esc(String(value)) + '</span></div>';
+}
+function detailCheck(label, val) {
+  var icon  = val ? '✓' : '✗';
+  var color = val ? '#166534' : '#9ca3af';
+  return '<div class="pl-detail-check"><span style="color:' + color + ';font-size:15px;line-height:1;">' + icon + '</span><span>' + esc(label) + '</span></div>';
+}
+
+window.plViewCard = function(companyName) {
+  var p = progMap[companyName] || null;
+  var c = null;
+  for (var i = 0; i < customers.length; i++) { if (customers[i].companyName === companyName) { c = customers[i]; break; } }
+
+  var safeName = esc(companyName).replace(/'/g,"&#39;");
+
+  var html = '<div class="pl-detail-overlay" id="pl-detail-overlay" onclick="plCloseDetail(event)">' +
+    '<div class="pl-detail-modal" onclick="event.stopPropagation()">' +
+      '<div class="pl-detail-hdr">' +
+        '<div class="pl-detail-title">' + esc(companyName) + '</div>' +
+        '<button class="pl-detail-close" onclick="plCloseDetail()">&times;</button>' +
+      '</div>';
+
+  // Customer snapshot
+  if (c) {
+    html += '<div class="pl-detail-section">' +
+      '<div class="pl-detail-section-title">Customer Info</div>' +
+      detailRow('Status',      c.status) +
+      detailRow('Engagement',  c.engagement) +
+      detailRow('ESE Lead',    c.eseLead) +
+      detailRow('License',     c.licenseType) +
+      detailRow('Industry',    c.industry) +
+    '</div>';
+  }
+
+  if (p) {
+    var trackLabel = p.progressionTrack === 'Moving' ? 'Active' : p.progressionTrack;
+    html += '<div class="pl-detail-section">' +
+      '<div class="pl-detail-section-title">Progression</div>' +
+      detailRow('Track',  trackLabel) +
+      detailRow('Stage',  p.progressionStage) +
+      detailRow(plDateLabel(p.progressionTrack, p.progressionStage), p.stageEnteredAt) +
+      (p.migrationSource ? detailRow('Migration source', p.migrationSource) : '') +
+    '</div>';
+
+    // On Hold + Future Date
+    if (p.progressionTrack === 'On Hold' && p.progressionStage === 'Future Date') {
+      var reasonText = (p.holdReason === 'Other' && p.holdReasonOther) ? p.holdReasonOther : (p.holdReason || '');
+      html += '<div class="pl-detail-section">' +
+        '<div class="pl-detail-section-title">On Hold Details</div>' +
+        detailRow('Projected go-live', p.projectedGoLiveDate) +
+        detailRow('Reason', reasonText) +
+      '</div>';
+    }
+
+    // Preprod checklist
+    if (p.progressionTrack === 'Moving' && p.progressionStage === 'Preprod') {
+      html += '<div class="pl-detail-section">' +
+        '<div class="pl-detail-section-title">Preprod Checklist</div>' +
+        detailCheck('On-board first site',  p.preprodOnboardFirstSite) +
+        detailCheck('FCM',                  p.preprodFcmCompleted) +
+        detailCheck('Pre-flight',           p.preprodPreflightCompleted) +
+      '</div>';
+    }
+
+    // Prod checklist
+    if (p.progressionTrack === 'Moving' && p.progressionStage === 'Prod') {
+      html += '<div class="pl-detail-section">' +
+        '<div class="pl-detail-section-title">Prod Checklist</div>' +
+        detailCheck('Auto-optimize enabled',                         p.prodAutoOptimizeEnabled) +
+        detailCheck('Customer deployed an auto-optimized opportunity', p.prodAutoOptimizedOpportunity) +
+      '</div>';
+    }
+
+    if (p.notes) {
+      html += '<div class="pl-detail-section">' +
+        '<div class="pl-detail-section-title">Notes</div>' +
+        '<div style="font-size:13px;color:#333;line-height:1.5;white-space:pre-wrap;">' + esc(p.notes) + '</div>' +
+      '</div>';
+    }
+
+    var metaParts = [];
+    if (p.updatedBy && p.updatedBy !== 'unknown') metaParts.push('Updated by ' + esc(p.updatedBy));
+    if (p.updatedAt) metaParts.push(new Date(p.updatedAt).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}));
+    if (metaParts.length) html += '<div class="pl-detail-meta">' + metaParts.join(' &middot; ') + '</div>';
+  } else {
+    html += '<div class="pl-detail-section"><div style="font-size:13px;color:#999;font-style:italic;">Not in pipeline. Use "Set stage" to assign a progression.</div></div>';
+  }
+
+  html += '<button class="pl-detail-edit-btn" onclick="plCloseDetail();plOpenForm(\'' + safeName + '\')">' +
+    (p ? 'Edit Progression' : 'Set Stage') + '</button>';
+  html += '</div></div>';
+
+  var existing = document.getElementById('pl-detail-overlay');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.plCloseDetail = function(event) {
+  if (event && event.target.id !== 'pl-detail-overlay') return;
+  var overlay = document.getElementById('pl-detail-overlay');
+  if (overlay) overlay.remove();
+};
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { var o = document.getElementById('pl-detail-overlay'); if (o) o.remove(); }
+});
 
 // Pre-fetch pipeline data on page load so it's ready when the user switches tabs
 plLoad();
