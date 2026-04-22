@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useIMSAuth } from "@/contexts/IMSAuthContext";
 import { useSearchParams } from "next/navigation";
 
@@ -31,31 +31,6 @@ function TeamsSettingsInner() {
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const userId = profile?.userId ?? "";
-
-  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
-
-  // Build the self-contained bookmarklet code string with this origin baked in
-  const bookmarkletCode = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const origin = window.location.origin;
-    return `(function(){if(document.getElementById('_aso_bm'))return;var D='${origin}';var title='';var h1=document.querySelector('h1');if(h1)title=h1.textContent.trim();if(!title)title=document.title.replace(/\\s*[-|]\\s*Microsoft Teams.*/i,'').trim();var today=new Date().toISOString().slice(0,10);var el=document.createElement('div');el.id='_aso_bm';el.style.cssText='position:fixed;top:20px;right:20px;width:340px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2147483647;font-family:system-ui,sans-serif;font-size:14px;color:#333';el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><strong style="font-size:15px">Upload to ASO Dashboard</strong><button id="_aso_x" style="background:none;border:none;cursor:pointer;font-size:20px;color:#999;line-height:1">&#x2715;</button></div><div style="display:flex;flex-direction:column;gap:10px"><div><label style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em">Meeting title</label><input id="_aso_ttl" style="width:100%;box-sizing:border-box;margin-top:3px;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:13px" /></div><div><label style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em">Customer name</label><input id="_aso_co" style="width:100%;box-sizing:border-box;margin-top:3px;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:13px" placeholder="e.g. Adobe Acrobat" /></div><div><label style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em">Meeting date</label><input id="_aso_dt" type="date" style="width:100%;box-sizing:border-box;margin-top:3px;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:13px" /></div><div><label style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em">VTT transcript file</label><input id="_aso_f" type="file" accept=".vtt,.txt" style="margin-top:3px;font-size:13px;width:100%" /></div><div><label style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em">Your email</label><input id="_aso_em" style="width:100%;box-sizing:border-box;margin-top:3px;padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:13px" placeholder="you@adobe.com" /></div><div id="_aso_msg" style="font-size:12px;min-height:16px"></div><button id="_aso_go" style="background:#667eea;color:#fff;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;font-size:13px;font-weight:500;width:100%">Upload Transcript</button></div>';document.body.appendChild(el);document.getElementById('_aso_ttl').value=title;document.getElementById('_aso_dt').value=today;var saved=localStorage.getItem('_aso_em')||'';if(saved)document.getElementById('_aso_em').value=saved;document.getElementById('_aso_x').onclick=function(){el.remove();};document.getElementById('_aso_go').onclick=function(){var t=document.getElementById('_aso_ttl').value.trim();var co=document.getElementById('_aso_co').value.trim();var dt=document.getElementById('_aso_dt').value.trim();var em=document.getElementById('_aso_em').value.trim();var fi=document.getElementById('_aso_f').files[0];var msg=document.getElementById('_aso_msg');var btn=document.getElementById('_aso_go');if(!co||!dt||!fi){msg.style.color='#dc2626';msg.textContent='Customer name, date and file are required.';return;}if(em)localStorage.setItem('_aso_em',em);btn.textContent='Uploading\u2026';btn.disabled=true;var r=new FileReader();r.onload=function(e){fetch(D+'/api/teams/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({meetingTitle:t,companyName:co,meetingDate:dt,content:e.target.result,uploadedBy:em,fileName:fi.name})}).then(function(res){return res.json();}).then(function(d){if(d.error)throw new Error(d.error);msg.style.color='#16a34a';msg.textContent='\u2713 Uploaded!';btn.textContent='Done \u2713';setTimeout(function(){el.remove();},1800);}).catch(function(err){msg.style.color='#dc2626';msg.textContent=err.message||'Upload failed.';btn.textContent='Upload Transcript';btn.disabled=false;});};r.readAsText(fi);};})()`;
-  }, []);
-
-  // React sanitises javascript: hrefs — set it imperatively on the DOM element
-  useEffect(() => {
-    if (bookmarkletRef.current && bookmarkletCode) {
-      bookmarkletRef.current.setAttribute("href", "javascript:" + encodeURIComponent(bookmarkletCode));
-    }
-  }, [bookmarkletCode]);
-
-  // Run the overlay directly when clicked (preview + actual use on Teams)
-  function handleBookmarkletClick(e: React.MouseEvent) {
-    e.preventDefault();
-    if (bookmarkletCode) {
-      // eslint-disable-next-line no-new-func
-      new Function(bookmarkletCode.slice(1, -3) + "}")();
-    }
-  }
 
   useEffect(() => {
     const connected = searchParams.get("connected");
@@ -221,7 +196,6 @@ function TeamsSettingsInner() {
           the transcript to the matching customer. First match wins.
         </p>
 
-        {/* Add form */}
         <div style={styles.addRow}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label style={styles.inputLabel}>Meeting title keyword</label>
@@ -252,7 +226,6 @@ function TeamsSettingsInner() {
           </button>
         </div>
 
-        {/* Table */}
         {mappingsLoading ? (
           <p style={{ color: "var(--text-muted)" }}>Loading…</p>
         ) : mappings.length === 0 ? (
@@ -288,54 +261,9 @@ function TeamsSettingsInner() {
           </table>
         )}
       </section>
-
-      <hr style={styles.divider} />
-
-      {/* Bookmarklet */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <h2 style={styles.cardHeading}>Browser Bookmarklet</h2>
-        <p style={styles.metaText}>
-          Upload a transcript from Teams in two clicks — no admin permissions required.
-          After a meeting, download the VTT file from Teams, then click the bookmarklet
-          to send it straight to the dashboard.
-        </p>
-
-        {/* Drag target */}
-        <div style={styles.bookmarkletBox}>
-          <a
-            href={bookmarkletHref}
-            style={styles.bookmarkletLink}
-            draggable
-          >
-            📋 Upload to ASO Dashboard
-          </a>
-          <p style={{ ...styles.metaText, marginTop: 10 }}>
-            <strong>Step 1:</strong> Drag this button to your browser bookmarks bar.<br />
-            <strong>Step 2:</strong> After a Teams meeting, open the recap in{" "}
-            <strong>teams.microsoft.com</strong>, download the transcript (.vtt), then click
-            the bookmark to upload it.
-          </p>
-          <p style={{ ...styles.metaText, fontStyle: "italic" }}>
-            You can click it here to preview the upload form.
-          </p>
-        </div>
-
-        {/* Steps */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <p style={{ ...styles.metaText, fontWeight: 600, color: "var(--text-body)" }}>How to use:</p>
-          <ol style={{ ...styles.metaText, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 5, margin: 0 }}>
-            <li>Open the meeting recap in <strong>Teams web</strong> (teams.microsoft.com)</li>
-            <li>Click <strong>Download transcript</strong> to save the .vtt file</li>
-            <li>Click <strong>Upload to ASO Dashboard</strong> in your bookmarks bar</li>
-            <li>Fill in the customer name, confirm the date, select the file → <strong>Upload</strong></li>
-          </ol>
-        </div>
-      </section>
     </div>
   );
 }
-
-// ─── Inline styles ────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -509,29 +437,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     padding: "2px 6px",
     borderRadius: 4,
-  },
-  bookmarkletBox: {
-    background: "var(--surface-alt)",
-    border: "2px dashed var(--border-color)",
-    borderRadius: 10,
-    padding: "20px 24px",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "flex-start",
-    gap: 4,
-  },
-  bookmarkletLink: {
-    display: "inline-block",
-    padding: "9px 18px",
-    background: "#667eea",
-    color: "#fff",
-    borderRadius: 8,
-    fontWeight: 600,
-    fontSize: 14,
-    textDecoration: "none",
-    cursor: "grab",
-    userSelect: "none" as const,
-    boxShadow: "0 2px 8px rgba(102,126,234,.35)",
   },
 };
 
