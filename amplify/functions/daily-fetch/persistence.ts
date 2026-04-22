@@ -18,6 +18,36 @@ const GET_SNAPSHOT = /* GraphQL */ `
       companyName
       week
       sourceLastUpdated
+      engagement
+      blockersStatus
+      blockers
+      feedbackStatus
+      feedback
+      summary
+      mau
+      ttiv
+      autoOptimizeButtonPressed
+      customFields
+    }
+  }
+`;
+
+/**
+ * Fetch the single most-recent snapshot for a company so we can
+ * carry forward manually-set customFields when a new week is created.
+ */
+const GET_LATEST_CUSTOM_FIELDS = /* GraphQL */ `
+  query GetLatestCustomFields($companyName: String!) {
+    listCustomerSnapshotByCompanyNameAndWeek(
+      companyName: $companyName
+      sortDirection: DESC
+      limit: 1
+    ) {
+      items {
+        companyName
+        week
+        customFields
+      }
     }
   }
 `;
@@ -99,6 +129,24 @@ const CREATE_SNOW_COMMENT = /* GraphQL */ `
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Manual fields — owned by dashboard users, never overwritten by SNOW sync
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MANUAL_FIELDS = [
+  "engagement",
+  "blockersStatus",
+  "blockers",
+  "feedbackStatus",
+  "feedback",
+  "summary",
+  "mau",
+  "ttiv",
+  "autoOptimizeButtonPressed",
+] as const;
+
+type ManualField = (typeof MANUAL_FIELDS)[number];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Response shapes (only the fields we select)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -106,6 +154,24 @@ interface SnapshotKey {
   companyName: string;
   week: string;
   sourceLastUpdated?: string | null;
+  // Manually-managed fields fetched so we can preserve them on SNOW updates
+  engagement?: string | null;
+  blockersStatus?: string | null;
+  blockers?: string | null;
+  feedbackStatus?: string | null;
+  feedback?: string | null;
+  summary?: string | null;
+  mau?: string | null;
+  ttiv?: string | null;
+  autoOptimizeButtonPressed?: string | null;
+  // JSON blob of manual status-dashboard overrides — never overwritten by SNOW
+  customFields?: unknown;
+}
+
+interface LatestCustomFieldsResult {
+  listCustomerSnapshotByCompanyNameAndWeek: {
+    items: Array<{ companyName: string; week: string; customFields?: unknown }>;
+  } | null;
 }
 
 interface SyncJobId {
@@ -210,11 +276,28 @@ export async function upsertSnapshot(
 
   const existing = getResult.data?.getCustomerSnapshot ?? null;
 
-  // 2. No record — create
+  // 2. No record — create, carrying forward any manual customFields from the
+  //    most-recent prior week so dashboard overrides survive week rollovers.
   if (!existing) {
+    const newSnapshot: NormalizedSnapshot = { ...snapshot };
+
+    try {
+      const latestResult = await client.request<LatestCustomFieldsResult>(
+        GET_LATEST_CUSTOM_FIELDS,
+        { companyName: snapshot.companyName }
+      );
+      const latestItem = latestResult.data?.listCustomerSnapshotByCompanyNameAndWeek?.items?.[0];
+      if (latestItem?.customFields) {
+        (newSnapshot as unknown as Record<string, unknown>).customFields = latestItem.customFields;
+      }
+    } catch (err) {
+      // Non-fatal — proceed without customFields rather than failing the sync
+      log.warn("Failed to fetch prior customFields for carry-forward (non-fatal)", { error: String(err) });
+    }
+
     const createResult = await client.request<{ createCustomerSnapshot: SnapshotKey }>(
       CREATE_SNAPSHOT,
-      { input: snapshot }
+      { input: newSnapshot }
     );
     if (createResult.errors?.length) {
       const msg = createResult.errors.map((e) => e.message).join(", ");
@@ -233,10 +316,27 @@ export async function upsertSnapshot(
     return { action: "skipped", ...key };
   }
 
-  // 4. Record exists but source has newer data — update
+  // 4. Record exists but source has newer data — update, preserving manually-managed
+  //    fields that SNOW does not own (engagement, blockers, summary, etc.).
+  //    SNOW always sends empty/default values for these; overwriting them would
+  //    silently discard whatever the team entered via the edit form.
+  const mergedSnapshot: NormalizedSnapshot = { ...snapshot };
+  for (const field of MANUAL_FIELDS) {
+    const existingVal = existing[field as ManualField];
+    if (existingVal !== null && existingVal !== undefined) {
+      (mergedSnapshot as unknown as Record<string, unknown>)[field] = existingVal;
+    }
+  }
+
+  // Always preserve customFields — these are set exclusively by dashboard users
+  // and must never be overwritten by the SNOW sync regardless of source date.
+  if (existing.customFields !== null && existing.customFields !== undefined) {
+    (mergedSnapshot as unknown as Record<string, unknown>).customFields = existing.customFields;
+  }
+
   const updateResult = await client.request<{ updateCustomerSnapshot: SnapshotKey }>(
     UPDATE_SNAPSHOT,
-    { input: snapshot }
+    { input: mergedSnapshot }
   );
 
   if (updateResult.errors?.length) {
