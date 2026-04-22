@@ -269,6 +269,64 @@ const schema = a.schema({
     ]),
 
   /**
+   * TeamsConnection
+   *
+   * One record per user who has connected their Microsoft Teams account.
+   * Primary key: userId (Adobe IMS userId) — one record per user.
+   */
+  TeamsConnection: a
+    .model({
+      userId: a.string().required(),     // Adobe IMS userId (PK)
+      email: a.string().required(),      // Adobe email
+      msEmail: a.string(),               // Microsoft/Teams email (may differ)
+      msUserId: a.string(),              // Microsoft Graph user ID
+      connectedAt: a.string().required(),// ISO datetime of first connection
+      isActive: a.boolean().required(),  // false = disconnected
+    })
+    .identifier(["userId"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
+
+  /**
+   * TeamsToken
+   *
+   * Stores OAuth refresh token per user. Keyed by userId.
+   * Written by the /api/teams/callback route; read + refreshed by the Lambda.
+   */
+  TeamsToken: a
+    .model({
+      userId: a.string().required(),     // Adobe IMS userId (PK)
+      refreshToken: a.string().required(),
+      updatedAt: a.string().required(),  // ISO datetime of last token refresh
+    })
+    .identifier(["userId"])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
+
+  /**
+   * TeamsMeetingMapping
+   *
+   * Per-user mapping of meeting title keyword → CustomerSnapshot companyName.
+   * The Lambda matches these keywords (case-insensitive) against meeting subjects.
+   * GSI on userId for efficient per-user queries.
+   */
+  TeamsMeetingMapping: a
+    .model({
+      userId: a.string().required(),     // Adobe IMS userId (for GSI)
+      keyword: a.string().required(),    // substring to match in meeting title
+      companyName: a.string().required(),// must match a CustomerSnapshot companyName
+      createdAt: a.string().required(),  // ISO datetime
+    })
+    .secondaryIndexes((index) => [
+      index("userId").sortKeys(["createdAt"]),
+    ])
+    .authorization((allow) => [
+      allow.publicApiKey(),
+    ]),
+
+  /**
    * CustomerStageHistory
    *
    * Append-only log of every stage change for every customer.

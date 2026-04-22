@@ -8,12 +8,13 @@ import { Alarm, ComparisonOperator, TreatMissingData } from "aws-cdk-lib/aws-clo
 import { CfnSchedule } from "aws-cdk-lib/aws-scheduler";
 import { data } from "./data/resource";
 import { dailyFetch } from "./functions/daily-fetch/resource";
+import { teamsTranscriptSync } from "./functions/teams-transcript-sync/resource";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Backend definition
 // ─────────────────────────────────────────────────────────────────────────────
 
-const backend = defineBackend({ data, dailyFetch });
+const backend = defineBackend({ data, dailyFetch, teamsTranscriptSync });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EventBridge Scheduler
@@ -112,6 +113,66 @@ new CfnSchedule(stack, "DailyFetchSchedule", {
 // A message in the DLQ means the Lambda failed on all 3 attempts (1 + 2 retries).
 // Wire this to an SNS topic or PagerDuty in your ops setup.
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// teams-transcript-sync — hourly EventBridge Scheduler
+// ─────────────────────────────────────────────────────────────────────────────
+
+const teamsFn = backend.teamsTranscriptSync.resources.lambda as LambdaFunction;
+
+teamsFn.addEnvironment("APPSYNC_ENDPOINT", graphqlApi.graphqlUrl);
+teamsFn.addEnvironment("APPSYNC_API_KEY", graphqlApi.apiKey ?? "");
+
+const teamsDlq = new Queue(stack, "TeamsTranscriptSyncDLQ", {
+  retentionPeriod: Duration.days(14),
+  encryption: QueueEncryption.SQS_MANAGED,
+});
+
+const teamsSchedulerRole = new Role(stack, "TeamsTranscriptSyncSchedulerRole", {
+  assumedBy: new ServicePrincipal("scheduler.amazonaws.com"),
+});
+
+teamsSchedulerRole.addToPolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ["lambda:InvokeFunction"],
+    resources: [teamsFn.functionArn, `${teamsFn.functionArn}:*`],
+  })
+);
+
+teamsSchedulerRole.addToPolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ["sqs:SendMessage"],
+    resources: [teamsDlq.queueArn],
+  })
+);
+
+new CfnSchedule(stack, "TeamsTranscriptSyncSchedule", {
+  description: "Hourly Teams transcript sync for all connected users",
+  scheduleExpression: "rate(1 hour)",
+  scheduleExpressionTimezone: "UTC",
+  state: "ENABLED",
+  flexibleTimeWindow: { mode: "OFF" },
+  target: {
+    arn: teamsFn.functionArn,
+    roleArn: teamsSchedulerRole.roleArn,
+    retryPolicy: {
+      maximumRetryAttempts: 2,
+      maximumEventAgeInSeconds: 3_600,
+    },
+    deadLetterConfig: { arn: teamsDlq.queueArn },
+  },
+});
+
+new Alarm(stack, "TeamsTranscriptSyncDLQAlarm", {
+  alarmDescription: "teams-transcript-sync Lambda exhausted retries — check CloudWatch Logs",
+  metric: teamsDlq.metricNumberOfMessagesSent(),
+  threshold: 1,
+  evaluationPeriods: 1,
+  comparisonOperator: ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+  treatMissingData: TreatMissingData.NOT_BREACHING,
+});
 
 new Alarm(stack, "DailyFetchDLQAlarm", {
   // No explicit alarmName — let CloudFormation generate one to avoid name conflicts on re-deploy
