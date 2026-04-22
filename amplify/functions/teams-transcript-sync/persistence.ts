@@ -1,5 +1,9 @@
-import { AppSyncClient } from "./appsync-client";
+import { AppSyncClient, type GQLResult } from "./appsync-client";
 import type { TeamsConnection, TeamsToken, TeamsMeetingMapping } from "./types";
+
+type ListConnectionsResult = GQLResult<{
+  listTeamsConnections: { items: TeamsConnection[]; nextToken: string | null };
+}>;
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
@@ -63,11 +67,8 @@ export async function listActiveConnections(
   let nextToken: string | null = null;
 
   do {
-    const res = await client.request<{
-      listTeamsConnections: {
-        items: TeamsConnection[];
-        nextToken: string | null;
-      };
+    const res: ListConnectionsResult = await client.request<{
+      listTeamsConnections: { items: TeamsConnection[]; nextToken: string | null };
     }>(LIST_ACTIVE_CONNECTIONS, nextToken ? { nextToken } : {});
 
     const items = res.data?.listTeamsConnections.items ?? [];
