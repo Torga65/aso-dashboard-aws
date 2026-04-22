@@ -5,6 +5,10 @@ type ListConnectionsResult = GQLResult<{
   listTeamsConnections: { items: TeamsConnection[]; nextToken: string | null };
 }>;
 
+type ListMappingsResult = GQLResult<{
+  listTeamsMeetingMappingsByUserIdAndCreatedAt: { items: TeamsMeetingMapping[]; nextToken: string | null };
+}>;
+
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
 const LIST_ACTIVE_CONNECTIONS = /* GraphQL */ `
@@ -108,11 +112,8 @@ export async function listMappingsForUser(
   let nextToken: string | null = null;
 
   do {
-    const res = await client.request<{
-      listTeamsMeetingMappingsByUserIdAndCreatedAt: {
-        items: TeamsMeetingMapping[];
-        nextToken: string | null;
-      };
+    const res: ListMappingsResult = await client.request<{
+      listTeamsMeetingMappingsByUserIdAndCreatedAt: { items: TeamsMeetingMapping[]; nextToken: string | null };
     }>(LIST_MAPPINGS_BY_USER, { userId, ...(nextToken ? { nextToken } : {}) });
 
     results.push(
