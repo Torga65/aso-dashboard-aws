@@ -376,6 +376,25 @@
     .pl-unset-card { cursor:pointer; }
     .pl-unset-card:hover { border-color:#667eea; }
 
+    /* Status-grouped sections (unassigned customers) */
+    .pl-status-active  > .pl-section-hdr { background:#e8f5e9; color:#1b5e20; border-bottom:1px solid #a5d6a7; }
+    .pl-status-at-risk > .pl-section-hdr { background:#fffde7; color:#e65100; border-bottom:1px solid #ffe082; }
+    .pl-status-pre-production > .pl-section-hdr { background:#f3e5f5; color:#4a148c; border-bottom:1px solid #ce93d8; }
+    .pl-status-onboarding     > .pl-section-hdr { background:#e3f2fd; color:#0d47a1; border-bottom:1px solid #90caf9; }
+    .pl-status-on-hold        > .pl-section-hdr { background:#f3f4f6; color:#374151; border-bottom:1px solid #d1d5db; }
+    .pl-status-churned        > .pl-section-hdr { background:#fef2f2; color:#7f1d1d; border-bottom:1px solid #fca5a5; }
+    .pl-status-unknown        > .pl-section-hdr { background:#f9fafb; color:#6b7280; border-bottom:1px solid #e5e7eb; }
+    .pl-status-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
+    .pl-status-card { background:white; border:1px solid #e0e0e0; border-radius:6px; padding:8px 10px; font-size:12px; min-width:170px; max-width:220px; cursor:pointer; }
+    .pl-status-card:hover { border-color:#667eea; box-shadow:0 1px 6px rgba(102,126,234,.18); }
+    .pl-status-card-meta { display:flex; gap:5px; flex-wrap:wrap; margin:3px 0 6px; align-items:center; }
+    .pl-status-card-ese { font-size:10px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+    .pl-eng-badge { font-size:10px; font-weight:600; padding:1px 5px; border-radius:4px; white-space:nowrap; }
+    .pl-eng-high    { background:#dcfce7; color:#166534; }
+    .pl-eng-medium  { background:#fef9c3; color:#854d0e; }
+    .pl-eng-low     { background:#fee2e2; color:#991b1b; }
+    .pl-eng-unknown { background:#f3f4f6; color:#6b7280; }
+
     /* Detail modal */
     .pl-detail-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
     .pl-detail-modal { background:white; border-radius:10px; padding:24px; max-width:480px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
@@ -461,6 +480,16 @@
     [data-theme="dark"] .pl-card-name { color: #e8e8e8; }
     [data-theme="dark"] .pl-unset-card { background: #252525; border-color: #3a3a3a; }
     [data-theme="dark"] .pl-unset-card-name { color: #d0d0d0; }
+    [data-theme="dark"] .pl-status-card { background: #252525; border-color: #3a3a3a; }
+    [data-theme="dark"] .pl-status-card:hover { border-color: #7e9fff; }
+    [data-theme="dark"] .pl-status-card-ese { color: #9ca3af; }
+    [data-theme="dark"] .pl-status-active  > .pl-section-hdr { background:#1a3a22; color:#86efac; border-bottom-color:#2d5a38; }
+    [data-theme="dark"] .pl-status-at-risk > .pl-section-hdr { background:#3a2800; color:#fde68a; border-bottom-color:#5a3e00; }
+    [data-theme="dark"] .pl-status-pre-production > .pl-section-hdr { background:#2a1a3a; color:#d8b4fe; border-bottom-color:#4a2a6a; }
+    [data-theme="dark"] .pl-status-onboarding     > .pl-section-hdr { background:#0d2544; color:#93c5fd; border-bottom-color:#1e3a6a; }
+    [data-theme="dark"] .pl-status-on-hold        > .pl-section-hdr { background:#252525; color:#d0d0d0; border-bottom-color:#3a3a3a; }
+    [data-theme="dark"] .pl-status-churned        > .pl-section-hdr { background:#3a1010; color:#fca5a5; border-bottom-color:#5a2020; }
+    [data-theme="dark"] .pl-status-unknown        > .pl-section-hdr { background:#1f1f1f; color:#9ca3af; border-bottom-color:#333; }
     [data-theme="dark"] .pl-form { background: #1e2235; border-color: #3a4a7a; }
     [data-theme="dark"] .pl-form-field label { color: #bbb; }
     [data-theme="dark"] .pl-form-field select,
@@ -1091,7 +1120,8 @@ function plRender() {
   board.appendChild(buildSection('On Hold', 'pl-onhold', ONHOLD_STAGES, visible));
   // Unassigned section
   var unassigned = visible.filter(function(c) { return !progMap[c.companyName]; });
-  board.appendChild(buildUnassigned(unassigned));
+  var statusFrags = buildByStatus(unassigned);
+  for (var i = 0; i < statusFrags.length; i++) board.appendChild(statusFrags[i]);
 }
 
 function buildSection(trackName, cssClass, stages, allVisible, displayName) {
@@ -1139,34 +1169,73 @@ function buildSection(trackName, cssClass, stages, allVisible, displayName) {
   return section;
 }
 
-function buildUnassigned(list) {
-  var section = document.createElement('div');
-  section.className = 'pl-section pl-unset';
+var STATUS_ORDER = ['Active', 'At-Risk', 'Onboarding', 'Pre-Production', 'On-Hold', 'Churned'];
+var STATUS_CSS = {
+  'Active':         'pl-status-active',
+  'At-Risk':        'pl-status-at-risk',
+  'Pre-Production': 'pl-status-pre-production',
+  'Onboarding':     'pl-status-onboarding',
+  'On-Hold':        'pl-status-on-hold',
+  'Churned':        'pl-status-churned',
+};
 
-  var hdr = document.createElement('div');
-  hdr.className = 'pl-section-hdr';
-  hdr.innerHTML = 'Not in pipeline' +
-    '<span class="pl-count" style="background:#9ca3af;">' + list.length + '</span>' +
-    '<span class="pl-toggle">▼</span>';
-  hdr.onclick = function() {
-    var body = section.querySelector('.pl-unset-grid');
-    var toggle = hdr.querySelector('.pl-toggle');
-    body.classList.toggle('pl-collapsed');
-    toggle.textContent = body.classList.contains('pl-collapsed') ? '▶' : '▼';
-  };
-  section.appendChild(hdr);
+function buildByStatus(list) {
+  var sections = [];
+  if (list.length === 0) return sections;
 
-  var grid = document.createElement('div');
-  grid.className = 'pl-unset-grid';
-  if (list.length === 0) {
-    grid.innerHTML = '<div style="padding:8px;color:#aaa;font-size:12px;font-style:italic;">All customers assigned.</div>';
-  } else {
-    list.forEach(function(c) {
-      grid.innerHTML += buildUnsetCard(c);
-    });
-  }
-  section.appendChild(grid);
-  return section;
+  // Group by status
+  var byStatus = {};
+  list.forEach(function(c) {
+    var s = c.status || 'Unknown';
+    if (!byStatus[s]) byStatus[s] = [];
+    byStatus[s].push(c);
+  });
+
+  // Render in canonical order, then any extras
+  var order = STATUS_ORDER.slice();
+  Object.keys(byStatus).forEach(function(s) { if (order.indexOf(s) === -1) order.push(s); });
+
+  order.forEach(function(status) {
+    if (!byStatus[status] || byStatus[status].length === 0) return;
+    var customers = byStatus[status].slice().sort(function(a,b) { return a.companyName.localeCompare(b.companyName); });
+    var cssCls = STATUS_CSS[status] || 'pl-status-unknown';
+
+    var section = document.createElement('div');
+    section.className = 'pl-section ' + cssCls;
+
+    var hdr = document.createElement('div');
+    hdr.className = 'pl-section-hdr';
+    hdr.innerHTML = esc(status) +
+      '<span class="pl-count" style="background:#9ca3af;">' + customers.length + '</span>' +
+      '<span class="pl-toggle">▼</span>';
+    hdr.onclick = function() {
+      var body = section.querySelector('.pl-status-grid');
+      var toggle = hdr.querySelector('.pl-toggle');
+      body.classList.toggle('pl-collapsed');
+      toggle.textContent = body.classList.contains('pl-collapsed') ? '▶' : '▼';
+    };
+    section.appendChild(hdr);
+
+    var grid = document.createElement('div');
+    grid.className = 'pl-status-grid';
+    customers.forEach(function(c) { grid.innerHTML += buildStatusCard(c); });
+    section.appendChild(grid);
+    sections.push(section);
+  });
+
+  return sections;
+}
+
+function buildStatusCard(c) {
+  var safeName = esc(c.companyName).replace(/'/g,"&#39;");
+  var engCls = { 'High': 'pl-eng-high', 'Medium': 'pl-eng-medium', 'Low': 'pl-eng-low' }[c.engagement] || 'pl-eng-unknown';
+  var engBadge = c.engagement ? '<span class="pl-eng-badge ' + engCls + '">' + esc(c.engagement) + '</span>' : '';
+  var ese = c.eseLead ? '<span class="pl-status-card-ese">' + esc(c.eseLead) + '</span>' : '';
+  return '<div class="pl-status-card" id="card-' + esc(c.companyName) + '" onclick="plViewCard(\'' + safeName + '\')">' +
+    '<div class="pl-card-name" title="' + esc(c.companyName) + '">' + esc(c.companyName) + '</div>' +
+    '<div class="pl-status-card-meta">' + engBadge + ese + '</div>' +
+    '<button class="pl-edit-btn" onclick="event.stopPropagation();plOpenForm(\'' + safeName + '\')">Set stage</button>' +
+    '</div>';
 }
 
 function buildCard(c) {
