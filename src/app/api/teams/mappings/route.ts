@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const client = getServerClient();
-    const { data, errors } = await client.models.TeamsMeetingMapping.listTeamsMeetingMappingsByUserIdAndCreatedAt(
+    const { data, errors } = await client.models.TeamsMeetingMapping.listTeamsMeetingMappingByUserIdAndCreatedAt(
       { userId }
     );
 
