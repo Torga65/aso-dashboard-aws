@@ -34,6 +34,9 @@ export async function PUT(req: NextRequest) {
       companyName, progressionTrack, progressionStage,
       migrationSource, migrationTech, stageEnteredAt,
       updatedBy, notes,
+      projectedGoLiveDate, holdReason, holdReasonOther,
+      preprodOnboardFirstSite, preprodFcmCompleted, preprodPreflightCompleted,
+      prodAutoOptimizeEnabled, prodAutoOptimizedOpportunity,
     } = body;
 
     if (!companyName || !progressionTrack || !progressionStage || !stageEnteredAt) {
@@ -51,16 +54,30 @@ export async function PUT(req: NextRequest) {
     let result;
     const { data: existing } = await client.models.CustomerProgression.get({ companyName });
 
+    // On Hold + Future Date fields are only meaningful for that specific combination;
+    // clear them if the customer is moved to any other track/stage.
+    const isOnHoldFutureDate = progressionTrack === "On Hold" && progressionStage === "Future Date";
+    const isPreprod          = progressionTrack === "Moving"  && progressionStage === "Preprod";
+    const isProd             = progressionTrack === "Moving"  && progressionStage === "Prod";
+
     const payload = {
       companyName,
       progressionTrack,
       progressionStage,
-      migrationSource: migrationSource ?? null,
-      migrationTech:   migrationTech   ?? null,
+      migrationSource:           migrationSource ?? null,
+      migrationTech:             migrationTech   ?? null,
       stageEnteredAt,
-      updatedBy: resolvedUpdatedBy,
-      updatedAt: now,
-      notes:     notes ?? null,
+      updatedBy:                 resolvedUpdatedBy,
+      updatedAt:                 now,
+      notes:                     notes ?? null,
+      projectedGoLiveDate:       isOnHoldFutureDate ? (projectedGoLiveDate ?? null) : null,
+      holdReason:                isOnHoldFutureDate ? (holdReason          ?? null) : null,
+      holdReasonOther:           isOnHoldFutureDate ? (holdReasonOther     ?? null) : null,
+      preprodOnboardFirstSite:      isPreprod ? (preprodOnboardFirstSite      ?? null) : null,
+      preprodFcmCompleted:          isPreprod ? (preprodFcmCompleted          ?? null) : null,
+      preprodPreflightCompleted:    isPreprod ? (preprodPreflightCompleted    ?? null) : null,
+      prodAutoOptimizeEnabled:      isProd    ? (prodAutoOptimizeEnabled      ?? null) : null,
+      prodAutoOptimizedOpportunity: isProd    ? (prodAutoOptimizedOpportunity ?? null) : null,
     };
 
     if (existing) {
@@ -76,13 +93,21 @@ export async function PUT(req: NextRequest) {
     // Append history record
     await client.models.CustomerStageHistory.create({
       companyName,
-      changedAt:        now,
+      changedAt:            now,
       progressionTrack,
       progressionStage,
-      migrationSource:  migrationSource ?? null,
-      migrationTech:    migrationTech   ?? null,
-      changedBy:        resolvedUpdatedBy,
-      notes:            notes ?? null,
+      migrationSource:      migrationSource ?? null,
+      migrationTech:        migrationTech   ?? null,
+      changedBy:            resolvedUpdatedBy,
+      notes:                notes ?? null,
+      projectedGoLiveDate:       isOnHoldFutureDate ? (projectedGoLiveDate ?? null) : null,
+      holdReason:                isOnHoldFutureDate ? (holdReason          ?? null) : null,
+      holdReasonOther:           isOnHoldFutureDate ? (holdReasonOther     ?? null) : null,
+      preprodOnboardFirstSite:      isPreprod ? (preprodOnboardFirstSite      ?? null) : null,
+      preprodFcmCompleted:          isPreprod ? (preprodFcmCompleted          ?? null) : null,
+      preprodPreflightCompleted:    isPreprod ? (preprodPreflightCompleted    ?? null) : null,
+      prodAutoOptimizeEnabled:      isProd    ? (prodAutoOptimizeEnabled      ?? null) : null,
+      prodAutoOptimizedOpportunity: isProd    ? (prodAutoOptimizedOpportunity ?? null) : null,
     });
 
     return NextResponse.json({ data: result ? toCustomerProgression(result) : null });

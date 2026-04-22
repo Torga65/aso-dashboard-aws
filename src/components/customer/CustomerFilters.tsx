@@ -6,7 +6,6 @@ export interface FilterState {
   search: string;
   status: string;
   engagement: string;
-  health: string;
 }
 
 interface Props {
@@ -60,17 +59,6 @@ export function CustomerFilters({ filters, onChange }: Props) {
         <option value="Unknown">Unknown</option>
       </select>
 
-      <select
-        className={styles.select}
-        value={filters.health}
-        onChange={(e) => set("health", e.target.value)}
-        aria-label="Filter by health score"
-      >
-        <option value="">All Health</option>
-        <option value="healthy">Healthy (70+)</option>
-        <option value="attention">Attention (40–69)</option>
-        <option value="critical">Critical (&lt;40)</option>
-      </select>
     </div>
   );
 }

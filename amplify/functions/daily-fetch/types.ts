@@ -17,7 +17,6 @@ export interface RawCustomer {
   blockers?: string;
   feedbackStatus?: string;
   feedback?: string;
-  healthScore?: number | string;
   summary?: string;
   mau?: string;
   ttiv?: string;
@@ -52,7 +51,6 @@ export interface NormalizedSnapshot {
   blockers: string;
   feedbackStatus: string;
   feedback: string;
-  healthScore: number;
   summary: string;
   mau: string;
   ttiv: string;
@@ -72,7 +70,6 @@ export interface WeeklySummaryInput {
   onboardingCount: number;
   preProductionCount: number;
   churnedCount: number;
-  avgHealthScore: number;
   highEngagementCount: number;
   mediumEngagementCount: number;
   lowEngagementCount: number;

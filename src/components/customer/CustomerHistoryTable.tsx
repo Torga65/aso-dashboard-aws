@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import type { Customer } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { HealthBar } from "@/components/ui/HealthBar";
 import { EngagementBadge } from "@/components/ui/EngagementBadge";
 import styles from "./CustomerHistoryTable.module.css";
 
@@ -75,19 +74,13 @@ export function CustomerHistoryTable({ customers }: Props) {
                   <th>Week</th>
                   <th>Status</th>
                   <th>Engagement</th>
-                  <th>Health</th>
                   <th className={styles.summaryCol}>Summary</th>
                   <th className={styles.blockersCol}>Blockers</th>
                   <th>Updated</th>
                 </tr>
               </thead>
               <tbody>
-                {timeline.map((row, i) => {
-                  const prev = timeline[i - 1];
-                  const healthDelta = prev
-                    ? row.healthScore - prev.healthScore
-                    : 0;
-
+                {timeline.map((row) => {
                   return (
                     <tr key={row.week}>
                       <td className={styles.weekCell}>{row.week}</td>
@@ -96,19 +89,6 @@ export function CustomerHistoryTable({ customers }: Props) {
                       </td>
                       <td>
                         <EngagementBadge level={row.engagement} />
-                      </td>
-                      <td className={styles.healthCell}>
-                        <HealthBar score={row.healthScore} />
-                        {healthDelta !== 0 && (
-                          <span
-                            className={
-                              healthDelta > 0 ? styles.improved : styles.declined
-                            }
-                          >
-                            {healthDelta > 0 ? "↑" : "↓"}{" "}
-                            {Math.abs(healthDelta)}
-                          </span>
-                        )}
                       </td>
                       <td className={styles.summaryCol}>
                         {row.summary || "—"}

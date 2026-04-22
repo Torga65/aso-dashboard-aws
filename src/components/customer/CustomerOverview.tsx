@@ -15,7 +15,6 @@ const DEFAULT_FILTERS: FilterState = {
   search: "",
   status: "",
   engagement: "",
-  health: "",
 };
 
 export function CustomerOverview({ customers, week }: Props) {
@@ -29,14 +28,7 @@ export function CustomerOverview({ customers, week }: Props) {
     const atRisk = customers.filter((c) =>
       c.status.toLowerCase() === "at-risk"
     ).length;
-    const avgHealth =
-      customers.length > 0
-        ? Math.round(
-            customers.reduce((sum, c) => sum + (c.healthScore ?? 0), 0) /
-              customers.length
-          )
-        : 0;
-    return { total: customers.length, active, atRisk, avgHealth };
+    return { total: customers.length, active, atRisk };
   }, [customers]);
 
   // Apply filters
@@ -60,15 +52,6 @@ export function CustomerOverview({ customers, week }: Props) {
       list = list.filter(
         (c) => c.engagement.toLowerCase() === filters.engagement.toLowerCase()
       );
-    }
-    if (filters.health) {
-      list = list.filter((c) => {
-        if (filters.health === "healthy") return c.healthScore >= 70;
-        if (filters.health === "attention")
-          return c.healthScore >= 40 && c.healthScore < 70;
-        if (filters.health === "critical") return c.healthScore < 40;
-        return true;
-      });
     }
     return list;
   }, [customers, filters]);
@@ -97,10 +80,6 @@ export function CustomerOverview({ customers, week }: Props) {
           <div className={`${styles.statCard} ${styles.statYellow}`}>
             <div className={styles.statValue}>{stats.atRisk}</div>
             <div className={styles.statLabel}>At-Risk</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statValue}>{stats.avgHealth}</div>
-            <div className={styles.statLabel}>Avg Health Score</div>
           </div>
         </div>
       </div>

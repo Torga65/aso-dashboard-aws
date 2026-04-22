@@ -27,9 +27,6 @@ export interface Customer {
   blockers: string;
   feedbackStatus: string;
   feedback: string;
-  healthScoreRaw: string;
-  /** 0–100 */
-  healthScore: number;
   summary: string;
   mau: string;
   ttiv: string;
@@ -67,7 +64,6 @@ export interface WeeklySummary {
   onboardingCount: number;
   preProductionCount: number;
   churnedCount: number;
-  avgHealthScore: number;
   highEngagementCount: number;
   mediumEngagementCount: number;
   lowEngagementCount: number;
@@ -102,31 +98,47 @@ export interface CustomerNote {
 
 export type ProgressionTrack = "Moving" | "On Hold";
 export type ProgressionStage = "Prod" | "POC" | "Preprod" | "Future Date" | "Migration";
-export type MigrationSource  = "On Prem" | "AMS";
-export type MigrationTech    = "AEM" | "Not AEM";
+export type MigrationSource  = "On Prem > AEMCS" | "Non-AEM > AEMCS" | "AMS > AEMCS";
+export type MigrationTech    = string; // legacy field, no longer used in UI
 
 export interface CustomerProgression {
-  companyName:      string;
-  progressionTrack: ProgressionTrack;
-  progressionStage: ProgressionStage;
-  migrationSource:  MigrationSource | null;
-  migrationTech:    MigrationTech | null;
-  stageEnteredAt:   string; // "YYYY-MM-DD"
-  updatedBy:        string;
-  updatedAt:        string; // ISO datetime
-  notes:            string | null;
+  companyName:          string;
+  progressionTrack:     ProgressionTrack;
+  progressionStage:     ProgressionStage;
+  migrationSource:      MigrationSource | null;
+  migrationTech:        MigrationTech | null;
+  stageEnteredAt:       string; // "YYYY-MM-DD"
+  updatedBy:            string;
+  updatedAt:            string; // ISO datetime
+  notes:                string | null;
+  projectedGoLiveDate:       string | null;  // "YYYY-MM-DD" — On Hold + Future Date only
+  holdReason:                string | null;  // "Customer requested" | "Security" | "Competing priorities" | "Other"
+  holdReasonOther:           string | null;  // free text when holdReason === "Other"
+  preprodOnboardFirstSite:      boolean | null; // Active + Preprod checklist
+  preprodFcmCompleted:          boolean | null;
+  preprodPreflightCompleted:    boolean | null;
+  prodAutoOptimizeEnabled:      boolean | null; // Active + Prod checklist
+  prodAutoOptimizedOpportunity: boolean | null;
 }
 
 export interface CustomerStageHistoryEntry {
-  id:               string;
-  companyName:      string;
-  changedAt:        string; // ISO datetime
-  progressionTrack: string;
-  progressionStage: string;
-  migrationSource:  string | null;
-  migrationTech:    string | null;
-  changedBy:        string;
-  notes:            string | null;
+  id:                   string;
+  companyName:          string;
+  changedAt:            string; // ISO datetime
+  progressionTrack:     string;
+  progressionStage:     string;
+  migrationSource:      string | null;
+  migrationTech:        string | null;
+  changedBy:            string;
+  notes:                string | null;
+  projectedGoLiveDate:       string | null;
+  holdReason:                string | null;
+  holdReasonOther:           string | null;
+  preprodOnboardFirstSite:      boolean | null;
+  preprodFcmCompleted:          boolean | null;
+  preprodPreflightCompleted:    boolean | null;
+  prodAutoOptimizeEnabled:      boolean | null;
+  prodAutoOptimizedOpportunity: boolean | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

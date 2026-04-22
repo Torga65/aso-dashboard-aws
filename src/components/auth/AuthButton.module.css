@@ -13,6 +13,7 @@
   cursor: pointer;
   border-radius: 50%;
   line-height: 0;
+  position: relative;
 }
 
 .avatarBtn:focus-visible {
@@ -104,6 +105,42 @@ img.avatar {
 
 .signOutBtn:hover {
   background: var(--surface-alt);
+}
+
+/* ── Wrong-org warning states ──────────────────────────────────────── */
+
+/* Wrapper button gets an amber ring when org is wrong */
+.avatarBtnWarn {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Initials circle turns amber instead of the default accent colour */
+.avatarWarn {
+  background: #d97706 !important;
+}
+
+/* Small ⚠ badge overlaid on the bottom-right of the avatar */
+.warnDot {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  font-size: 0.6rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Org ID row in the dropdown */
+.dropdownOrg {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.dropdownOrgId {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
 }
 
 /* ── Sign-in button (unauthenticated state) ────────────────────────── */

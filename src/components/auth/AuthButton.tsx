@@ -12,6 +12,16 @@ interface TokenInfo {
   timeRemaining: string;
 }
 
+function parseJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
 function parseToken(token: string): TokenInfo | null {
   try {
     const parts = token.split(".");
@@ -124,20 +134,26 @@ export function AuthButton({ autoSignIn = true }: AuthButtonProps) {
       "User";
 
     const tokenInfo = accessToken ? parseToken(accessToken) : null;
+    const jwtPayload = accessToken ? parseJwtPayload(accessToken) : null;
+    const ownerOrg = jwtPayload?.ownerOrg as string | undefined;
+    const wrongOrg = profile?.email
+      ? !profile.email.toLowerCase().endsWith("@adobe.com")
+      : false;
 
     return (
       <div className={styles.wrapper} ref={wrapperRef}>
         <button
-          className={styles.avatarBtn}
+          className={`${styles.avatarBtn} ${wrongOrg ? styles.avatarBtnWarn : ""}`}
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label="Account menu"
-          title={profile?.email ?? undefined}
+          title={wrongOrg ? "⚠ Wrong org — click for details" : (profile?.email ?? undefined)}
         >
           {avatarUrl
             ? <img src={avatarUrl} alt={displayName} className={styles.avatar} />
-            : <span className={styles.avatar}>{initials}</span>
+            : <span className={`${styles.avatar} ${wrongOrg ? styles.avatarWarn : ""}`}>{initials}</span>
           }
+          {wrongOrg && <span className={styles.warnDot} aria-hidden>⚠</span>}
         </button>
 
         {open && (
@@ -145,6 +161,11 @@ export function AuthButton({ autoSignIn = true }: AuthButtonProps) {
             <div className={styles.dropdownName}>{displayName}</div>
             {profile?.email && (
               <div className={styles.dropdownEmail}>{profile.email}</div>
+            )}
+            {ownerOrg && (
+              <div className={styles.dropdownOrg} title="Active IMS org">
+                Org: <span className={styles.dropdownOrgId}>{ownerOrg}</span>
+              </div>
             )}
             {tokenInfo && (
               <div

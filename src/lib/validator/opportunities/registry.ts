@@ -11,6 +11,7 @@ import { validate as validateBrokenInternalLinks } from './broken-internal-links
 import { validate as validateA11yColorContrast } from './a11y-color-contrast/validator';
 import { validate as validateA11yAssistive } from './a11y-assistive/validator';
 import { validate as validateMetaTags } from './meta-tags/validator';
+import { validate as validateCanonical } from './canonical/validator';
 
 export interface OpportunityTypeMeta {
   id: string;
@@ -85,4 +86,9 @@ registerOpportunityType({
 registerOpportunityType({
   meta: { id: 'meta-tags', label: 'Meta Tags' },
   validate: validateMetaTags,
+});
+
+registerOpportunityType({
+  meta: { id: 'canonical', label: 'Canonical' },
+  validate: validateCanonical,
 });

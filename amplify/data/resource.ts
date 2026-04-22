@@ -48,7 +48,6 @@ const schema = a.schema({
       blockers: a.string(),
       feedbackStatus: a.string(),
       feedback: a.string(),
-      healthScore: a.integer(), // 0–100
       summary: a.string(),
       mau: a.string(), // Monthly Active Users (raw string from source)
       ttiv: a.string(), // Time to Initial Value
@@ -99,7 +98,6 @@ const schema = a.schema({
       churnedCount: a.integer(),
 
       // ── Aggregates ────────────────────────────────────────────────────
-      avgHealthScore: a.float(),
       highEngagementCount: a.integer(),
       mediumEngagementCount: a.integer(),
       lowEngagementCount: a.integer(),
@@ -258,10 +256,21 @@ const schema = a.schema({
       progressionStage: a.string().required(), // "Prod" | "POC" | "Preprod" | "Future Date" | "Migration"
       migrationSource:  a.string(),            // "On Prem" | "AMS" — only when stage=Migration
       migrationTech:    a.string(),            // "AEM" | "Not AEM" — only when source=On Prem
-      stageEnteredAt:   a.string().required(), // "YYYY-MM-DD"
-      updatedBy:        a.string().required(),
-      updatedAt:        a.string().required(), // ISO datetime
-      notes:            a.string(),
+      stageEnteredAt:       a.string().required(), // "YYYY-MM-DD"
+      updatedBy:            a.string().required(),
+      updatedAt:            a.string().required(), // ISO datetime
+      notes:                a.string(),
+      // On Hold + Future Date fields
+      projectedGoLiveDate:      a.string(),     // "YYYY-MM-DD" — only when track=On Hold & stage=Future Date
+      holdReason:               a.string(),     // "Customer requested" | "Security" | "Competing priorities" | "Other"
+      holdReasonOther:          a.string(),     // free text — only when holdReason=Other
+      // Active (Moving) + Preprod checklist
+      preprodOnboardFirstSite:   a.boolean(),  // on-board first site completed
+      preprodFcmCompleted:       a.boolean(),  // FCM completed
+      preprodPreflightCompleted: a.boolean(),  // pre-flight completed
+      // Active (Moving) + Prod checklist
+      prodAutoOptimizeEnabled:          a.boolean(), // auto-optimize enabled
+      prodAutoOptimizedOpportunity:     a.boolean(), // customer deployed an auto-optimized opportunity
     })
     .identifier(["companyName"])
     .authorization((allow) => [
@@ -281,10 +290,18 @@ const schema = a.schema({
       changedAt:        a.string().required(), // ISO datetime
       progressionTrack: a.string().required(),
       progressionStage: a.string().required(),
-      migrationSource:  a.string(),
-      migrationTech:    a.string(),
-      changedBy:        a.string().required(),
-      notes:            a.string(),
+      migrationSource:      a.string(),
+      migrationTech:        a.string(),
+      changedBy:            a.string().required(),
+      notes:                a.string(),
+      projectedGoLiveDate:       a.string(),
+      holdReason:                a.string(),
+      holdReasonOther:           a.string(),
+      preprodOnboardFirstSite:          a.boolean(),
+      preprodFcmCompleted:              a.boolean(),
+      preprodPreflightCompleted:        a.boolean(),
+      prodAutoOptimizeEnabled:          a.boolean(),
+      prodAutoOptimizedOpportunity:     a.boolean(),
     })
     .secondaryIndexes((index) => [
       index("companyName").sortKeys(["changedAt"]),
