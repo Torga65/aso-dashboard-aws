@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}});})()</script>
+<script>(function(){var t=localStorage.getItem('aso-color-scheme');if(t)document.documentElement.setAttribute('data-theme',t);var f=localStorage.getItem('aso-font-size');if(f)document.documentElement.setAttribute('data-font-size',f);window.addEventListener('message',function(e){if(e.data&&e.data.type==='theme'){if(e.data.colorScheme)document.documentElement.setAttribute('data-theme',e.data.colorScheme);if(e.data.fontSize)document.documentElement.setAttribute('data-font-size',e.data.fontSize);}if(e.data&&e.data.type==='aso:transcriptUploaded'){var co=e.data.companyName;document.querySelectorAll('.view-all-accordion-item.expanded').forEach(function(item){if(item.getAttribute('data-customer-name')===co){var btn=item.querySelector('.quick-ref-refresh-btn');if(btn)btn.click();}});}});})()</script>
 <head>
   <title>Customer 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>

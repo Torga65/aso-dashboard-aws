@@ -60,6 +60,13 @@ export default function CustomerHistoryPage() {
       setResult({ ok: true, msg: "Transcript uploaded successfully." });
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
+      // Tell the iframe to refresh the transcript panel for this company, then close
+      const iframe = document.querySelector("iframe") as HTMLIFrameElement | null;
+      iframe?.contentWindow?.postMessage(
+        { type: "aso:transcriptUploaded", companyName: company.trim() },
+        window.location.origin
+      );
+      setTimeout(() => setModalOpen(false), 1500);
     } catch (err) {
       setResult({ ok: false, msg: err instanceof Error ? err.message : "Upload failed." });
     } finally {
