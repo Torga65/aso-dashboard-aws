@@ -13,7 +13,13 @@ backend:
       commands:
         - nvm install 20 && nvm use 20
         - npm install --legacy-peer-deps
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        # dev branch shares the stage backend — no separate backend deploy needed
+        - |
+          if [ "$AWS_BRANCH" = "dev" ]; then
+            echo "dev branch: skipping backend deploy, using stage backend"
+          else
+            npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+          fi
 
 frontend:
   phases:
@@ -23,8 +29,13 @@ frontend:
         - npm install --legacy-peer-deps
     build:
       commands:
-        # Write Amplify outputs so the Next.js build can read them
-        - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        # dev branch pulls outputs from stage; all other branches use their own
+        - |
+          if [ "$AWS_BRANCH" = "dev" ]; then
+            npx ampx generate outputs --branch stage --app-id $AWS_APP_ID
+          else
+            npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
+          fi
         - npm run build
   artifacts:
     baseDirectory: .next
