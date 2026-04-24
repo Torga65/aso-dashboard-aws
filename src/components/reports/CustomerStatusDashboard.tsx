@@ -26,6 +26,48 @@ type CustomerStatus  = typeof STATUS_OPTIONS[number];
 type EngagementState = typeof ENGAGEMENT_STATES[number];
 type AutoOptState    = typeof AUTO_OPT_STATES[number];
 
+// ─── Auto-optimizable opportunities ──────────────────────────────────────────
+const AUTO_OPT_OPPORTUNITIES = [
+  {
+    name: "Engagement",
+    opportunities: [
+      { id: "accessibility-issues",   label: "Accessibility issues" },
+      { id: "broken-internal-links",  label: "Broken internal links" },
+      { id: "high-traffic-low-ctr",   label: "High traffic page has low CTR" },
+      { id: "missing-alt-text",       label: "Missing alt text" },
+    ],
+  },
+  {
+    name: "Traffic Acquisition",
+    opportunities: [
+      { id: "broken-backlinks",               label: "Broken backlinks" },
+      { id: "invalid-missing-metadata",       label: "Invalid or missing metadata" },
+      { id: "missing-invalid-structured-data", label: "Missing or invalid structured data" },
+    ],
+  },
+  {
+    name: "Site Health",
+    opportunities: [
+      { id: "core-web-vitals",              label: "Core Web Vitals" },
+      { id: "security-posture",             label: "Security posture" },
+      { id: "cors-configuration",           label: "CORS configuration" },
+      { id: "cross-site-scripting",         label: "Cross-site scripting" },
+      { id: "website-permissions",          label: "Website permissions" },
+      { id: "website-vulnerabilities",      label: "Website vulnerabilities" },
+      { id: "canonical-tags",               label: "Canonical tags" },
+      { id: "hreflang-tags",                label: "Hreflang tags" },
+      { id: "sitemap-cleanup",              label: "Sitemap cleanup" },
+      { id: "structured-data-enhancement",  label: "Structured data enhancement" },
+      { id: "aria-labels",                  label: "ARIA labels" },
+      { id: "paid-media",                   label: "Paid media" },
+    ],
+  },
+] as const;
+
+const ALL_OPP_COUNT = AUTO_OPT_OPPORTUNITIES.reduce((s, c) => s + c.opportunities.length, 0);
+
+type OppState = { enabled: boolean; used: boolean };
+
 interface Customer {
   id: string;
   name: string;
@@ -36,6 +78,7 @@ interface Customer {
   holdReason: string;
   holdDate: string;
   notes: string;
+  enabledOpportunities: Record<string, OppState>;
   // internal — not displayed
   _week: string;
   _isDirty: boolean; // unsaved local changes
@@ -82,6 +125,7 @@ type CustomFields = {
   holdDate?: string;
   notes?: string;
   updatedAt?: string;
+  enabledOpportunities?: Record<string, OppState | boolean>;
 };
 
 function parseCustomFields(raw: Record<string, unknown>): CustomFields {
@@ -129,6 +173,15 @@ function mapAutoOpt(raw: Record<string, unknown>, cf: CustomFields): AutoOptStat
   return "Not Configured";
 }
 
+function parseOppMap(raw: Record<string, OppState | boolean> | undefined): Record<string, OppState> {
+  if (!raw) return {};
+  const out: Record<string, OppState> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    out[k] = typeof v === "boolean" ? { enabled: v, used: false } : v;
+  }
+  return out;
+}
+
 function snapshotToCustomer(raw: Record<string, unknown>): Customer {
   const cf = parseCustomFields(raw);
   return {
@@ -137,12 +190,13 @@ function snapshotToCustomer(raw: Record<string, unknown>): Customer {
     status:     mapStatus(raw, cf),
     engagement: mapEngagement(raw, cf),
     autoOpt:    mapAutoOpt(raw, cf),
-    migration:  cf.migration ?? String(raw.deploymentType || ""),
-    holdReason: cf.holdReason ?? "",
-    holdDate:   cf.holdDate ?? "",
-    notes:      cf.notes ?? String(raw.summary || ""),
-    _week:      String(raw.week || ""),
-    _isDirty:   false,
+    migration:            cf.migration ?? String(raw.deploymentType || ""),
+    holdReason:           cf.holdReason ?? "",
+    holdDate:             cf.holdDate ?? "",
+    notes:                cf.notes ?? String(raw.summary || ""),
+    enabledOpportunities: parseOppMap(cf.enabledOpportunities),
+    _week:                String(raw.week || ""),
+    _isDirty:             false,
   };
 }
 
@@ -314,6 +368,50 @@ function StackedBarChart({ customers }: { customers: Customer[] }) {
   );
 }
 
+// ─── Opportunity adoption chart ───────────────────────────────────────────────
+type OppAdoptionCategory = {
+  name: string;
+  items: { id: string; label: string; enabledCount: number; usedCount: number; total: number; enabledPct: number; usedPct: number }[];
+};
+
+function OppAdoptionChart({ categories }: { categories: OppAdoptionCategory[] }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+      {categories.map(cat => (
+        <div key={cat.name}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10, borderBottom: `1px solid ${T.border}`, paddingBottom: 5 }}>{cat.name}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {cat.items.map(item => (
+              <div key={item.id}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "65%" }} title={item.label}>{item.label}</span>
+                  <span style={{ fontSize: 10, color: T.textSecondary, fontFamily: "'Source Code Pro', monospace", flexShrink: 0 }}>{item.total} customers</span>
+                </div>
+                {/* Enabled bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                  <span style={{ fontSize: 9, color: T.textTertiary, width: 44, flexShrink: 0, textAlign: "right" }}>Enabled</span>
+                  <div style={{ flex: 1, height: 8, background: T.grayLight, borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ width: `${item.enabledPct}%`, height: "100%", background: item.enabledPct >= 75 ? T.green : item.enabledPct >= 40 ? T.blue : item.enabledPct > 0 ? T.orange : "transparent", borderRadius: 99, transition: "width 0.4s" }} />
+                  </div>
+                  <span style={{ fontSize: 9, fontFamily: "'Source Code Pro', monospace", color: T.textSecondary, width: 32, flexShrink: 0 }}>{item.enabledCount}/{item.total}</span>
+                </div>
+                {/* Used bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 9, color: T.textTertiary, width: 44, flexShrink: 0, textAlign: "right" }}>Used</span>
+                  <div style={{ flex: 1, height: 6, background: T.grayLight, borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ width: `${item.usedPct}%`, height: "100%", background: item.usedCount > 0 ? T.green : "transparent", borderRadius: 99, transition: "width 0.4s" }} />
+                  </div>
+                  <span style={{ fontSize: 9, fontFamily: "'Source Code Pro', monospace", color: T.textSecondary, width: 32, flexShrink: 0 }}>{item.usedCount}/{item.total}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Callout ──────────────────────────────────────────────────────────────────
 function Callout({ num, text, bg, color }: { num: number | string; text: string; bg: string; color: string }) {
   return (
@@ -325,8 +423,8 @@ function Callout({ num, text, bg, color }: { num: number | string; text: string;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const BLANK_NEW: Omit<Customer, "id"> = { name: "", status: "Prod", engagement: "Active", autoOpt: "Not Configured", migration: "", holdReason: "", holdDate: "", notes: "", _week: "", _isDirty: true };
-const FILTERS = ["All", "Moving", "On Hold", "Prod", "POC", "Preprod", "On Hold - Future Date", "On Hold - Migration"];
+const BLANK_NEW: Omit<Customer, "id"> = { name: "", status: "Prod", engagement: "Active", autoOpt: "Not Configured", migration: "", holdReason: "", holdDate: "", notes: "", enabledOpportunities: {}, _week: "", _isDirty: true };
+const FILTERS = ["All", "Active", "On Hold", "Prod", "POC", "Preprod", "On Hold - Future Date", "On Hold - Migration"];
 
 export default function CustomerStatusDashboard() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -361,7 +459,7 @@ export default function CustomerStatusDashboard() {
 
   const filtered = useMemo(() => filterStatus === "All" ? customers
     : customers.filter(c =>
-        filterStatus === "Moving"  ? ["Prod", "POC", "Preprod"].includes(c.status)
+        filterStatus === "Active"  ? ["Prod", "POC", "Preprod"].includes(c.status)
         : filterStatus === "On Hold" ? c.status.startsWith("On Hold")
         : c.status === filterStatus), [customers, filterStatus]);
 
@@ -381,6 +479,23 @@ export default function CustomerStatusDashboard() {
 
   const autoOptPct = customers.length ? Math.round((fullyOpt.length / customers.length) * 100) : 0;
 
+  const oppAdoptionData = useMemo<OppAdoptionCategory[]>(() =>
+    AUTO_OPT_OPPORTUNITIES.map(cat => ({
+      name: cat.name,
+      items: cat.opportunities.map(opp => {
+        const enabledCount = customers.filter(c => c.enabledOpportunities[opp.id]?.enabled).length;
+        const usedCount    = customers.filter(c => c.enabledOpportunities[opp.id]?.used).length;
+        const total = customers.length;
+        return {
+          id: opp.id, label: opp.label, total,
+          enabledCount, usedCount,
+          enabledPct: total ? Math.round(enabledCount / total * 100) : 0,
+          usedPct:    total ? Math.round(usedCount    / total * 100) : 0,
+        };
+      }),
+    })),
+  [customers]);
+
   const update = (id: string, field: keyof Customer, val: string) => {
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, [field]: val, _isDirty: true } : c));
     setSelected(prev => prev?.id === id ? { ...prev, [field]: val, _isDirty: true } as Customer : prev);
@@ -388,18 +503,29 @@ export default function CustomerStatusDashboard() {
     setSaveState(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
+  const updateOpportunity = (id: string, oppId: string, field: keyof OppState, value: boolean) => {
+    const patch = (map: Record<string, OppState>) => ({
+      ...map,
+      [oppId]: { ...(map[oppId] ?? { enabled: false, used: false }), [field]: value },
+    });
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, enabledOpportunities: patch(c.enabledOpportunities), _isDirty: true } : c));
+    setSelected(prev => prev?.id === id ? { ...prev, enabledOpportunities: patch(prev.enabledOpportunities), _isDirty: true } as Customer : prev);
+    setSaveState(prev => { const next = { ...prev }; delete next[id]; return next; });
+  };
+
   const saveCustomer = async (c: Customer) => {
     setSaveState(prev => ({ ...prev, [c.id]: "saving" }));
     try {
       const customFields: CustomFields = {
-        statusOverride:     c.status,
-        engagementOverride: c.engagement,
-        autoOptOverride:    c.autoOpt,
-        migration:          c.migration,
-        holdReason:         c.holdReason,
-        holdDate:           c.holdDate,
-        notes:              c.notes,
-        updatedAt:          new Date().toISOString(),
+        statusOverride:       c.status,
+        engagementOverride:   c.engagement,
+        autoOptOverride:      c.autoOpt,
+        migration:            c.migration,
+        holdReason:           c.holdReason,
+        holdDate:             c.holdDate,
+        notes:                c.notes,
+        enabledOpportunities: c.enabledOpportunities,
+        updatedAt:            new Date().toISOString(),
       };
       const res = await fetch("/api/customers/upsert", {
         method: "POST",
@@ -470,7 +596,7 @@ export default function CustomerStatusDashboard() {
       {/* Stats */}
       <div style={{ padding: "18px 28px", display: "flex", gap: 10, flexWrap: "wrap" }}>
         <StatCard label="Total Customers" value={customers.length} color={T.text} />
-        <StatCard label="Moving" value={moving.length} sub="Prod · POC · Preprod" color={T.green} />
+        <StatCard label="Active" value={moving.length} sub="Prod · POC · Preprod" color={T.green} />
         <StatCard label="On Hold" value={onHold.length} sub="Migration · Future Date" color={T.red} />
         <StatCard label="Auto-Optimise ✓" value={fullyOpt.length} sub="Fully Operational" color={T.blue} />
         <StatCard label="At Risk / Inactive" value={atRisk.length} sub="Needs attention" color={T.orange} />
@@ -515,6 +641,23 @@ export default function CustomerStatusDashboard() {
               <StackedBarChart customers={customers} />
             </ChartCard>
           </div>
+
+          <div style={{ marginTop: 12 }}>
+            <ChartCard title="Auto-Optimize Opportunity Adoption — % of Customers with Each Opportunity Enabled">
+              {customers.length === 0
+                ? <div style={{ padding: "32px 0", textAlign: "center", color: T.textTertiary, fontSize: 13 }}>No customer data</div>
+                : <>
+                    <OppAdoptionChart categories={oppAdoptionData} />
+                    <div style={{ marginTop: 14, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 8, borderRadius: 99, background: T.green }} /><span style={{ fontSize: 11, color: T.textSecondary }}>Enabled ≥75%</span></div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 8, borderRadius: 99, background: T.blue }} /><span style={{ fontSize: 11, color: T.textSecondary }}>Enabled 40–74%</span></div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 8, borderRadius: 99, background: T.orange }} /><span style={{ fontSize: 11, color: T.textSecondary }}>Enabled &lt;40%</span></div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 6, borderRadius: 99, background: T.green }} /><span style={{ fontSize: 11, color: T.textSecondary }}>Used by customer</span></div>
+                    </div>
+                  </>
+              }
+            </ChartCard>
+          </div>
         </div>
       )}
 
@@ -550,7 +693,18 @@ export default function CustomerStatusDashboard() {
                       >
                         <td style={{ padding: "10px 14px", fontWeight: 600 }}>{c.name}</td>
                         <td style={{ padding: "10px 14px" }}><Pill label={c.status} styleMap={STATUS_STYLE} /></td>
-                        <td style={{ padding: "10px 14px" }}><Pill label={c.autoOpt} styleMap={AUTOOPT_STYLE} /></td>
+                        <td style={{ padding: "10px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Pill label={c.autoOpt} styleMap={AUTOOPT_STYLE} />
+                            {(() => {
+                              const vals = Object.values(c.enabledOpportunities);
+                              const en = vals.filter(v => v.enabled).length;
+                              const us = vals.filter(v => v.used).length;
+                              if (en === 0 && us === 0) return null;
+                              return <span style={{ fontSize: 10, color: T.blue, fontFamily: "'Source Code Pro', monospace", whiteSpace: "nowrap" }}>{en} enabled{us > 0 ? ` · ${us} used` : ""}</span>;
+                            })()}
+                          </div>
+                        </td>
                         <td style={{ padding: "10px 14px", fontFamily: "'Source Code Pro', monospace", fontSize: 11, color: T.textSecondary }}>
                           {c.migration || c.holdReason || <span style={{ color: T.textTertiary }}>—</span>}
                           {c.holdDate && <span style={{ color: T.textTertiary }}> · {c.holdDate}</span>}
@@ -567,7 +721,7 @@ export default function CustomerStatusDashboard() {
 
             {/* Detail Panel */}
             {sel && (
-              <div style={{ width: 296, minWidth: 296, borderLeft: `1px solid ${T.border}`, padding: "18px 16px", background: T.surface, display: "flex", flexDirection: "column", gap: 13, overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
+              <div style={{ width: 400, minWidth: 400, borderLeft: `1px solid ${T.border}`, padding: "18px 16px", background: T.surface, display: "flex", flexDirection: "column", gap: 13, overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{sel.name}</div>
@@ -634,6 +788,67 @@ export default function CustomerStatusDashboard() {
                       <div key={s} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 7 }}>
                         <div style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, background: done ? ss.bg : T.surfaceSecondary, border: `2px solid ${done ? ss.color : T.borderStrong}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: done ? ss.color : T.textTertiary, fontWeight: 700 }}>{done ? "✓" : ""}</div>
                         <span style={{ fontSize: 12, color: active ? ss.color : done ? T.text : T.textTertiary, fontWeight: active ? 600 : 400 }}>{s}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ height: 1, background: T.border }} />
+
+                {/* Opportunity enablement checklist */}
+                <div>
+                  {/* Column headers */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px" }}>Auto-Optimize Opportunities</div>
+                    {(() => {
+                      const vals = Object.values(sel.enabledOpportunities);
+                      const en = vals.filter(v => v.enabled).length;
+                      const us = vals.filter(v => v.used).length;
+                      return (
+                        <span style={{ fontSize: 10, fontFamily: "'Source Code Pro', monospace", color: en > 0 ? T.blue : T.textTertiary, fontWeight: 600 }}>
+                          {en}/{ALL_OPP_COUNT}{us > 0 ? ` · ${us} used` : ""}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  {/* Per-category blocks */}
+                  {AUTO_OPT_OPPORTUNITIES.map(cat => {
+                    const catEnabled = cat.opportunities.filter(o => sel.enabledOpportunities[o.id]?.enabled).length;
+                    const allOn = catEnabled === cat.opportunities.length;
+                    return (
+                      <div key={cat.name} style={{ marginBottom: 10, background: T.surfaceSecondary, borderRadius: 5, padding: "8px 10px" }}>
+                        {/* Category header row */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: T.textSecondary, textTransform: "uppercase", letterSpacing: "0.5px" }}>{cat.name}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 10, color: catEnabled > 0 ? T.blue : T.textTertiary, fontFamily: "'Source Code Pro', monospace" }}>{catEnabled}/{cat.opportunities.length}</span>
+                            <button
+                              onClick={() => cat.opportunities.forEach(o => updateOpportunity(sel.id, o.id, "enabled", !allOn))}
+                              style={{ fontSize: 10, color: T.blue, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}
+                            >{allOn ? "none" : "all"}</button>
+                          </div>
+                        </div>
+                        {/* Column labels */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px", gap: 4, marginBottom: 3, paddingBottom: 4, borderBottom: `1px solid ${T.border}` }}>
+                          <span style={{ fontSize: 9, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.4px" }}> </span>
+                          <span style={{ fontSize: 9, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.4px", textAlign: "center" }}>Enabled</span>
+                          <span style={{ fontSize: 9, color: T.textTertiary, textTransform: "uppercase", letterSpacing: "0.4px", textAlign: "center" }}>Used by customer</span>
+                        </div>
+                        {/* Opportunity rows */}
+                        {cat.opportunities.map(opp => {
+                          const state = sel.enabledOpportunities[opp.id] ?? { enabled: false, used: false };
+                          return (
+                            <div key={opp.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px", gap: 4, alignItems: "center", padding: "3px 0" }}>
+                              <span style={{ fontSize: 12, color: state.enabled ? T.text : T.textSecondary, fontWeight: state.enabled ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={opp.label}>{opp.label}</span>
+                              <div style={{ display: "flex", justifyContent: "center" }}>
+                                <input type="checkbox" checked={state.enabled} onChange={e => updateOpportunity(sel.id, opp.id, "enabled", e.target.checked)} style={{ cursor: "pointer", width: 14, height: 14, accentColor: T.blue }} />
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "center" }}>
+                                <input type="checkbox" checked={state.used} onChange={e => updateOpportunity(sel.id, opp.id, "used", e.target.checked)} style={{ cursor: "pointer", width: 14, height: 14, accentColor: T.green }} />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
