@@ -18,6 +18,7 @@ const T = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_OPTIONS   = ["Prod", "POC", "Preprod", "On Hold - Future Date", "On Hold - Migration"] as const;
 const MIGRATION_TYPES  = ["", "On Prem - AEM", "On Prem - Not AEM", "AMS", "AEMaaCS", "EDS"] as const;
+const MIGRATION_PATHS  = ["", "AMS > AEMaaCS", "On-Prem > AEMaaCS", "Non-AEM > EDS", "Non-AEM > AEMaaCS", "On-Prem > EDS"] as const;
 const AUTO_OPT_STATES  = ["Not Configured", "Enabled but Incomplete", "In Progress", "Fully Operational"] as const;
 const HOLD_REASONS     = ["Future Date", "On Prem - AEM Migration", "On Prem - Non-AEM Migration", "AMS Migration", "Compliance", "Org Readiness", "Other"] as const;
 const ENGAGEMENT_STATES = ["Active", "Low", "At Risk", "Inactive"] as const;
@@ -75,6 +76,7 @@ interface Customer {
   engagement: EngagementState;
   autoOpt: AutoOptState;
   migration: string;
+  migrationPath: string;
   holdReason: string;
   holdDate: string;
   notes: string;
@@ -121,6 +123,7 @@ type CustomFields = {
   engagementOverride?: string;
   autoOptOverride?: string;
   migration?: string;
+  migrationPath?: string;
   holdReason?: string;
   holdDate?: string;
   notes?: string;
@@ -191,6 +194,7 @@ function snapshotToCustomer(raw: Record<string, unknown>): Customer {
     engagement: mapEngagement(raw, cf),
     autoOpt:    mapAutoOpt(raw, cf),
     migration:            cf.migration ?? String(raw.deploymentType || ""),
+    migrationPath:        cf.migrationPath ?? "",
     holdReason:           cf.holdReason ?? "",
     holdDate:             cf.holdDate ?? "",
     notes:                cf.notes ?? String(raw.summary || ""),
@@ -423,7 +427,7 @@ function Callout({ num, text, bg, color }: { num: number | string; text: string;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const BLANK_NEW: Omit<Customer, "id"> = { name: "", status: "Prod", engagement: "Active", autoOpt: "Not Configured", migration: "", holdReason: "", holdDate: "", notes: "", enabledOpportunities: {}, _week: "", _isDirty: true };
+const BLANK_NEW: Omit<Customer, "id"> = { name: "", status: "Prod", engagement: "Active", autoOpt: "Not Configured", migration: "", migrationPath: "", holdReason: "", holdDate: "", notes: "", enabledOpportunities: {}, _week: "", _isDirty: true };
 const FILTERS = ["All", "Active", "On Hold", "Prod", "POC", "Preprod", "On Hold - Future Date", "On Hold - Migration"];
 
 export default function CustomerStatusDashboard() {
@@ -521,6 +525,7 @@ export default function CustomerStatusDashboard() {
         engagementOverride:   c.engagement,
         autoOptOverride:      c.autoOpt,
         migration:            c.migration,
+        migrationPath:        c.migrationPath,
         holdReason:           c.holdReason,
         holdDate:             c.holdDate,
         notes:                c.notes,
@@ -596,7 +601,7 @@ export default function CustomerStatusDashboard() {
         <StatCard label="Total Customers" value={customers.length} color={T.text} />
         <StatCard label="Active" value={moving.length} sub="Prod · POC · Preprod" color={T.green} />
         <StatCard label="On Hold" value={onHold.length} sub="Migration · Future Date" color={T.red} />
-        <StatCard label="Auto-Optimise ✓" value={fullyOpt.length} sub="Fully Operational" color={T.blue} />
+        <StatCard label="Auto-Optimize ✓" value={fullyOpt.length} sub="Fully Operational" color={T.blue} />
         <StatCard label="At Risk / Inactive" value={atRisk.length} sub="Needs attention" color={T.orange} />
       </div>
 
@@ -612,16 +617,16 @@ export default function CustomerStatusDashboard() {
               <DonutChart data={engagementData} colorMap={ENGAGEMENT_CHART_COLOR} total={customers.length} />
               <ChartLegend data={engagementData} colorMap={ENGAGEMENT_CHART_COLOR} />
             </ChartCard>
-            <ChartCard title="Auto-Optimise State">
+            <ChartCard title="Auto-Optimize State">
               <DonutChart data={autoOptData.filter(d => d.value > 0)} colorMap={AUTOOPT_CHART_COLOR} total={customers.length} />
               <ChartLegend data={autoOptData.filter(d => d.value > 0)} colorMap={AUTOOPT_CHART_COLOR} />
             </ChartCard>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <ChartCard title="Auto-Optimise Journey — All Customers">
+            <ChartCard title="Auto-Optimize Journey — All Customers">
               <HBarChart data={autoOptData} colorMap={AUTOOPT_CHART_COLOR} />
-              <Callout num={`${autoOptPct}%`} text="of customers fully Auto-Optimised" bg={T.blueLight} color={T.blue} />
+              <Callout num={`${autoOptPct}%`} text="of customers fully Auto-Optimized" bg={T.blueLight} color={T.blue} />
             </ChartCard>
             <ChartCard title="On Hold — Reasons Breakdown">
               {onHold.length === 0
@@ -674,7 +679,7 @@ export default function CustomerStatusDashboard() {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: T.surfaceSecondary, borderBottom: `1px solid ${T.border}` }}>
-                      {["Customer", "Status", "Auto-Optimise", "Migration / Hold", "Notes"].map(h => (
+                      {["Customer", "Status", "Auto-Optimize", "Migration / Hold", "Notes"].map(h => (
                         <th key={h} style={{ textAlign: "left", padding: "9px 14px", fontSize: 11, color: T.textSecondary, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -719,7 +724,7 @@ export default function CustomerStatusDashboard() {
 
             {/* Detail Panel */}
             {sel && (
-              <div style={{ width: 400, minWidth: 400, borderLeft: `1px solid ${T.border}`, padding: "18px 16px", background: T.surface, display: "flex", flexDirection: "column", gap: 13, overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
+              <div style={{ width: 500, minWidth: 500, borderLeft: `1px solid ${T.border}`, padding: "18px 16px", background: T.surface, display: "flex", flexDirection: "column", gap: 13, overflowY: "auto", maxHeight: "calc(100vh - 200px)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{sel.name}</div>
@@ -730,12 +735,15 @@ export default function CustomerStatusDashboard() {
                 <div style={{ height: 1, background: T.border }} />
                 <Field label="Status"><Sel value={sel.status} options={STATUS_OPTIONS} onChange={v => update(sel.id, "status", v)} /></Field>
                 <Field label="Engagement"><Sel value={sel.engagement} options={ENGAGEMENT_STATES} onChange={v => update(sel.id, "engagement", v)} /></Field>
-                <Field label="Auto-Optimise State"><Sel value={sel.autoOpt} options={AUTO_OPT_STATES} onChange={v => update(sel.id, "autoOpt", v)} /></Field>
+                <Field label="Auto-Optimize State"><Sel value={sel.autoOpt} options={AUTO_OPT_STATES} onChange={v => update(sel.id, "autoOpt", v)} /></Field>
                 {sel.status.startsWith("On Hold") && <>
                   <Field label="Hold Reason"><Sel value={sel.holdReason} options={["", ...HOLD_REASONS]} onChange={v => update(sel.id, "holdReason", v)} /></Field>
                   <Field label="Expected Re-engagement"><input type="date" value={sel.holdDate} onChange={e => update(sel.id, "holdDate", e.target.value)} style={inputStyle} /></Field>
                 </>}
-                <Field label="Migration Type"><Sel value={sel.migration} options={MIGRATION_TYPES} onChange={v => update(sel.id, "migration", v)} /></Field>
+                {sel.status === "On Hold - Migration" && (
+                  <Field label="Migration Path"><Sel value={sel.migrationPath} options={MIGRATION_PATHS} onChange={v => update(sel.id, "migrationPath", v)} /></Field>
+                )}
+                <Field label="Implementation"><Sel value={sel.migration} options={MIGRATION_TYPES} onChange={v => update(sel.id, "migration", v)} /></Field>
                 <Field label="Notes"><textarea value={sel.notes} onChange={e => update(sel.id, "notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
                 <div style={{ height: 1, background: T.border }} />
 
@@ -777,7 +785,7 @@ export default function CustomerStatusDashboard() {
 
                 <div style={{ height: 1, background: T.border }} />
                 <div>
-                  <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10 }}>Auto-Optimise Journey</div>
+                  <div style={{ fontSize: 10, color: T.textSecondary, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 10 }}>Auto-Optimize Journey</div>
                   {AUTO_OPT_STATES.map((s, i) => {
                     const curr = AUTO_OPT_STATES.indexOf(sel.autoOpt as typeof AUTO_OPT_STATES[number]);
                     const done = i <= curr, active = i === curr;
@@ -866,7 +874,7 @@ export default function CustomerStatusDashboard() {
             <Field label="Name"><input value={newC.name} onChange={e => setNewC(p => ({ ...p, name: e.target.value }))} placeholder="Customer name" style={inputStyle} /></Field>
             <Field label="Status"><Sel value={newC.status} options={STATUS_OPTIONS} onChange={v => setNewC(p => ({ ...p, status: v as CustomerStatus }))} /></Field>
             <Field label="Engagement"><Sel value={newC.engagement} options={ENGAGEMENT_STATES} onChange={v => setNewC(p => ({ ...p, engagement: v as EngagementState }))} /></Field>
-            <Field label="Auto-Optimise"><Sel value={newC.autoOpt} options={AUTO_OPT_STATES} onChange={v => setNewC(p => ({ ...p, autoOpt: v as AutoOptState }))} /></Field>
+            <Field label="Auto-Optimize"><Sel value={newC.autoOpt} options={AUTO_OPT_STATES} onChange={v => setNewC(p => ({ ...p, autoOpt: v as AutoOptState }))} /></Field>
             <Field label="Notes"><input value={newC.notes} onChange={e => setNewC(p => ({ ...p, notes: e.target.value }))} placeholder="Optional" style={inputStyle} /></Field>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={addCustomer} style={{ flex: 1, padding: 8, borderRadius: 4, background: T.blue, border: "none", color: "#fff", fontFamily: "inherit", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Add Customer</button>
