@@ -59,10 +59,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // customFields — only include if non-empty, so older deployments without the
-    // field aren't broken.
+    // customFields — a.json() maps to AppSync AWSJSON scalar which requires a
+    // JSON string, not a plain object. Stringify before passing to Amplify client.
     if (customFields && typeof customFields === "object" && Object.keys(customFields).length > 0) {
-      input.customFields = customFields;
+      input.customFields = JSON.stringify(customFields);
     }
 
     // boolean flags — explicitly store false so toggles work correctly

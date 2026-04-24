@@ -30,6 +30,12 @@ const IMS_SCOPES = "openid,AdobeID,additional_info,additional_info.projectedProd
 /** localStorage key for developer-entered manual token */
 export const MANUAL_TOKEN_KEY = "aso_manual_ims_token";
 
+/** localStorage key for session login timestamp */
+const LOGIN_TIME_KEY = "aso_ims_login_time";
+
+/** Maximum session age before forcing re-login (24 hours) */
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface IMSProfile {
@@ -114,6 +120,12 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
             const tokenStr =
               typeof token === "object" ? token.token : token;
             setImsToken(tokenStr ?? "");
+            // Record session start time on first login (not on silent refresh)
+            try {
+              if (!localStorage.getItem(LOGIN_TIME_KEY)) {
+                localStorage.setItem(LOGIN_TIME_KEY, Date.now().toString());
+              }
+            } catch { /* ignore */ }
             // Eagerly fetch profile in case onProfile hasn't fired yet
             (instance as { getProfile: () => Promise<IMSProfile> }).getProfile()
               .then((p) => { if (p) setProfile(p); })
@@ -182,8 +194,9 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
   }, [adobeIMS]);
 
   const signOut = useCallback(() => {
-    // Clear manual token
+    // Clear manual token and session timestamp
     localStorage.removeItem(MANUAL_TOKEN_KEY);
+    localStorage.removeItem(LOGIN_TIME_KEY);
     setManualTokenState("");
     setImsToken("");
     setProfile(null);
@@ -209,6 +222,25 @@ export function IMSAuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [adobeIMS]);
+
+  // Enforce 24-hour session expiry — must be after signOut is defined
+  useEffect(() => {
+    if (!isReady) return;
+
+    function checkSessionExpiry() {
+      try {
+        const raw = localStorage.getItem(LOGIN_TIME_KEY);
+        if (!raw) return;
+        if (Date.now() - parseInt(raw, 10) > SESSION_MAX_AGE_MS) {
+          signOut();
+        }
+      } catch { /* ignore */ }
+    }
+
+    checkSessionExpiry();
+    const timer = setInterval(checkSessionExpiry, 60 * 1000);
+    return () => clearInterval(timer);
+  }, [isReady, signOut]);
 
   const setManualToken = useCallback((token: string) => {
     const trimmed = token.trim();

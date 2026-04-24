@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import styles from "./Header.module.css";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { useTheme, type ColorScheme, type FontSize } from "@/contexts/ThemeContext";
@@ -18,6 +18,7 @@ function SettingsPanel() {
   const { colorScheme, fontSize, setColorScheme, setFontSize } = useTheme();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Close on outside click
   useEffect(() => {
@@ -75,6 +76,16 @@ function SettingsPanel() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className={styles.settingsSection}>
+            <span className={styles.settingsLabel}>Integrations</span>
+            <button
+              className={styles.settingsToggleBtn}
+              onClick={() => { setOpen(false); router.push("/teams-settings"); }}
+            >
+              Microsoft Teams
+            </button>
           </div>
         </div>
       )}
