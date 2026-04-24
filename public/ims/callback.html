@@ -235,6 +235,7 @@
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token || null,
           expiresAt: Date.now() + (tokenData.expires_in * 1000),
+          loginTime: Date.now(),
           profile,
           imsOrgId: profile?.projectedProductContext?.[0]?.prodCtx?.owningEntity || null,
         };

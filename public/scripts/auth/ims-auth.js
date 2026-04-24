@@ -28,6 +28,12 @@ import {
 } from './ims-config.js';
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
+
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/* ------------------------------------------------------------------ */
 /*  State                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -92,14 +98,26 @@ function base64URLEncode(bytes) {
 /**
  * Store auth state in localStorage so it is available across all tabs.
  * The PKCE verifier remains in sessionStorage (it is tab-scoped and single-use).
+ * Preserves existing loginTime so refresh cycles don't reset the 24-hour clock.
  * @param {AuthState} state
  */
 export function storeAuthState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const existing = loadAuthState();
+    const loginTime = state.loginTime ?? existing?.loginTime ?? Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, loginTime }));
   } catch (e) {
     console.error('[IMS] Failed to store auth state', e);
   }
+}
+
+/**
+ * @returns {boolean} Whether the stored session is within the 24-hour window.
+ */
+function isSessionFresh() {
+  const state = loadAuthState();
+  if (!state?.loginTime) return true; // no timestamp — treat as fresh (legacy)
+  return Date.now() - state.loginTime < SESSION_MAX_AGE_MS;
 }
 
 /**
@@ -315,6 +333,12 @@ function startAutoRefresh() {
     const state = loadAuthState();
     if (!state?.accessToken || !state?.refreshToken) return;
 
+    if (!isSessionFresh()) {
+      console.log('[IMS] Session exceeded 24 hours — signing out');
+      signOut();
+      return;
+    }
+
     const minutesLeft = (state.expiresAt - Date.now()) / 60000;
     if (minutesLeft > 0 && minutesLeft < 10) {
       console.log(`[IMS] Token expires in ${minutesLeft.toFixed(1)}m — refreshing`);
@@ -346,6 +370,14 @@ export async function initIMS() {
   const state = loadAuthState();
 
   if (state?.accessToken) {
+    // Enforce 24-hour session limit regardless of token freshness
+    if (!isSessionFresh()) {
+      console.log('[IMS] Session older than 24 hours — forcing re-login');
+      clearAuthState();
+      notifyReady();
+      return;
+    }
+
     const now = Date.now();
     if (state.expiresAt > now) {
       // Token is valid
@@ -426,21 +458,23 @@ export function signOut(imsLogout = false) {
 }
 
 /**
- * @returns {boolean} Whether the user has a valid (non-expired) access token.
+ * @returns {boolean} Whether the user has a valid (non-expired) access token within a 24-hour session.
  */
 export function isAuthenticated() {
   const state = loadAuthState();
   if (!state?.accessToken) return false;
+  if (!isSessionFresh()) return false;
   return state.expiresAt > Date.now();
 }
 
 /**
- * @returns {string|null} Current access token, or null if not authenticated.
+ * @returns {string|null} Current access token, or null if not authenticated or session expired.
  */
 export function getAccessToken() {
   const state = loadAuthState();
   if (!state?.accessToken) return null;
-  if (state.expiresAt <= Date.now()) return null; // expired
+  if (!isSessionFresh()) return null;
+  if (state.expiresAt <= Date.now()) return null;
   return state.accessToken;
 }
 
