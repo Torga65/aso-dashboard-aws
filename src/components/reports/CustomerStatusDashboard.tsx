@@ -530,11 +530,9 @@ export default function CustomerStatusDashboard() {
       const res = await fetch("/api/customers/upsert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: c.name,
-          week: c._week || undefined,
-          customFields,
-        }),
+        // Omit week — server defaults to current Monday so customFields always
+        // land on the latest snapshot (the one the dashboard will display after refresh).
+        body: JSON.stringify({ companyName: c.name, customFields }),
       });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Save failed");
